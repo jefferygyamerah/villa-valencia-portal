@@ -21,10 +21,10 @@ window.APROVIVA_CONFIG = {
 
   // Google Drive folder URLs — open in new tab from nav and cards
   DRIVE_LINKS: {
-    asambleas:   'https://drive.google.com/drive/folders/YOUR_FOLDER_ID',
-    finanzas:    'https://drive.google.com/drive/folders/YOUR_FOLDER_ID',
-    comunicados: 'https://drive.google.com/drive/folders/YOUR_FOLDER_ID',
-    planos:      'https://drive.google.com/drive/folders/YOUR_FOLDER_ID',
-    documentos:  'https://drive.google.com/drive/folders/YOUR_FOLDER_ID',
+    asambleas:   'https://drive.google.com/drive/folders/1JsUzlFz2ImILowa5-Y4vLI3S0wqaTBtc',
+    finanzas:    'https://drive.google.com/drive/folders/1JFxrA8lMiCyBeKjahEu1wGW58BsSs0qA',
+    comunicados: 'https://drive.google.com/drive/folders/1JudSzn7Dz-4ga1w9rOTrzjdFJAh_m0Co',
+    planos:      'https://drive.google.com/drive/folders/1cRsTsxNqq4M2V0BGYBOZOT7jTJqTVyWP',
+    proyectos:   'https://drive.google.com/drive/folders/1AafYkFFj23xFcSWaS4yfAgBGUOLcetu4',
   },
 };
