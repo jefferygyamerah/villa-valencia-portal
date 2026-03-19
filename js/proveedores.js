@@ -190,7 +190,6 @@
   window._closeDetail = closeDetail;
 
   document.addEventListener('DOMContentLoaded', function () {
-    window.APROVIVA_AUTH.initAuthUI();
     applyFilters();
     setupCardClicks();
     setupModalBackdrops();

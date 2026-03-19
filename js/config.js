@@ -1,20 +1,11 @@
 /**
  * APROVIVA Portal Configuration
- * All external URLs, IDs, and feature flags in one place.
- * Update these values before deploying to production.
+ * All external URLs and feature flags in one place.
  */
 window.APROVIVA_CONFIG = {
-  // Google OAuth 2.0 Client ID (from Google Cloud Console)
-  GOOGLE_CLIENT_ID: '224136048009-buio7k707fe1ihmr439bbulbq60aesl.apps.googleusercontent.com',
-
-  // Restrict login to a specific email domain (null = allow any Google account)
-  ALLOWED_DOMAIN: null,
-
-  // Demo mode: allows bypassing auth for preview purposes
-  DEMO_MODE_ENABLED: true,
-
-  // PQRS Google Form — URL to open in new tab
-  PQRS_FORM_URL: 'https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform',
+  // Google Apps Script Web App URL (handles PQRS submit + dashboard data)
+  // Deploy the script from the PQRS spreadsheet, then paste the URL here.
+  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzwbIHtZgjjI5fbrJlyCjJInwtPCoe8lu5YcNyunvQBmHgmIRCOy2S04QRLo4QfqqWp6g/exec',
 
   // Provider suggestion Google Form (if separate from PQRS)
   PROVIDER_SUGGEST_FORM_URL: null,

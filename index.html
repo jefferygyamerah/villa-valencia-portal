@@ -9,19 +9,6 @@
 </head>
 <body>
 
-<!-- LOGIN OVERLAY -->
-<div class="login-overlay" id="loginOverlay" style="display:none;">
-  <div class="login-box">
-    <div style="font-size:2.5rem;margin-bottom:0.5rem;">&#x1F305;</div>
-    <h2>Portal APROVIVA</h2>
-    <p>Bienvenido al portal de residentes de<br><strong>Villa Valencia</strong>.<br>Inicia sesi&oacute;n con tu cuenta Google autorizada.</p>
-    <div id="login-error" class="login-error"></div>
-    <div id="g-signin-btn" style="display:flex;justify-content:center;margin-bottom:0.75rem;"></div>
-    <p class="login-note">Solo residentes y propietarios autorizados de Villa Valencia tienen acceso.</p>
-    <button class="demo-btn" id="demo-btn">Ver demo sin iniciar sesi&oacute;n &rarr;</button>
-  </div>
-</div>
-
 <!-- HEADER -->
 <header>
   <div class="logo-wrap">
@@ -32,14 +19,6 @@
       <span>APROVIVA</span>
       <span>Portal de Residentes &middot; Villa Valencia</span>
     </div>
-  </div>
-  <div id="auth-area">
-    <button class="btn-login" onclick="document.getElementById('loginOverlay').style.display='flex'">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-      </svg>
-      Iniciar Sesi&oacute;n
-    </button>
   </div>
 </header>
 
@@ -62,8 +41,7 @@
   <p>Tu espacio digital para acceder a toda la informaci&oacute;n de la copropiedad, gestionar solicitudes y mantenerte informado.</p>
 </div>
 
-<!-- PROTECTED CONTENT -->
-<div id="protected-content" class="hidden">
+<!-- MAIN CONTENT -->
 <main>
 
   <!-- QUICK ACCESS -->
@@ -84,7 +62,7 @@
       <h3>Comunicados</h3>
       <p>Circulares y avisos oficiales</p>
     </a>
-    <a class="card" href="#pqrs">
+    <a class="card" href="#" onclick="window._openPqrs();return false">
       <div class="card-icon" style="background:#fdf2f8;">&#x1F4DD;</div>
       <h3>Radicar PQRS</h3>
       <p>Peticiones, quejas y sugerencias</p>
@@ -141,14 +119,57 @@
         Env&iacute;a tu petici&oacute;n, queja, reclamo o sugerencia a trav&eacute;s del formulario oficial de APROVIVA.
         Tu solicitud ser&aacute; atendida por la administraci&oacute;n.
       </p>
-      <button class="btn-primary" id="pqrs-submit">
-        Abrir formulario PQRS &rarr;
+      <button class="btn-primary" onclick="window._openPqrs()">
+        Radicar PQRS &rarr;
       </button>
-      <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.75rem;text-align:center;">
-        Se abrir&aacute; el formulario de Google Forms en una nueva pesta&ntilde;a.
-      </p>
     </div>
 
+  </div>
+
+  <!-- PQRS DASHBOARD -->
+  <h2 class="section-title">&#x1F4CA; Estado de Reportes PQRS</h2>
+  <div id="pqrs-dashboard" class="pqrs-dashboard">
+    <div class="dash-loading" id="dashLoading">Cargando datos...</div>
+    <div class="dash-content" id="dashContent" style="display:none;">
+      <!-- KPI CARDS -->
+      <div class="dash-kpis">
+        <div class="dash-kpi">
+          <div class="dash-kpi-value" id="kpi-total">0</div>
+          <div class="dash-kpi-label">Total reportes</div>
+        </div>
+        <div class="dash-kpi">
+          <div class="dash-kpi-value dash-kpi-alta" id="kpi-alta">0</div>
+          <div class="dash-kpi-label">Urgencia alta</div>
+        </div>
+        <div class="dash-kpi">
+          <div class="dash-kpi-value dash-kpi-media" id="kpi-media">0</div>
+          <div class="dash-kpi-label">Urgencia media</div>
+        </div>
+        <div class="dash-kpi">
+          <div class="dash-kpi-value dash-kpi-baja" id="kpi-baja">0</div>
+          <div class="dash-kpi-label">Urgencia baja</div>
+        </div>
+      </div>
+      <!-- CHARTS ROW -->
+      <div class="dash-charts">
+        <div class="dash-chart-panel">
+          <div class="dash-chart-title">Por tipo de reporte</div>
+          <div id="chart-tipo"></div>
+        </div>
+        <div class="dash-chart-panel">
+          <div class="dash-chart-title">Por ubicaci&oacute;n</div>
+          <div id="chart-ubicacion"></div>
+        </div>
+      </div>
+      <!-- RECENT REPORTS -->
+      <div class="dash-recent-panel">
+        <div class="dash-chart-title">Reportes recientes</div>
+        <div id="dash-recent"></div>
+      </div>
+    </div>
+    <div class="dash-error" id="dashError" style="display:none;">
+      No se pudieron cargar los datos. Verifica que el Apps Script est&eacute; configurado.
+    </div>
   </div>
 
   <!-- FINANZAS PREVIEW -->
@@ -195,15 +216,82 @@
 
 </main>
 
+<!-- PQRS MODAL -->
+<div class="modal-overlay" id="pqrsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">&#x1F4DD; Radicar PQRS</div>
+      <button class="modal-close" onclick="window._closePqrs()">&#x2715;</button>
+    </div>
+    <div id="pqrsForm">
+      <div class="modal-desc">&#x1F4CB; Tu reporte ser&aacute; recibido por la administraci&oacute;n de APROVIVA y atendido seg&uacute;n su prioridad.</div>
+      <div class="form-group">
+        <label class="form-label">Resumen del reporte</label>
+        <input type="text" class="form-input" id="pqrs-resumen" placeholder="Ej. Fuga de agua en la calle 3"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripci&oacute;n detallada <span class="req">*</span></label>
+        <textarea class="form-textarea" id="pqrs-descripcion" placeholder="Describe la situaci&oacute;n con el mayor detalle posible..." style="height:100px;"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo de reporte <span class="req">*</span></label>
+          <select class="form-select" id="pqrs-tipo">
+            <option value="">Seleccionar...</option>
+            <option>Incidencia t&eacute;cnica</option>
+            <option>Solicitud de mantenimiento</option>
+            <option>Propuesta de mejora</option>
+            <option>Queja o comentario</option>
+            <option>Consulta administrativa</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ubicaci&oacute;n <span class="req">*</span></label>
+          <select class="form-select" id="pqrs-ubicacion">
+            <option value="">Seleccionar...</option>
+            <option>Garita</option>
+            <option>Piscina</option>
+            <option>&Aacute;rea Social</option>
+            <option>Calles</option>
+            <option>Otro</option>
+            <option>No Aplica</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Urgencia</label>
+          <select class="form-select" id="pqrs-urgencia">
+            <option value="">Seleccionar...</option>
+            <option>Alta</option>
+            <option>Media</option>
+            <option>Baja</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">N&uacute;mero de casa <span class="req">*</span></label>
+          <input type="text" class="form-input" id="pqrs-casa" placeholder="Ej. 104"/>
+        </div>
+      </div>
+      <p style="font-size:0.72rem;color:var(--text-light);margin-bottom:0.5rem;">&#x1F4F7; &iquest;Tienes fotos? Env&iacute;alas al WhatsApp de la administraci&oacute;n junto con tu n&uacute;mero de casa.</p>
+      <button class="btn-submit" onclick="window._submitPqrs()">Enviar reporte &rarr;</button>
+      <p class="approval-note">&#x1F512; Tu reporte es confidencial y ser&aacute; atendido por la administraci&oacute;n.</p>
+    </div>
+    <div class="success-msg" id="pqrsSuccess">
+      <div class="success-icon-wrap">&#x2705;</div>
+      <h3>&iexcl;Reporte enviado!</h3>
+      <p>Gracias. La administraci&oacute;n de APROVIVA revisar&aacute; tu reporte y te contactar&aacute; si necesita m&aacute;s informaci&oacute;n.</p>
+    </div>
+  </div>
+</div>
+
 <!-- FOOTER -->
 <footer>
   <strong>APROVIVA</strong> &middot; Asociaci&oacute;n de Propietarios Villa Valencia<br>
   Portal de Residentes &middot; Todos los derechos reservados &copy; 2026
 </footer>
-</div><!-- /protected-content -->
-
 <script src="js/config.js"></script>
-<script src="js/auth.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

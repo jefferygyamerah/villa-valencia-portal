@@ -9,19 +9,6 @@
 </head>
 <body>
 
-<!-- LOGIN OVERLAY -->
-<div class="login-overlay" id="loginOverlay" style="display:none;">
-  <div class="login-box">
-    <div style="font-size:2.5rem;margin-bottom:0.5rem;">&#x1F305;</div>
-    <h2>Portal APROVIVA</h2>
-    <p>Bienvenido al portal de residentes de<br><strong>Villa Valencia</strong>.<br>Inicia sesi&oacute;n con tu cuenta Google autorizada.</p>
-    <div id="login-error" class="login-error"></div>
-    <div id="g-signin-btn" style="display:flex;justify-content:center;margin-bottom:0.75rem;"></div>
-    <p class="login-note">Solo residentes y propietarios autorizados de Villa Valencia tienen acceso.</p>
-    <button class="demo-btn" id="demo-btn">Ver demo sin iniciar sesi&oacute;n &rarr;</button>
-  </div>
-</div>
-
 <!-- TOPBAR -->
 <div class="topbar">&larr; <a href="index.html">Portal APROVIVA</a> &nbsp;&middot;&nbsp; Directorio de Proveedores &middot; Villa Valencia</div>
 
@@ -36,7 +23,6 @@
   </div>
   <div style="display:flex;align-items:center;gap:1rem;">
     <button class="btn-suggest" onclick="window._openSuggest()">&#x2795; Agregar Proveedor</button>
-    <div id="auth-area"></div>
   </div>
 </header>
 
@@ -54,8 +40,7 @@
   </div>
 </div>
 
-<!-- PROTECTED CONTENT -->
-<div id="protected-content" class="hidden">
+<!-- MAIN CONTENT -->
 <div class="main-sidebar">
   <!-- SIDEBAR -->
   <div>
@@ -94,8 +79,6 @@
   <strong>APROVIVA</strong> &middot; Asociaci&oacute;n de Propietarios Villa Valencia<br>
   Portal de Residentes &middot; Todos los derechos reservados &copy; 2026
 </footer>
-</div><!-- /protected-content -->
-
 <!-- SUGGEST MODAL -->
 <div class="modal-overlay" id="suggestModal">
   <div class="modal">
@@ -173,7 +156,6 @@
 </div>
 
 <script src="js/config.js"></script>
-<script src="js/auth.js"></script>
 <script src="js/proveedores.js"></script>
 </body>
 </html>
