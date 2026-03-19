@@ -80,6 +80,15 @@ function saveProvider(data) {
 
 // GET — return PQRS data for dashboard
 function doGet(e) {
+  var action = (e && e.parameter && e.parameter.action) || 'pqrs';
+
+  if (action === 'setup-reporting') {
+    var id = setupReporting();
+    return ContentService.createTextOutput(
+      JSON.stringify({ status: 'ok', spreadsheetId: id })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
   var sheet = getPqrsSheet();
   var data = sheet.getDataRange().getValues();
   var rows = [];
