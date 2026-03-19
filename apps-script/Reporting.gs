@@ -1,23 +1,31 @@
 /**
- * Creates a reporting folder and a flat-table copy of the budget
- * for Looker Studio consumption.
+ * Reporting data generator for APROVIVA Portal.
  *
- * Run once via Apps Script to set up, then schedule monthly refresh.
+ * Reads the latest monthly informe financiero (XLSX) from Drive,
+ * extracts budget vs actual from "Estado de Presupuesto" sheet,
+ * and writes a flat table to the reporting spreadsheet.
+ *
+ * Auto-refreshes via hourly trigger.
+ * Run setupReporting() once, then installTriggers() once.
  */
 
+var FINANZAS_FOLDER_ID = '1JFxrA8lMiCyBeKjahEu1wGW58BsSs0qA';
+var INFORMES_2026_FOLDER_ID = '1YqL-WgiaJT_WGS7uniSYnXpYbTYcZk6S';
+var ENTREGA_FOLDER_ID = '1-gF8X8k4hIpcgZ4KhxvpxsPmclyRX8-3';
+var BUDGET_SPREADSHEET_ID = '1CGmPqMbRsC3EI-8Gq53zd1rjjt-EeG62XidwuBSddgk';
+var BUDGET_SHEET_NAME = 'PRESUPUESTO 2026 REVISADO';
+
 function setupReporting() {
-  // Create reporting folder in the finanzas folder
-  var finanzasFolder = DriveApp.getFolderById('1JFxrA8lMiCyBeKjahEu1wGW58BsSs0qA');
+  var finanzasFolder = DriveApp.getFolderById(FINANZAS_FOLDER_ID);
   var reportingFolders = finanzasFolder.getFoldersByName('Reporting - No Editar');
   var reportingFolder;
   if (reportingFolders.hasNext()) {
     reportingFolder = reportingFolders.next();
   } else {
     reportingFolder = finanzasFolder.createFolder('Reporting - No Editar');
-    reportingFolder.setDescription('Datos estructurados para dashboards. No editar manualmente — se actualiza automáticamente.');
+    reportingFolder.setDescription('Datos para dashboards. No editar — se actualiza automáticamente.');
   }
 
-  // Create or get the reporting spreadsheet
   var fileName = 'Presupuesto 2026 - Dashboard Data';
   var existing = reportingFolder.getFilesByName(fileName);
   var ss;
@@ -28,7 +36,6 @@ function setupReporting() {
     DriveApp.getFileById(ss.getId()).moveTo(reportingFolder);
   }
 
-  // Build the flat table
   refreshBudgetData(ss);
 
   Logger.log('Reporting spreadsheet: ' + ss.getUrl());
@@ -38,168 +45,288 @@ function setupReporting() {
 
 function refreshBudgetData(ss) {
   if (!ss) {
-    // Find the reporting spreadsheet
-    var finanzasFolder = DriveApp.getFolderById('1JFxrA8lMiCyBeKjahEu1wGW58BsSs0qA');
-    var reportingFolders = finanzasFolder.getFoldersByName('Reporting - No Editar');
-    if (!reportingFolders.hasNext()) return;
-    var reportingFolder = reportingFolders.next();
-    var files = reportingFolder.getFilesByName('Presupuesto 2026 - Dashboard Data');
-    if (!files.hasNext()) return;
-    ss = SpreadsheetApp.open(files.next());
+    ss = getReportingSpreadsheet();
+    if (!ss) return;
   }
 
-  var source = SpreadsheetApp.openById('1CGmPqMbRsC3EI-8Gq53zd1rjjt-EeG62XidwuBSddgk');
-  var srcSheet = source.getSheetByName('PRESUPUESTO 2026 REVISADO');
+  // Read the latest informe to get actuals
+  var actuals = readLatestInforme();
+
+  // Read the annual budget for baseline
+  var budget = readAnnualBudget();
+
+  // Build flat table combining budget + actuals
+  writeFlatTable(ss, budget, actuals);
+}
+
+function getReportingSpreadsheet() {
+  var finanzasFolder = DriveApp.getFolderById(FINANZAS_FOLDER_ID);
+  var reportingFolders = finanzasFolder.getFoldersByName('Reporting - No Editar');
+  if (!reportingFolders.hasNext()) return null;
+  var files = reportingFolders.next().getFilesByName('Presupuesto 2026 - Dashboard Data');
+  if (!files.hasNext()) return null;
+  return SpreadsheetApp.open(files.next());
+}
+
+/**
+ * Find and read the latest monthly informe XLSX.
+ * Returns array of {concepto, presupuestoAnual, mesActual, realAcumulado, pctEjecucion, saldo, categoria}
+ */
+function readLatestInforme() {
+  var folder = DriveApp.getFolderById(ENTREGA_FOLDER_ID);
+  var files = folder.getFiles();
+  var latestXlsx = null;
+  var latestDate = new Date(0);
+
+  while (files.hasNext()) {
+    var file = files.next();
+    var name = file.getName();
+    if (name.indexOf('.xlsx') !== -1 || name.indexOf('.XLSX') !== -1) {
+      var created = file.getDateCreated();
+      if (created > latestDate) {
+        latestDate = created;
+        latestXlsx = file;
+      }
+    }
+  }
+
+  if (!latestXlsx) return { rows: [], month: '', fileDate: null };
+
+  // Convert XLSX to Google Sheets temporarily
+  var blob = latestXlsx.getBlob();
+  var converted = Drive.Files.insert(
+    { title: 'temp-informe-' + Date.now(), mimeType: 'application/vnd.google-apps.spreadsheet' },
+    blob, { convert: true }
+  );
+
+  var tempSs = SpreadsheetApp.openById(converted.id);
+  var presSheet = tempSs.getSheetByName('Estado de Presupuesto');
+  var result = { rows: [], month: '', fileDate: latestDate };
+
+  if (presSheet) {
+    var data = presSheet.getDataRange().getValues();
+
+    // Extract month from header (row 2 typically: "Al 31 de Enero de 2026")
+    for (var h = 0; h < Math.min(5, data.length); h++) {
+      var headerText = String(data[h][0] || '');
+      var monthMatch = headerText.match(/(?:Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)/i);
+      if (monthMatch) {
+        result.month = monthMatch[0];
+        break;
+      }
+    }
+
+    // Parse rows — the format is:
+    // Col A: Cuenta (concept name)
+    // Col B: Presupuesto Anual
+    // Col C: Mes actual amount
+    // Col D: Real Acumulado
+    // Col E: % Ejecucion
+    // Col F: Saldo Restante
+    var currentCategory = '';
+    for (var i = 6; i < data.length; i++) {
+      var concepto = String(data[i][0] || '').trim();
+      if (!concepto) continue;
+
+      // Detect category headers
+      if (concepto === 'Ingresos' || concepto === 'Total de Ingresos') {
+        if (concepto === 'Ingresos') currentCategory = 'Ingresos';
+        continue;
+      }
+      if (concepto.indexOf('Gastos Generales') !== -1) { currentCategory = 'Gastos'; continue; }
+      if (concepto.indexOf('Gastos de Personal') !== -1) { currentCategory = 'Gastos de Personal'; continue; }
+      if (concepto.indexOf('Servicios Básicos') !== -1 && !data[i][1]) { currentCategory = 'Servicios Básicos'; continue; }
+      if (concepto.indexOf('Gastos de Funcionamiento') !== -1 && !data[i][1]) { currentCategory = 'Gastos de Funcionamiento'; continue; }
+      if (concepto.indexOf('Mantenimientos Preventivos') !== -1 && !data[i][1]) { currentCategory = 'Mantenimientos Preventivos'; continue; }
+      if (concepto.indexOf('Mantenimientos Correctivos') !== -1 && !data[i][1]) { currentCategory = 'Mantenimientos Correctivos'; continue; }
+      if (concepto.indexOf('Otros Gastos') !== -1 && !data[i][1]) { currentCategory = 'Otros Gastos'; continue; }
+
+      // Skip totals
+      if (concepto.indexOf('Total de') !== -1 || concepto.indexOf('TOTAL') !== -1) continue;
+
+      var presAnual = Number(data[i][1]) || 0;
+      var mesActual = Number(data[i][2]) || 0;
+      var realAcum = Number(data[i][3]) || 0;
+      var pctEjec = Number(data[i][4]) || 0;
+      var saldo = Number(data[i][5]) || 0;
+
+      // Only include rows that have some data
+      if (presAnual || mesActual || realAcum) {
+        result.rows.push({
+          concepto: concepto,
+          categoria: currentCategory,
+          presupuestoAnual: presAnual,
+          mesActual: mesActual,
+          realAcumulado: realAcum,
+          pctEjecucion: pctEjec,
+          saldoRestante: saldo
+        });
+      }
+    }
+  }
+
+  // Clean up temp file
+  DriveApp.getFileById(converted.id).setTrashed(true);
+
+  return result;
+}
+
+/**
+ * Read the annual budget spreadsheet for monthly planned amounts.
+ */
+function readAnnualBudget() {
+  var source = SpreadsheetApp.openById(BUDGET_SPREADSHEET_ID);
+  var srcSheet = source.getSheetByName(BUDGET_SHEET_NAME);
   var data = srcSheet.getDataRange().getValues();
 
   var months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-  // Define line items to extract: [rowIndex, category, subcategory]
+  // Map row indices to categories (from budget spreadsheet structure)
   var items = [
-    // Ingresos
-    [5,  'Ingresos', 'Ingresos'],
-    [6,  'Ingresos', 'Ingresos'],
-    // Servicios Básicos
-    [12, 'Gastos', 'Servicios Básicos'],
-    [13, 'Gastos', 'Servicios Básicos'],
-    [14, 'Gastos', 'Servicios Básicos'],
-    [15, 'Gastos', 'Servicios Básicos'],
-    [16, 'Gastos', 'Servicios Básicos'],
-    [17, 'Gastos', 'Servicios Básicos'],
-    [18, 'Gastos', 'Servicios Básicos'],
-    [19, 'Gastos', 'Servicios Básicos'],
-    [20, 'Gastos', 'Servicios Básicos'],
-    [21, 'Gastos', 'Servicios Básicos'],
-    [22, 'Gastos', 'Servicios Básicos'],
-    // Gastos de Funcionamiento
-    [24, 'Gastos', 'Gastos de Funcionamiento'],
-    [25, 'Gastos', 'Gastos de Funcionamiento'],
-    [26, 'Gastos', 'Gastos de Funcionamiento'],
-    [27, 'Gastos', 'Gastos de Funcionamiento'],
-    [28, 'Gastos', 'Gastos de Funcionamiento'],
-    [29, 'Gastos', 'Gastos de Funcionamiento'],
-    [30, 'Gastos', 'Gastos de Funcionamiento'],
-    [31, 'Gastos', 'Gastos de Funcionamiento'],
-    [32, 'Gastos', 'Gastos de Funcionamiento'],
-    [33, 'Gastos', 'Gastos de Funcionamiento'],
-    [34, 'Gastos', 'Gastos de Funcionamiento'],
-    [35, 'Gastos', 'Gastos de Funcionamiento'],
-    // Mantenimientos Preventivos
-    [38, 'Gastos', 'Mantenimientos Preventivos'],
-    [39, 'Gastos', 'Mantenimientos Preventivos'],
-    [40, 'Gastos', 'Mantenimientos Preventivos'],
-    [41, 'Gastos', 'Mantenimientos Preventivos'],
-    [42, 'Gastos', 'Mantenimientos Preventivos'],
-    [43, 'Gastos', 'Mantenimientos Preventivos'],
-    [45, 'Gastos', 'Mantenimientos Preventivos'],
-    [46, 'Gastos', 'Mantenimientos Preventivos'],
-    [47, 'Gastos', 'Mantenimientos Preventivos'],
-    [48, 'Gastos', 'Mantenimientos Preventivos'],
-    [49, 'Gastos', 'Mantenimientos Preventivos'],
-    [50, 'Gastos', 'Mantenimientos Preventivos'],
-    [51, 'Gastos', 'Mantenimientos Preventivos'],
-    // Mantenimientos Correctivos
-    [53, 'Gastos', 'Mantenimientos Correctivos'],
-    [54, 'Gastos', 'Mantenimientos Correctivos'],
-    // Otros Gastos
-    [56, 'Gastos', 'Otros Gastos'],
-    [57, 'Gastos', 'Otros Gastos'],
+    [5, 'Ingresos'], [6, 'Ingresos'],
+    [12, 'Servicios Básicos'], [13, 'Servicios Básicos'], [14, 'Servicios Básicos'],
+    [15, 'Servicios Básicos'], [16, 'Servicios Básicos'], [17, 'Servicios Básicos'],
+    [18, 'Servicios Básicos'], [19, 'Servicios Básicos'], [20, 'Servicios Básicos'],
+    [21, 'Servicios Básicos'], [22, 'Servicios Básicos'],
+    [24, 'Gastos de Funcionamiento'], [25, 'Gastos de Funcionamiento'],
+    [26, 'Gastos de Funcionamiento'], [27, 'Gastos de Funcionamiento'],
+    [28, 'Gastos de Funcionamiento'], [29, 'Gastos de Funcionamiento'],
+    [30, 'Gastos de Funcionamiento'], [31, 'Gastos de Funcionamiento'],
+    [32, 'Gastos de Funcionamiento'], [33, 'Gastos de Funcionamiento'],
+    [34, 'Gastos de Funcionamiento'], [35, 'Gastos de Funcionamiento'],
+    [38, 'Mantenimientos Preventivos'], [39, 'Mantenimientos Preventivos'],
+    [40, 'Mantenimientos Preventivos'], [41, 'Mantenimientos Preventivos'],
+    [42, 'Mantenimientos Preventivos'], [43, 'Mantenimientos Preventivos'],
+    [45, 'Mantenimientos Preventivos'], [46, 'Mantenimientos Preventivos'],
+    [47, 'Mantenimientos Preventivos'], [48, 'Mantenimientos Preventivos'],
+    [49, 'Mantenimientos Preventivos'], [50, 'Mantenimientos Preventivos'],
+    [51, 'Mantenimientos Preventivos'],
+    [53, 'Mantenimientos Correctivos'], [54, 'Mantenimientos Correctivos'],
+    [56, 'Otros Gastos'], [57, 'Otros Gastos'],
   ];
 
-  // Build flat rows: one row per line item per month
-  var flatRows = [['Tipo', 'Categoría', 'Concepto', 'Mes', 'Mes_Num', 'Monto_Presupuestado']];
-
+  var rows = [];
   for (var i = 0; i < items.length; i++) {
     var rowIdx = items[i][0];
-    var tipo = items[i][1];
-    var categoria = items[i][2];
+    var cat = items[i][1];
     if (rowIdx >= data.length) continue;
-
     var concepto = String(data[rowIdx][0] || '').trim();
     if (!concepto) continue;
 
+    var monthly = [];
+    var annual = 0;
     for (var m = 0; m < 12; m++) {
-      var val = Number(data[rowIdx][m + 1]) || 0;
-      if (val === 0 && tipo === 'Ingresos') continue;
-      flatRows.push([tipo, categoria, concepto, months[m], m + 1, val]);
+      var v = Number(data[rowIdx][m + 1]) || 0;
+      monthly.push(v);
+      annual += v;
     }
+    rows.push({ concepto: concepto, categoria: cat, annual: annual, monthly: monthly });
   }
 
-  // Write to sheet
-  var sheetName = 'Presupuesto';
-  var sheet = ss.getSheetByName(sheetName);
+  return { rows: rows, months: months };
+}
+
+/**
+ * Write combined budget + actuals to the reporting spreadsheet.
+ */
+function writeFlatTable(ss, budget, actuals) {
+  var months = budget.months;
+
+  // Sheet 1: Budget (monthly planned)
+  var headers = ['Tipo', 'Categoría', 'Concepto', 'Mes', 'Mes_Num', 'Presupuestado'];
+  var flatRows = [headers];
+  for (var i = 0; i < budget.rows.length; i++) {
+    var r = budget.rows[i];
+    var tipo = r.categoria === 'Ingresos' ? 'Ingresos' : 'Gastos';
+    for (var m = 0; m < 12; m++) {
+      flatRows.push([tipo, r.categoria, r.concepto, months[m], m + 1, r.monthly[m]]);
+    }
+  }
+  writeSheet(ss, 'Presupuesto', flatRows, 5);
+
+  // Sheet 2: Ejecucion (actuals from latest informe)
+  var execHeaders = ['Categoría', 'Concepto', 'Presupuesto_Anual',
+                     'Ejecutado_Mes', 'Ejecutado_Acumulado', 'Pct_Ejecucion', 'Saldo_Restante'];
+  var execRows = [execHeaders];
+  for (var i = 0; i < actuals.rows.length; i++) {
+    var a = actuals.rows[i];
+    execRows.push([a.categoria, a.concepto, a.presupuestoAnual,
+                   a.mesActual, a.realAcumulado, a.pctEjecucion, a.saldoRestante]);
+  }
+  writeSheet(ss, 'Ejecucion', execRows, 2);
+
+  // Sheet 3: Meta
+  var metaSheet = ss.getSheetByName('Meta') || ss.insertSheet('Meta');
+  metaSheet.clear();
+  metaSheet.getRange(1, 1).setValue('Última actualización');
+  metaSheet.getRange(1, 2).setValue(new Date());
+  metaSheet.getRange(2, 1).setValue('Último informe');
+  metaSheet.getRange(2, 2).setValue(actuals.month || 'N/A');
+  metaSheet.getRange(3, 1).setValue('Fecha archivo');
+  metaSheet.getRange(3, 2).setValue(actuals.fileDate || 'N/A');
+  metaSheet.getRange(4, 1).setValue('Nota');
+  metaSheet.getRange(4, 2).setValue('No editar — se regenera automáticamente');
+
+  // Clean up extra sheets
+  var sheets = ss.getSheets();
+  for (var s = 0; s < sheets.length; s++) {
+    var name = sheets[s].getName();
+    if (name !== 'Presupuesto' && name !== 'Ejecucion' && name !== 'Meta' && name !== 'Resumen') {
+      if (sheets.length > 1) ss.deleteSheet(sheets[s]);
+    }
+  }
+}
+
+function writeSheet(ss, name, rows, currencyCol) {
+  var sheet = ss.getSheetByName(name);
   if (sheet) {
     sheet.clear();
   } else {
-    sheet = ss.insertSheet(sheetName);
+    sheet = ss.insertSheet(name);
   }
 
-  if (flatRows.length > 1) {
-    sheet.getRange(1, 1, flatRows.length, flatRows[0].length).setValues(flatRows);
-    // Format header
-    sheet.getRange(1, 1, 1, flatRows[0].length)
+  if (rows.length > 1) {
+    sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+    sheet.getRange(1, 1, 1, rows[0].length)
       .setFontWeight('bold')
       .setBackground('#1A6BB8')
       .setFontColor('#ffffff');
-    // Format currency column
-    sheet.getRange(2, 6, flatRows.length - 1, 1).setNumberFormat('#,##0.00');
-    // Auto-resize
-    for (var c = 1; c <= flatRows[0].length; c++) {
+    if (currencyCol) {
+      sheet.getRange(2, currencyCol + 1, rows.length - 1, 1).setNumberFormat('#,##0.00');
+    }
+    for (var c = 1; c <= rows[0].length; c++) {
       sheet.autoResizeColumn(c);
     }
   }
+}
 
-  // Also create a summary sheet with category totals
-  var summaryName = 'Resumen';
-  var summarySheet = ss.getSheetByName(summaryName);
-  if (summarySheet) {
-    summarySheet.clear();
-  } else {
-    summarySheet = ss.insertSheet(summaryName);
-  }
+/**
+ * Install triggers for automatic refresh.
+ * Run ONCE from the Apps Script editor.
+ */
+function installTriggers() {
+  removeTriggers();
 
-  var summaryRows = [['Categoría', 'Presupuesto Anual']];
-  var catTotals = {};
-  for (var i = 1; i < flatRows.length; i++) {
-    var cat = flatRows[i][1];
-    catTotals[cat] = (catTotals[cat] || 0) + flatRows[i][5];
-  }
-  var catOrder = ['Ingresos', 'Servicios Básicos', 'Gastos de Funcionamiento',
-                  'Mantenimientos Preventivos', 'Mantenimientos Correctivos', 'Otros Gastos'];
-  for (var c = 0; c < catOrder.length; c++) {
-    if (catTotals[catOrder[c]]) {
-      summaryRows.push([catOrder[c], catTotals[catOrder[c]]]);
+  // Hourly trigger — picks up new informe uploads
+  ScriptApp.newTrigger('triggerRefresh')
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  Logger.log('Hourly trigger installed');
+}
+
+function removeTriggers() {
+  var existing = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < existing.length; i++) {
+    var fn = existing[i].getHandlerFunction();
+    if (fn === 'triggerRefresh') {
+      ScriptApp.deleteTrigger(existing[i]);
     }
   }
+}
 
-  summarySheet.getRange(1, 1, summaryRows.length, 2).setValues(summaryRows);
-  summarySheet.getRange(1, 1, 1, 2)
-    .setFontWeight('bold')
-    .setBackground('#1A6BB8')
-    .setFontColor('#ffffff');
-  summarySheet.getRange(2, 2, summaryRows.length - 1, 1).setNumberFormat('#,##0.00');
-  summarySheet.autoResizeColumn(1);
-  summarySheet.autoResizeColumn(2);
-
-  // Delete default Sheet1 if it exists
-  var defaultSheet = ss.getSheetByName('Sheet1');
-  if (defaultSheet && ss.getSheets().length > 1) {
-    ss.deleteSheet(defaultSheet);
-  }
-
-  // Add last-updated timestamp
-  var metaName = 'Meta';
-  var metaSheet = ss.getSheetByName(metaName);
-  if (metaSheet) {
-    metaSheet.clear();
-  } else {
-    metaSheet = ss.insertSheet(metaName);
-  }
-  metaSheet.getRange(1, 1).setValue('Última actualización');
-  metaSheet.getRange(1, 2).setValue(new Date());
-  metaSheet.getRange(2, 1).setValue('Fuente');
-  metaSheet.getRange(2, 2).setValue('BORRADOR PRESUPUESTO 2026');
-  metaSheet.getRange(3, 1).setValue('Nota');
-  metaSheet.getRange(3, 2).setValue('No editar — se regenera automáticamente');
+function triggerRefresh() {
+  refreshBudgetData();
 }

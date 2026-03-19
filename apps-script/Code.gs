@@ -89,6 +89,17 @@ function doGet(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (action === 'install-triggers') {
+    installTriggers();
+    return ContentService.createTextOutput(
+      JSON.stringify({ status: 'ok', message: 'Triggers installed' })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'dump-informe') {
+    return dumpInforme();
+  }
+
   if (action === 'budget') {
     return serveBudgetData();
   }
@@ -116,31 +127,92 @@ function doGet(e) {
   ).setMimeType(ContentService.MimeType.JSON);
 }
 
-// Return flat budget data from reporting spreadsheet
+// Dump a monthly informe for inspection
+function dumpInforme() {
+  // January 2026 XLSX - open it via Drive
+  var file = DriveApp.getFileById('1ZBaZpvgZ3SuJRzOpRD5TUERWUzXXzp-n');
+  // Convert XLSX to Google Sheets to read it
+  var blob = file.getBlob();
+  var converted = Drive.Files.insert(
+    { title: 'temp-informe-read', mimeType: 'application/vnd.google-apps.spreadsheet' },
+    blob, { convert: true }
+  );
+  var ss = SpreadsheetApp.openById(converted.id);
+  var sheets = ss.getSheets();
+  var result = {};
+  for (var s = 0; s < sheets.length; s++) {
+    var sheet = sheets[s];
+    var data = sheet.getDataRange().getValues();
+    result[sheet.getName()] = data.slice(0, 50).map(function(row) {
+      return row.map(function(cell) {
+        if (cell instanceof Date) return cell.toISOString();
+        return cell;
+      });
+    });
+  }
+  // Clean up temp file
+  DriveApp.getFileById(converted.id).setTrashed(true);
+
+  return ContentService.createTextOutput(
+    JSON.stringify(result, null, 2)
+  ).setMimeType(ContentService.MimeType.JSON);
+}
+
+// Return budget + actuals from reporting spreadsheet
 function serveBudgetData() {
   var REPORTING_ID = '1MI6BHRy7Y5abCb1jI1YQcEq19-bAuTDvddznDNfwcaA';
   var ss = SpreadsheetApp.openById(REPORTING_ID);
-  var sheet = ss.getSheetByName('Presupuesto');
-  if (!sheet) {
-    return ContentService.createTextOutput(
-      JSON.stringify({ error: 'Sheet not found' })
-    ).setMimeType(ContentService.MimeType.JSON);
+
+  var result = { budget: [], ejecucion: [], meta: {} };
+
+  // Budget (monthly planned)
+  var budgetSheet = ss.getSheetByName('Presupuesto');
+  if (budgetSheet) {
+    var data = budgetSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      result.budget.push({
+        tipo: data[i][0] || '',
+        categoria: data[i][1] || '',
+        concepto: data[i][2] || '',
+        mes: data[i][3] || '',
+        mesNum: Number(data[i][4]) || 0,
+        monto: Number(data[i][5]) || 0
+      });
+    }
   }
 
-  var data = sheet.getDataRange().getValues();
-  var rows = [];
-  for (var i = 1; i < data.length; i++) {
-    rows.push({
-      tipo: data[i][0] || '',
-      categoria: data[i][1] || '',
-      concepto: data[i][2] || '',
-      mes: data[i][3] || '',
-      mesNum: Number(data[i][4]) || 0,
-      monto: Number(data[i][5]) || 0
-    });
+  // Ejecucion (actuals from latest informe)
+  var execSheet = ss.getSheetByName('Ejecucion');
+  if (execSheet) {
+    var eData = execSheet.getDataRange().getValues();
+    for (var i = 1; i < eData.length; i++) {
+      result.ejecucion.push({
+        categoria: eData[i][0] || '',
+        concepto: eData[i][1] || '',
+        presupuestoAnual: Number(eData[i][2]) || 0,
+        ejecutadoMes: Number(eData[i][3]) || 0,
+        ejecutadoAcumulado: Number(eData[i][4]) || 0,
+        pctEjecucion: Number(eData[i][5]) || 0,
+        saldoRestante: Number(eData[i][6]) || 0
+      });
+    }
+  }
+
+  // Meta
+  var metaSheet = ss.getSheetByName('Meta');
+  if (metaSheet) {
+    var mData = metaSheet.getDataRange().getValues();
+    for (var i = 0; i < mData.length; i++) {
+      var key = String(mData[i][0] || '').trim();
+      var val = mData[i][1];
+      if (key === 'Último informe') result.meta.ultimoInforme = val || '';
+      if (key === 'Última actualización') {
+        result.meta.ultimaActualizacion = val instanceof Date ? val.toISOString() : String(val);
+      }
+    }
   }
 
   return ContentService.createTextOutput(
-    JSON.stringify({ budget: rows })
+    JSON.stringify(result)
   ).setMimeType(ContentService.MimeType.JSON);
 }

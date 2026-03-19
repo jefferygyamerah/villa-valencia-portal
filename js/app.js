@@ -243,19 +243,25 @@
 
   // ── Budget Dashboard ──
   var budgetData = [];
-  var selectedMonth = 0; // 0 = all
+  var ejecucionData = [];
+  var budgetMeta = {};
+  var selectedMonth = 0;
 
   var CAT_COLORS = {
     'Servicios B\u00e1sicos': '#1A6BB8',
     'Gastos de Funcionamiento': '#F5C842',
     'Mantenimientos Preventivos': '#16a34a',
     'Mantenimientos Correctivos': '#d97706',
-    'Otros Gastos': '#8b5cf6'
+    'Otros Gastos': '#8b5cf6',
+    'Gastos de Personal': '#ec4899'
   };
   var MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun',
                      'Jul','Ago','Sep','Oct','Nov','Dic'];
   var MONTH_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var CAT_ORDER = ['Servicios B\u00e1sicos', 'Gastos de Funcionamiento',
+    'Gastos de Personal', 'Mantenimientos Preventivos',
+    'Mantenimientos Correctivos', 'Otros Gastos'];
 
   function loadBudget() {
     var loading = document.getElementById('budgetLoading');
@@ -273,6 +279,8 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         budgetData = data.budget || [];
+        ejecucionData = data.ejecucion || [];
+        budgetMeta = data.meta || {};
         loading.style.display = 'none';
         content.style.display = '';
         renderMonthBar();
@@ -312,69 +320,100 @@
       });
     }
 
+    // Budget totals
     var totalIngresos = 0, totalGastos = 0;
-    var catTotals = {};
-    var catItems = {};
-
+    var catBudget = {};
     for (var i = 0; i < filtered.length; i++) {
       var r = filtered[i];
       if (r.tipo === 'Ingresos') {
         totalIngresos += r.monto;
       } else {
         totalGastos += r.monto;
-        catTotals[r.categoria] = (catTotals[r.categoria] || 0) + r.monto;
-        if (!catItems[r.categoria]) catItems[r.categoria] = {};
-        catItems[r.categoria][r.concepto] =
-          (catItems[r.categoria][r.concepto] || 0) + r.monto;
+        catBudget[r.categoria] = (catBudget[r.categoria] || 0) + r.monto;
+      }
+    }
+
+    // Actual totals from ejecucion
+    var totalEjecIngresos = 0, totalEjecGastos = 0;
+    var catEjec = {};
+    for (var i = 0; i < ejecucionData.length; i++) {
+      var e = ejecucionData[i];
+      if (e.categoria === 'Ingresos') {
+        totalEjecIngresos += e.ejecutadoAcumulado;
+      } else {
+        totalEjecGastos += e.ejecutadoAcumulado;
+        catEjec[e.categoria] = (catEjec[e.categoria] || 0) + e.ejecutadoAcumulado;
       }
     }
 
     var superavit = totalIngresos - totalGastos;
-    var pctEjec = totalIngresos > 0
-      ? Math.round((totalGastos / totalIngresos) * 100) : 0;
+    var pctGlobal = totalGastos > 0 && totalIngresos > 0
+      ? Math.round((totalEjecGastos / totalGastos) * 100) : 0;
+    var hasActuals = ejecucionData.length > 0;
     var period = selectedMonth > 0 ? MONTH_FULL[selectedMonth - 1] : 'Anual';
+    var infoLine = budgetMeta.ultimoInforme
+      ? '\u00daltimo informe: ' + budgetMeta.ultimoInforme
+      : '';
 
     // KPIs
     var kpis = document.getElementById('budgetKpis');
     kpis.innerHTML =
-      kpiCard('B/. ' + fmtNum(totalIngresos), 'Ingresos', period) +
-      kpiCard('B/. ' + fmtNum(totalGastos), 'Gastos', pctEjec + '% del ingreso') +
-      kpiCard('B/. ' + fmtNum(superavit),
-        superavit >= 0 ? 'Super\u00e1vit' : 'D\u00e9ficit',
-        '', superavit >= 0 ? 'positive' : 'negative') +
-      kpiCard(pctEjec + '%', 'Ejecutado', 'del presupuesto');
+      kpiCard('B/. ' + fmtNum(totalIngresos), 'Presupuesto Ingresos', period) +
+      kpiCard('B/. ' + fmtNum(totalGastos), 'Presupuesto Gastos', period) +
+      (hasActuals
+        ? kpiCard('B/. ' + fmtNum(totalEjecGastos), 'Ejecutado Real',
+            infoLine, totalEjecGastos > totalGastos ? 'negative' : '')
+        : kpiCard('B/. ' + fmtNum(superavit),
+            superavit >= 0 ? 'Super\u00e1vit' : 'D\u00e9ficit',
+            period, superavit >= 0 ? 'positive' : 'negative')) +
+      kpiCard(pctGlobal + '%', 'Ejecuci\u00f3n',
+        hasActuals ? 'del presupuesto de gastos' : 'sin datos reales a\u00fan');
 
-    // Category bars
+    // Category cards — show budget vs actual
     var cats = document.getElementById('budgetCategories');
-    var catOrder = ['Servicios B\u00e1sicos', 'Gastos de Funcionamiento',
-      'Mantenimientos Preventivos', 'Mantenimientos Correctivos', 'Otros Gastos'];
     var maxCat = 0;
-    for (var c = 0; c < catOrder.length; c++) {
-      if ((catTotals[catOrder[c]] || 0) > maxCat) maxCat = catTotals[catOrder[c]];
+    for (var c = 0; c < CAT_ORDER.length; c++) {
+      var v = catBudget[CAT_ORDER[c]] || catEjec[CAT_ORDER[c]] || 0;
+      if (v > maxCat) maxCat = v;
     }
 
     var catHtml = '';
-    for (var c = 0; c < catOrder.length; c++) {
-      var cat = catOrder[c];
-      var val = catTotals[cat] || 0;
-      var pct = maxCat > 0 ? Math.round((val / maxCat) * 100) : 0;
-      var pctOfTotal = totalGastos > 0
-        ? Math.round((val / totalGastos) * 100) : 0;
+    for (var c = 0; c < CAT_ORDER.length; c++) {
+      var cat = CAT_ORDER[c];
+      var budgeted = catBudget[cat] || 0;
+      var executed = catEjec[cat] || 0;
+      if (!budgeted && !executed) continue;
+
+      var barBase = budgeted || executed;
+      var pctBar = maxCat > 0 ? Math.round((barBase / maxCat) * 100) : 0;
+      var pctExec = budgeted > 0 ? Math.round((executed / budgeted) * 100) : 0;
+      var overBudget = executed > budgeted && budgeted > 0;
+
       catHtml += '<div class="budget-cat-card" onclick="window._toggleCat(\'' +
         cat.replace(/'/g, "\\'") + '\')">' +
         '<div class="budget-cat-header">' +
         '<span class="budget-cat-name">' + escapeHtml(cat) + '</span>' +
-        '<span class="budget-cat-amount">B/. ' + fmtNum(val) + '</span></div>' +
+        '<span class="budget-cat-amount">B/. ' + fmtNum(budgeted) + '</span></div>' +
         '<div class="budget-cat-bar"><div class="budget-cat-fill" style="width:' +
-        pct + '%;background:' + (CAT_COLORS[cat] || 'var(--blue)') + '"></div></div>' +
-        '<div class="budget-cat-pct">' + pctOfTotal + '% del total</div></div>';
+        pctBar + '%;background:' + (CAT_COLORS[cat] || 'var(--blue)') + '"></div></div>';
+
+      if (hasActuals && executed > 0) {
+        catHtml += '<div class="budget-cat-pct" style="color:' +
+          (overBudget ? 'var(--red)' : 'var(--green)') + '">' +
+          'Ejecutado: B/. ' + fmtNum(executed) + ' (' + pctExec + '%)</div>';
+      } else {
+        catHtml += '<div class="budget-cat-pct">' +
+          (totalGastos > 0 ? Math.round((budgeted / totalGastos) * 100) : 0) +
+          '% del total</div>';
+      }
+      catHtml += '</div>';
     }
     cats.innerHTML = catHtml;
 
     // Monthly trend
-    renderTrend(catOrder);
+    renderTrend();
 
-    // Detail table (collapsed by default)
+    // Reset detail
     var detail = document.getElementById('budgetDetail');
     detail.innerHTML = '';
   }
@@ -387,11 +426,10 @@
       '</div>';
   }
 
-  function renderTrend(catOrder) {
+  function renderTrend() {
     var trend = document.getElementById('budgetTrend');
     if (!trend) return;
 
-    // Calculate monthly totals by category
     var monthCats = [];
     var maxMonth = 0;
     for (var m = 1; m <= 12; m++) {
@@ -408,66 +446,99 @@
       if (monthTotal > maxMonth) maxMonth = monthTotal;
     }
 
+    var activeCats = CAT_ORDER.filter(function (c) {
+      for (var m = 0; m < 12; m++) {
+        if (monthCats[m][c]) return true;
+      }
+      return false;
+    });
+
     var html = '';
     for (var m = 0; m < 12; m++) {
-      var totalH = maxMonth > 0 ? 140 : 0;
       html += '<div class="budget-trend-col">' +
-        '<div class="budget-trend-stack" style="height:' + totalH + 'px">';
-      for (var c = 0; c < catOrder.length; c++) {
-        var val = monthCats[m][catOrder[c]] || 0;
+        '<div class="budget-trend-stack" style="height:140px">';
+      for (var c = 0; c < activeCats.length; c++) {
+        var val = monthCats[m][activeCats[c]] || 0;
         var segH = maxMonth > 0 ? Math.round((val / maxMonth) * 140) : 0;
         html += '<div class="budget-trend-seg" style="height:' + segH +
-          'px;background:' + (CAT_COLORS[catOrder[c]] || '#ccc') + '"></div>';
+          'px;background:' + (CAT_COLORS[activeCats[c]] || '#ccc') + '"></div>';
       }
       html += '</div><div class="budget-trend-label">' + MONTH_NAMES[m] + '</div></div>';
     }
 
-    // Legend
-    html += '</div><div class="budget-trend-legend">';
-    for (var c = 0; c < catOrder.length; c++) {
-      html += '<div class="budget-legend-item"><div class="budget-legend-dot" style="background:' +
-        CAT_COLORS[catOrder[c]] + '"></div>' + catOrder[c] + '</div>';
+    var legendHtml = '<div class="budget-trend-legend">';
+    for (var c = 0; c < activeCats.length; c++) {
+      legendHtml += '<div class="budget-legend-item"><div class="budget-legend-dot" style="background:' +
+        CAT_COLORS[activeCats[c]] + '"></div>' + activeCats[c] + '</div>';
     }
+    legendHtml += '</div>';
 
     trend.parentElement.innerHTML =
       '<div class="dash-chart-title">Distribuci\u00f3n mensual por categor\u00eda</div>' +
-      '<div class="budget-trend">' + html + '</div>';
+      '<div class="budget-trend">' + html + '</div>' + legendHtml;
   }
 
   function toggleCat(cat) {
     var detail = document.getElementById('budgetDetail');
     if (!detail) return;
 
-    // Toggle: if already showing this category, collapse
     if (detail.getAttribute('data-cat') === cat) {
       detail.innerHTML = '';
       detail.removeAttribute('data-cat');
       return;
     }
-
     detail.setAttribute('data-cat', cat);
 
-    // Gather items for this category
-    var filtered = budgetData.filter(function (r) {
+    var hasActuals = ejecucionData.length > 0;
+
+    // Get budget items
+    var budgetItems = {};
+    var bFiltered = budgetData.filter(function (r) {
       return r.categoria === cat && r.tipo !== 'Ingresos' &&
         (selectedMonth === 0 || r.mesNum === selectedMonth);
     });
-
-    var items = {};
-    for (var i = 0; i < filtered.length; i++) {
-      items[filtered[i].concepto] =
-        (items[filtered[i].concepto] || 0) + filtered[i].monto;
+    for (var i = 0; i < bFiltered.length; i++) {
+      budgetItems[bFiltered[i].concepto] =
+        (budgetItems[bFiltered[i].concepto] || 0) + bFiltered[i].monto;
     }
 
-    var sorted = Object.keys(items).sort(function (a, b) {
-      return items[b] - items[a];
+    // Get actual items
+    var execItems = {};
+    for (var i = 0; i < ejecucionData.length; i++) {
+      if (ejecucionData[i].categoria === cat) {
+        execItems[ejecucionData[i].concepto] = ejecucionData[i];
+      }
+    }
+
+    // Merge all concepts
+    var allConcepts = {};
+    for (var k in budgetItems) allConcepts[k] = true;
+    for (var k in execItems) allConcepts[k] = true;
+    var sorted = Object.keys(allConcepts).sort(function (a, b) {
+      return (budgetItems[b] || 0) - (budgetItems[a] || 0);
     });
 
-    var html = '<table class="budget-detail-table">' +
-      '<thead><tr><th>Concepto</th><th>Monto</th></tr></thead><tbody>';
+    var html = '<table class="budget-detail-table"><thead><tr>' +
+      '<th>Concepto</th><th>Presupuestado</th>';
+    if (hasActuals) html += '<th>Ejecutado</th><th>%</th>';
+    html += '</tr></thead><tbody>';
+
     for (var s = 0; s < sorted.length; s++) {
-      html += '<tr><td>' + escapeHtml(sorted[s]) + '</td>' +
-        '<td>B/. ' + fmtNum(items[sorted[s]]) + '</td></tr>';
+      var name = sorted[s];
+      var budg = budgetItems[name] || 0;
+      var exec = execItems[name] ? execItems[name].ejecutadoAcumulado : 0;
+      var pct = budg > 0 ? Math.round((exec / budg) * 100) : (exec > 0 ? 'N/A' : 0);
+      var overBudget = exec > budg && budg > 0;
+
+      html += '<tr><td>' + escapeHtml(name) + '</td>' +
+        '<td>B/. ' + fmtNum(budg) + '</td>';
+      if (hasActuals) {
+        html += '<td style="color:' + (overBudget ? 'var(--red)' : '') +
+          '">B/. ' + fmtNum(exec) + '</td>' +
+          '<td style="color:' + (overBudget ? 'var(--red)' : 'var(--green)') +
+          '">' + pct + '%</td>';
+      }
+      html += '</tr>';
     }
     html += '</tbody></table>';
     detail.innerHTML = html;
