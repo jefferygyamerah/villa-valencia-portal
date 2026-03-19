@@ -241,6 +241,28 @@
     return div.innerHTML;
   }
 
+  // ── Finanzas Looker Studio embed ──
+  function loadFinanzasEmbed() {
+    var container = document.getElementById('finanzas-embed');
+    if (!container) return;
+
+    var url = config.LOOKER_STUDIO_URL;
+    if (!url || url.indexOf('YOUR_') !== -1) {
+      container.innerHTML = '<p style="text-align:center;color:var(--text-light);' +
+        'font-size:0.85rem;padding:2rem 1rem;">' +
+        'Dashboard financiero pendiente de configurar.</p>';
+      return;
+    }
+
+    var iframe = document.createElement('iframe');
+    iframe.src = url;
+    iframe.className = 'finanzas-iframe';
+    iframe.setAttribute('frameborder', '0');
+    iframe.setAttribute('allowfullscreen', '');
+    container.innerHTML = '';
+    container.appendChild(iframe);
+  }
+
   // ── Init ──
   window._openPqrs = openPqrs;
   window._closePqrs = closePqrs;
@@ -250,5 +272,6 @@
     populateDriveLinks();
     setupPqrsBackdrop();
     loadDashboard();
+    loadFinanzasEmbed();
   });
 })();

@@ -146,11 +146,60 @@
     document.getElementById('suggestModal').classList.remove('open');
     document.getElementById('suggestForm').style.display = '';
     document.getElementById('suggestSuccess').classList.remove('show');
+    var fields = ['sug-nombre', 'sug-categoria', 'sug-servicio', 'sug-telefono',
+                  'sug-correo', 'sug-casa', 'sug-recomendador', 'sug-comentario'];
+    for (var i = 0; i < fields.length; i++) {
+      var el = document.getElementById(fields[i]);
+      if (el) el.value = '';
+    }
   }
 
   function submitSuggest() {
+    var nombre = document.getElementById('sug-nombre').value.trim();
+    var categoria = document.getElementById('sug-categoria').value;
+    var servicio = document.getElementById('sug-servicio').value.trim();
+    var telefono = document.getElementById('sug-telefono').value.trim();
+    var casa = document.getElementById('sug-casa').value.trim();
+
+    if (!nombre || !categoria || !servicio || !telefono || !casa) {
+      alert('Por favor completa los campos obligatorios (*).');
+      return;
+    }
+
+    var btn = document.querySelector('#suggestForm .btn-submit');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    var config = window.APROVIVA_CONFIG;
+    var url = config && config.APPS_SCRIPT_URL;
+    if (url && url.indexOf('YOUR_') === -1) {
+      fetch(url, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          _type: 'provider',
+          nombre: nombre,
+          categoria: categoria,
+          servicio: servicio,
+          telefono: telefono,
+          correo: (document.getElementById('sug-correo').value || '').trim(),
+          casa: casa,
+          recomendadoPor: (document.getElementById('sug-recomendador').value || '').trim(),
+          comentario: (document.getElementById('sug-comentario').value || '').trim()
+        })
+      }).then(showSuggestSuccess).catch(showSuggestSuccess);
+    } else {
+      showSuggestSuccess();
+    }
+  }
+
+  function showSuggestSuccess() {
     document.getElementById('suggestForm').style.display = 'none';
     document.getElementById('suggestSuccess').classList.add('show');
+    var btn = document.querySelector('#suggestForm .btn-submit');
+    btn.disabled = false;
+    btn.textContent = 'Enviar recomendaci\u00f3n \u2192';
   }
 
   // Event delegation for provider cards

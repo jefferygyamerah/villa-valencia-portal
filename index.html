@@ -26,7 +26,7 @@
 <nav>
   <a href="index.html" class="active">&#x1F3E0; Inicio</a>
   <a href="#" data-drive="asambleas" target="_blank">&#x1F4CB; Asambleas</a>
-  <a href="#" data-drive="finanzas" target="_blank">&#x1F4B0; Finanzas</a>
+  <a href="#finanzas">&#x1F4B0; Finanzas</a>
   <a href="#" data-drive="comunicados" target="_blank">&#x1F4E3; Comunicados</a>
   <a href="#pqrs">&#x1F4DD; PQRS</a>
   <a href="proveedores.html">&#x1F527; Proveedores</a>
@@ -38,7 +38,7 @@
 <div class="hero">
   <div class="hero-badge">Portal Residentes 2026</div>
   <h1>Bienvenido a Villa Valencia</h1>
-  <p>Tu espacio digital para acceder a toda la informaci&oacute;n de la copropiedad, gestionar solicitudes y mantenerte informado.</p>
+  <p>Tu espacio digital para acceder a toda la informaci&oacute;n de la barriada, gestionar solicitudes y mantenerte informado.</p>
 </div>
 
 <!-- MAIN CONTENT -->
@@ -52,10 +52,10 @@
       <h3>Asambleas</h3>
       <p>Actas y convocatorias 2022&ndash;2026</p>
     </a>
-    <a class="card" href="#" data-drive="finanzas" target="_blank">
+    <a class="card" href="#finanzas">
       <div class="card-icon" style="background:#fef9e7;">&#x1F4B0;</div>
       <h3>Informes Financieros</h3>
-      <p>Presupuesto y reportes mensuales</p>
+      <p>Ejecuci&oacute;n presupuestaria 2026</p>
     </a>
     <a class="card" href="#" data-drive="comunicados" target="_blank">
       <div class="card-icon" style="background:#f0fdf4;">&#x1F4E3;</div>
@@ -75,7 +75,7 @@
     <a class="card" href="#" data-drive="planos" target="_blank">
       <div class="card-icon" style="background:#fff7ed;">&#x1F4D0;</div>
       <h3>Planos</h3>
-      <p>Planos oficiales de la unidad</p>
+      <p>Planos oficiales de la barriada</p>
     </a>
   </div>
 
@@ -172,46 +172,15 @@
     </div>
   </div>
 
-  <!-- FINANZAS PREVIEW -->
-  <h2 class="section-title">&#x1F4B0; Informe Financiero &ndash; Febrero 2026</h2>
+  <!-- FINANZAS DASHBOARD -->
+  <h2 class="section-title" id="finanzas">&#x1F4B0; Ejecuci&oacute;n Presupuestaria 2026</h2>
   <div class="panel" style="margin-bottom:2.5rem;">
-    <table class="fin-table">
-      <thead>
-        <tr>
-          <th>Concepto</th>
-          <th>Presupuestado</th>
-          <th>Ejecutado</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Administraci&oacute;n</td>
-          <td>$4.500.000</td>
-          <td>$4.500.000</td>
-          <td class="badge-ok">&#x2713; Al d&iacute;a</td>
-        </tr>
-        <tr>
-          <td>Mantenimiento &aacute;reas comunes</td>
-          <td>$2.200.000</td>
-          <td>$1.850.000</td>
-          <td class="badge-ok">&#x2713; Al d&iacute;a</td>
-        </tr>
-        <tr>
-          <td>Servicios p&uacute;blicos zonas comunes</td>
-          <td>$1.800.000</td>
-          <td>$2.100.000</td>
-          <td class="badge-pending">&#x26A0; Sobrepaso</td>
-        </tr>
-        <tr>
-          <td>Fondo de imprevistos</td>
-          <td>$800.000</td>
-          <td>$800.000</td>
-          <td class="badge-ok">&#x2713; Al d&iacute;a</td>
-        </tr>
-      </tbody>
-    </table>
-    <a class="view-all" href="#" data-drive="finanzas" target="_blank">Ver informe completo en PDF &rarr;</a>
+    <div id="finanzas-embed" class="finanzas-embed">
+      <p style="text-align:center;color:var(--text-light);font-size:0.85rem;padding:2rem 1rem;">
+        Cargando dashboard financiero...
+      </p>
+    </div>
+    <a class="view-all" href="#" data-drive="finanzas" target="_blank">Ver documentos completos en Drive &rarr;</a>
   </div>
 
 </main>

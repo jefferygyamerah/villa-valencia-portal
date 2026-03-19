@@ -91,11 +91,11 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Nombre / Empresa <span class="req">*</span></label>
-          <input type="text" class="form-input" placeholder="Ej. Juan P&eacute;rez"/>
+          <input type="text" class="form-input" id="sug-nombre" placeholder="Ej. Juan P&eacute;rez"/>
         </div>
         <div class="form-group">
           <label class="form-label">Categor&iacute;a <span class="req">*</span></label>
-          <select class="form-select">
+          <select class="form-select" id="sug-categoria">
             <option value="">Seleccionar...</option>
             <option>Aires Acondicionados</option>
             <option>Catering / Eventos</option>
@@ -113,31 +113,31 @@
       </div>
       <div class="form-group">
         <label class="form-label">Tipo de servicio que ofrece <span class="req">*</span></label>
-        <input type="text" class="form-input" placeholder="Ej. Instalaci&oacute;n y mantenimiento de A/C"/>
+        <input type="text" class="form-input" id="sug-servicio" placeholder="Ej. Instalaci&oacute;n y mantenimiento de A/C"/>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Tel&eacute;fono <span class="req">*</span></label>
-          <input type="tel" class="form-input" placeholder="6000-0000"/>
+          <input type="tel" class="form-input" id="sug-telefono" placeholder="6000-0000"/>
         </div>
         <div class="form-group">
           <label class="form-label">Correo electr&oacute;nico</label>
-          <input type="email" class="form-input" placeholder="opcional"/>
+          <input type="email" class="form-input" id="sug-correo" placeholder="opcional"/>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Tu n&uacute;mero de casa <span class="req">*</span></label>
-          <input type="text" class="form-input" placeholder="Ej. 104"/>
+          <input type="text" class="form-input" id="sug-casa" placeholder="Ej. 104"/>
         </div>
         <div class="form-group">
           <label class="form-label">Tu nombre</label>
-          <input type="text" class="form-input" placeholder="Residente que recomienda"/>
+          <input type="text" class="form-input" id="sug-recomendador" placeholder="Residente que recomienda"/>
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">&iquest;Por qu&eacute; lo recomiendas?</label>
-        <textarea class="form-textarea" placeholder="Cu&eacute;ntanos tu experiencia (opcional)..."></textarea>
+        <textarea class="form-textarea" id="sug-comentario" placeholder="Cu&eacute;ntanos tu experiencia (opcional)..."></textarea>
       </div>
       <button class="btn-submit" onclick="window._submitSuggest()">Enviar recomendaci&oacute;n &rarr;</button>
       <p class="approval-note">&#x1F512; Revisado por APROVIVA antes de publicarse.</p>

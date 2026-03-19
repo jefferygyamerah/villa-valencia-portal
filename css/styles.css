@@ -838,6 +838,15 @@ main {
 }
 .detail-actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
 
+/* ── FINANZAS EMBED ── */
+.finanzas-embed { min-height: 200px; }
+.finanzas-iframe {
+  width: 100%;
+  height: 600px;
+  border: none;
+  border-radius: 8px;
+}
+
 /* ── PQRS DASHBOARD ── */
 .pqrs-dashboard {
   background: var(--white);

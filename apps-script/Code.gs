@@ -1,27 +1,17 @@
 /**
- * APROVIVA PQRS — Google Apps Script
+ * APROVIVA Portal — Google Apps Script
  *
- * Attach this script to the PQRS spreadsheet:
- *   1. Open spreadsheet > Extensions > Apps Script
- *   2. Paste this code (replace any existing code)
- *   3. Click Deploy > New deployment
- *   4. Type: Web app
- *   5. Execute as: Me
- *   6. Who has access: Anyone
- *   7. Copy the URL and paste it into js/config.js as APPS_SCRIPT_URL
- *
- * Sheet columns (row 1 = headers):
- *   A: Timestamp | B: Resumen | C: Descripcion | D: Tipo
- *   E: Ubicacion | F: Urgencia | G: Casa
+ * Handles PQRS submissions and provider suggestions.
  */
 
-var SHEET_NAME = 'Portal';
+var PQRS_SHEET = 'Portal';
+var PROVIDERS_SHEET = 'Proveedores';
 
-function getSheet() {
+function getPqrsSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAME);
+  var sheet = ss.getSheetByName(PQRS_SHEET);
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
+    sheet = ss.insertSheet(PQRS_SHEET);
     sheet.appendRow([
       'Timestamp', 'Resumen', 'Descripción', 'Tipo',
       'Ubicación', 'Urgencia', 'Casa'
@@ -30,11 +20,32 @@ function getSheet() {
   return sheet;
 }
 
-// POST — receive a new PQRS report
+function getProvidersSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(PROVIDERS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(PROVIDERS_SHEET);
+    sheet.appendRow([
+      'Timestamp', 'Nombre/Empresa', 'Categoría', 'Servicio',
+      'Teléfono', 'Correo', 'Casa', 'Recomendado por', 'Comentario'
+    ]);
+  }
+  return sheet;
+}
+
+// POST — dispatch based on payload type
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
-  var sheet = getSheet();
+  var type = data._type || 'pqrs';
 
+  if (type === 'provider') {
+    return saveProvider(data);
+  }
+  return savePqrs(data);
+}
+
+function savePqrs(data) {
+  var sheet = getPqrsSheet();
   sheet.appendRow([
     new Date(),
     data.resumen || '',
@@ -44,17 +55,33 @@ function doPost(e) {
     data.urgencia || '',
     data.casa || ''
   ]);
-
   return ContentService.createTextOutput(
     JSON.stringify({ status: 'ok' })
   ).setMimeType(ContentService.MimeType.JSON);
 }
 
-// GET — return all PQRS rows as JSON for the dashboard
-function doGet() {
-  var sheet = getSheet();
+function saveProvider(data) {
+  var sheet = getProvidersSheet();
+  sheet.appendRow([
+    new Date(),
+    data.nombre || '',
+    data.categoria || '',
+    data.servicio || '',
+    data.telefono || '',
+    data.correo || '',
+    data.casa || '',
+    data.recomendadoPor || '',
+    data.comentario || ''
+  ]);
+  return ContentService.createTextOutput(
+    JSON.stringify({ status: 'ok' })
+  ).setMimeType(ContentService.MimeType.JSON);
+}
+
+// GET — return PQRS data for dashboard
+function doGet(e) {
+  var sheet = getPqrsSheet();
   var data = sheet.getDataRange().getValues();
-  var headers = data[0];
   var rows = [];
 
   for (var i = 1; i < data.length; i++) {

@@ -7,6 +7,10 @@ window.APROVIVA_CONFIG = {
   // Deploy the script from the PQRS spreadsheet, then paste the URL here.
   APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzwbIHtZgjjI5fbrJlyCjJInwtPCoe8lu5YcNyunvQBmHgmIRCOy2S04QRLo4QfqqWp6g/exec',
 
+  // Looker Studio embed URL for finanzas dashboard
+  // Create report at lookerstudio.google.com, then paste the embed URL here.
+  LOOKER_STUDIO_URL: 'YOUR_LOOKER_STUDIO_EMBED_URL',
+
   // Provider suggestion Google Form (if separate from PQRS)
   PROVIDER_SUGGEST_FORM_URL: null,
 
