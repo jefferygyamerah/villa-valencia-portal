@@ -5,7 +5,7 @@
  */
 window.APROVIVA_CONFIG = {
   // Google OAuth 2.0 Client ID (from Google Cloud Console)
-  GOOGLE_CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+  GOOGLE_CLIENT_ID: '224136048009-buio7k707fe1ihmr439bbulbq60aesl.apps.googleusercontent.com',
 
   // Restrict login to a specific email domain (null = allow any Google account)
   ALLOWED_DOMAIN: null,
