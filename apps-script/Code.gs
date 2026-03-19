@@ -89,6 +89,10 @@ function doGet(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (action === 'budget') {
+    return serveBudgetData();
+  }
+
   var sheet = getPqrsSheet();
   var data = sheet.getDataRange().getValues();
   var rows = [];
@@ -109,5 +113,34 @@ function doGet(e) {
 
   return ContentService.createTextOutput(
     JSON.stringify({ rows: rows })
+  ).setMimeType(ContentService.MimeType.JSON);
+}
+
+// Return flat budget data from reporting spreadsheet
+function serveBudgetData() {
+  var REPORTING_ID = '1MI6BHRy7Y5abCb1jI1YQcEq19-bAuTDvddznDNfwcaA';
+  var ss = SpreadsheetApp.openById(REPORTING_ID);
+  var sheet = ss.getSheetByName('Presupuesto');
+  if (!sheet) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ error: 'Sheet not found' })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  var data = sheet.getDataRange().getValues();
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    rows.push({
+      tipo: data[i][0] || '',
+      categoria: data[i][1] || '',
+      concepto: data[i][2] || '',
+      mes: data[i][3] || '',
+      mesNum: Number(data[i][4]) || 0,
+      monto: Number(data[i][5]) || 0
+    });
+  }
+
+  return ContentService.createTextOutput(
+    JSON.stringify({ budget: rows })
   ).setMimeType(ContentService.MimeType.JSON);
 }

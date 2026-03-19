@@ -173,14 +173,28 @@
   </div>
 
   <!-- FINANZAS DASHBOARD -->
-  <h2 class="section-title" id="finanzas">&#x1F4B0; Ejecuci&oacute;n Presupuestaria 2026</h2>
-  <div class="panel" style="margin-bottom:2.5rem;">
-    <div id="finanzas-embed" class="finanzas-embed">
-      <p style="text-align:center;color:var(--text-light);font-size:0.85rem;padding:2rem 1rem;">
-        Cargando dashboard financiero...
-      </p>
+  <h2 class="section-title" id="finanzas">&#x1F4B0; Presupuesto 2026</h2>
+  <div id="budget-dashboard" class="budget-dashboard">
+    <div class="dash-loading" id="budgetLoading">Cargando presupuesto...</div>
+    <div id="budgetContent" style="display:none;">
+      <!-- MONTH SELECTOR -->
+      <div class="budget-month-bar" id="budgetMonthBar"></div>
+      <!-- KPIs -->
+      <div class="budget-kpis" id="budgetKpis"></div>
+      <!-- CATEGORY BARS -->
+      <div class="budget-categories" id="budgetCategories"></div>
+      <!-- MONTHLY TREND -->
+      <div class="budget-trend-panel">
+        <div class="dash-chart-title">Distribuci&oacute;n mensual por categor&iacute;a</div>
+        <div class="budget-trend" id="budgetTrend"></div>
+      </div>
+      <!-- LINE ITEMS (expandable) -->
+      <div class="budget-detail-panel" id="budgetDetail"></div>
     </div>
-    <a class="view-all" href="#" data-drive="finanzas" target="_blank">Ver documentos completos en Drive &rarr;</a>
+    <div class="dash-error" id="budgetError" style="display:none;">
+      No se pudieron cargar los datos del presupuesto.
+    </div>
+    <a class="view-all" href="#" data-drive="finanzas" target="_blank" style="margin-top:1rem;">Ver documentos en Drive &rarr;</a>
   </div>
 
 </main>

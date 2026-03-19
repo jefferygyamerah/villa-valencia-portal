@@ -241,27 +241,247 @@
     return div.innerHTML;
   }
 
-  // ── Finanzas Looker Studio embed ──
-  function loadFinanzasEmbed() {
-    var container = document.getElementById('finanzas-embed');
-    if (!container) return;
+  // ── Budget Dashboard ──
+  var budgetData = [];
+  var selectedMonth = 0; // 0 = all
 
-    var url = config.LOOKER_STUDIO_URL;
-    if (!url || url.indexOf('YOUR_') !== -1) {
-      container.innerHTML = '<p style="text-align:center;color:var(--text-light);' +
-        'font-size:0.85rem;padding:2rem 1rem;">' +
-        'Dashboard financiero pendiente de configurar.</p>';
+  var CAT_COLORS = {
+    'Servicios B\u00e1sicos': '#1A6BB8',
+    'Gastos de Funcionamiento': '#F5C842',
+    'Mantenimientos Preventivos': '#16a34a',
+    'Mantenimientos Correctivos': '#d97706',
+    'Otros Gastos': '#8b5cf6'
+  };
+  var MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun',
+                     'Jul','Ago','Sep','Oct','Nov','Dic'];
+  var MONTH_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  function loadBudget() {
+    var loading = document.getElementById('budgetLoading');
+    var content = document.getElementById('budgetContent');
+    var error = document.getElementById('budgetError');
+    if (!loading) return;
+
+    if (!isScriptConfigured()) {
+      loading.style.display = 'none';
+      error.style.display = 'block';
       return;
     }
 
-    var iframe = document.createElement('iframe');
-    iframe.src = url;
-    iframe.className = 'finanzas-iframe';
-    iframe.setAttribute('frameborder', '0');
-    iframe.setAttribute('allowfullscreen', '');
-    container.innerHTML = '';
-    container.appendChild(iframe);
+    fetch(config.APPS_SCRIPT_URL + '?action=budget')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        budgetData = data.budget || [];
+        loading.style.display = 'none';
+        content.style.display = '';
+        renderMonthBar();
+        renderBudget();
+      })
+      .catch(function () {
+        loading.style.display = 'none';
+        error.style.display = 'block';
+      });
   }
+
+  function renderMonthBar() {
+    var bar = document.getElementById('budgetMonthBar');
+    if (!bar) return;
+    var html = '<button class="budget-month-btn active" onclick="window._selectMonth(0)">Todo</button>';
+    for (var m = 0; m < 12; m++) {
+      html += '<button class="budget-month-btn" onclick="window._selectMonth(' +
+        (m + 1) + ')">' + MONTH_NAMES[m] + '</button>';
+    }
+    bar.innerHTML = html;
+  }
+
+  function selectMonth(m) {
+    selectedMonth = m;
+    var btns = document.querySelectorAll('.budget-month-btn');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('active', i === m);
+    }
+    renderBudget();
+  }
+
+  function renderBudget() {
+    var filtered = budgetData;
+    if (selectedMonth > 0) {
+      filtered = budgetData.filter(function (r) {
+        return r.mesNum === selectedMonth;
+      });
+    }
+
+    var totalIngresos = 0, totalGastos = 0;
+    var catTotals = {};
+    var catItems = {};
+
+    for (var i = 0; i < filtered.length; i++) {
+      var r = filtered[i];
+      if (r.tipo === 'Ingresos') {
+        totalIngresos += r.monto;
+      } else {
+        totalGastos += r.monto;
+        catTotals[r.categoria] = (catTotals[r.categoria] || 0) + r.monto;
+        if (!catItems[r.categoria]) catItems[r.categoria] = {};
+        catItems[r.categoria][r.concepto] =
+          (catItems[r.categoria][r.concepto] || 0) + r.monto;
+      }
+    }
+
+    var superavit = totalIngresos - totalGastos;
+    var pctEjec = totalIngresos > 0
+      ? Math.round((totalGastos / totalIngresos) * 100) : 0;
+    var period = selectedMonth > 0 ? MONTH_FULL[selectedMonth - 1] : 'Anual';
+
+    // KPIs
+    var kpis = document.getElementById('budgetKpis');
+    kpis.innerHTML =
+      kpiCard('B/. ' + fmtNum(totalIngresos), 'Ingresos', period) +
+      kpiCard('B/. ' + fmtNum(totalGastos), 'Gastos', pctEjec + '% del ingreso') +
+      kpiCard('B/. ' + fmtNum(superavit),
+        superavit >= 0 ? 'Super\u00e1vit' : 'D\u00e9ficit',
+        '', superavit >= 0 ? 'positive' : 'negative') +
+      kpiCard(pctEjec + '%', 'Ejecutado', 'del presupuesto');
+
+    // Category bars
+    var cats = document.getElementById('budgetCategories');
+    var catOrder = ['Servicios B\u00e1sicos', 'Gastos de Funcionamiento',
+      'Mantenimientos Preventivos', 'Mantenimientos Correctivos', 'Otros Gastos'];
+    var maxCat = 0;
+    for (var c = 0; c < catOrder.length; c++) {
+      if ((catTotals[catOrder[c]] || 0) > maxCat) maxCat = catTotals[catOrder[c]];
+    }
+
+    var catHtml = '';
+    for (var c = 0; c < catOrder.length; c++) {
+      var cat = catOrder[c];
+      var val = catTotals[cat] || 0;
+      var pct = maxCat > 0 ? Math.round((val / maxCat) * 100) : 0;
+      var pctOfTotal = totalGastos > 0
+        ? Math.round((val / totalGastos) * 100) : 0;
+      catHtml += '<div class="budget-cat-card" onclick="window._toggleCat(\'' +
+        cat.replace(/'/g, "\\'") + '\')">' +
+        '<div class="budget-cat-header">' +
+        '<span class="budget-cat-name">' + escapeHtml(cat) + '</span>' +
+        '<span class="budget-cat-amount">B/. ' + fmtNum(val) + '</span></div>' +
+        '<div class="budget-cat-bar"><div class="budget-cat-fill" style="width:' +
+        pct + '%;background:' + (CAT_COLORS[cat] || 'var(--blue)') + '"></div></div>' +
+        '<div class="budget-cat-pct">' + pctOfTotal + '% del total</div></div>';
+    }
+    cats.innerHTML = catHtml;
+
+    // Monthly trend
+    renderTrend(catOrder);
+
+    // Detail table (collapsed by default)
+    var detail = document.getElementById('budgetDetail');
+    detail.innerHTML = '';
+  }
+
+  function kpiCard(value, label, sub, cls) {
+    return '<div class="budget-kpi">' +
+      '<div class="budget-kpi-value ' + (cls || '') + '">' + value + '</div>' +
+      '<div class="budget-kpi-label">' + label + '</div>' +
+      (sub ? '<div class="budget-kpi-sub">' + sub + '</div>' : '') +
+      '</div>';
+  }
+
+  function renderTrend(catOrder) {
+    var trend = document.getElementById('budgetTrend');
+    if (!trend) return;
+
+    // Calculate monthly totals by category
+    var monthCats = [];
+    var maxMonth = 0;
+    for (var m = 1; m <= 12; m++) {
+      var monthData = {};
+      var monthTotal = 0;
+      for (var i = 0; i < budgetData.length; i++) {
+        var r = budgetData[i];
+        if (r.mesNum === m && r.tipo !== 'Ingresos') {
+          monthData[r.categoria] = (monthData[r.categoria] || 0) + r.monto;
+          monthTotal += r.monto;
+        }
+      }
+      monthCats.push(monthData);
+      if (monthTotal > maxMonth) maxMonth = monthTotal;
+    }
+
+    var html = '';
+    for (var m = 0; m < 12; m++) {
+      var totalH = maxMonth > 0 ? 140 : 0;
+      html += '<div class="budget-trend-col">' +
+        '<div class="budget-trend-stack" style="height:' + totalH + 'px">';
+      for (var c = 0; c < catOrder.length; c++) {
+        var val = monthCats[m][catOrder[c]] || 0;
+        var segH = maxMonth > 0 ? Math.round((val / maxMonth) * 140) : 0;
+        html += '<div class="budget-trend-seg" style="height:' + segH +
+          'px;background:' + (CAT_COLORS[catOrder[c]] || '#ccc') + '"></div>';
+      }
+      html += '</div><div class="budget-trend-label">' + MONTH_NAMES[m] + '</div></div>';
+    }
+
+    // Legend
+    html += '</div><div class="budget-trend-legend">';
+    for (var c = 0; c < catOrder.length; c++) {
+      html += '<div class="budget-legend-item"><div class="budget-legend-dot" style="background:' +
+        CAT_COLORS[catOrder[c]] + '"></div>' + catOrder[c] + '</div>';
+    }
+
+    trend.parentElement.innerHTML =
+      '<div class="dash-chart-title">Distribuci\u00f3n mensual por categor\u00eda</div>' +
+      '<div class="budget-trend">' + html + '</div>';
+  }
+
+  function toggleCat(cat) {
+    var detail = document.getElementById('budgetDetail');
+    if (!detail) return;
+
+    // Toggle: if already showing this category, collapse
+    if (detail.getAttribute('data-cat') === cat) {
+      detail.innerHTML = '';
+      detail.removeAttribute('data-cat');
+      return;
+    }
+
+    detail.setAttribute('data-cat', cat);
+
+    // Gather items for this category
+    var filtered = budgetData.filter(function (r) {
+      return r.categoria === cat && r.tipo !== 'Ingresos' &&
+        (selectedMonth === 0 || r.mesNum === selectedMonth);
+    });
+
+    var items = {};
+    for (var i = 0; i < filtered.length; i++) {
+      items[filtered[i].concepto] =
+        (items[filtered[i].concepto] || 0) + filtered[i].monto;
+    }
+
+    var sorted = Object.keys(items).sort(function (a, b) {
+      return items[b] - items[a];
+    });
+
+    var html = '<table class="budget-detail-table">' +
+      '<thead><tr><th>Concepto</th><th>Monto</th></tr></thead><tbody>';
+    for (var s = 0; s < sorted.length; s++) {
+      html += '<tr><td>' + escapeHtml(sorted[s]) + '</td>' +
+        '<td>B/. ' + fmtNum(items[sorted[s]]) + '</td></tr>';
+    }
+    html += '</tbody></table>';
+    detail.innerHTML = html;
+  }
+
+  function fmtNum(n) {
+    return n.toLocaleString('es-PA', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+  }
+
+  window._selectMonth = selectMonth;
+  window._toggleCat = toggleCat;
 
   // ── Init ──
   window._openPqrs = openPqrs;
@@ -272,6 +492,6 @@
     populateDriveLinks();
     setupPqrsBackdrop();
     loadDashboard();
-    loadFinanzasEmbed();
+    loadBudget();
   });
 })();
