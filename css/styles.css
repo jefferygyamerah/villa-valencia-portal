@@ -870,6 +870,12 @@ main {
 }
 .budget-month-btn:last-child { border-right: none; }
 .budget-month-btn:hover { background: var(--blue-pale); color: var(--blue); }
+.budget-month-btn.disabled {
+  color: var(--border);
+  cursor: default;
+  background: var(--gray);
+}
+.budget-month-btn.disabled:hover { background: var(--gray); color: var(--border); }
 .budget-month-btn.active {
   background: var(--blue);
   color: var(--white);

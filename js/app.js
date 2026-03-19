@@ -263,6 +263,14 @@
     'Gastos de Personal', 'Mantenimientos Preventivos',
     'Mantenimientos Correctivos', 'Otros Gastos'];
 
+  function getLastInformeMonth() {
+    var name = (budgetMeta.ultimoInforme || '').trim();
+    for (var i = 0; i < MONTH_FULL.length; i++) {
+      if (MONTH_FULL[i].toLowerCase() === name.toLowerCase()) return i + 1;
+    }
+    return 0;
+  }
+
   function loadBudget() {
     var loading = document.getElementById('budgetLoading');
     var content = document.getElementById('budgetContent');
@@ -295,10 +303,14 @@
   function renderMonthBar() {
     var bar = document.getElementById('budgetMonthBar');
     if (!bar) return;
+    var lastMonth = getLastInformeMonth();
     var html = '<button class="budget-month-btn active" onclick="window._selectMonth(0)">Todo</button>';
     for (var m = 0; m < 12; m++) {
-      html += '<button class="budget-month-btn" onclick="window._selectMonth(' +
-        (m + 1) + ')">' + MONTH_NAMES[m] + '</button>';
+      var hasData = (m + 1) <= lastMonth;
+      html += '<button class="budget-month-btn' +
+        (hasData ? '' : ' disabled') + '" onclick="window._selectMonth(' +
+        (m + 1) + ')">' + MONTH_NAMES[m] +
+        (hasData ? '' : '') + '</button>';
     }
     bar.innerHTML = html;
   }
@@ -312,6 +324,11 @@
     renderBudget();
   }
 
+  function monthHasActuals(m) {
+    var lastMonth = getLastInformeMonth();
+    return m > 0 && m <= lastMonth;
+  }
+
   function renderBudget() {
     var filtered = budgetData;
     if (selectedMonth > 0) {
@@ -319,6 +336,10 @@
         return r.mesNum === selectedMonth;
       });
     }
+
+    var lastMonth = getLastInformeMonth();
+    var showActuals = ejecucionData.length > 0 &&
+      (selectedMonth === 0 || monthHasActuals(selectedMonth));
 
     // Budget totals
     var totalIngresos = 0, totalGastos = 0;
@@ -334,22 +355,37 @@
     }
 
     // Actual totals from ejecucion
-    var totalEjecIngresos = 0, totalEjecGastos = 0;
+    // ejecutadoMes = single month, ejecutadoAcumulado = cumulative
+    // When viewing a specific month that has data: use ejecutadoMes
+    // When viewing "Todo": use ejecutadoAcumulado (cumulative through last informe)
+    var totalEjecGastos = 0;
     var catEjec = {};
-    for (var i = 0; i < ejecucionData.length; i++) {
-      var e = ejecucionData[i];
-      if (e.categoria === 'Ingresos') {
-        totalEjecIngresos += e.ejecutadoAcumulado;
-      } else {
-        totalEjecGastos += e.ejecutadoAcumulado;
-        catEjec[e.categoria] = (catEjec[e.categoria] || 0) + e.ejecutadoAcumulado;
+    if (showActuals) {
+      var useField = (selectedMonth > 0) ? 'ejecutadoMes' : 'ejecutadoAcumulado';
+      for (var i = 0; i < ejecucionData.length; i++) {
+        var e = ejecucionData[i];
+        var val = e[useField] || 0;
+        if (e.categoria !== 'Ingresos') {
+          totalEjecGastos += val;
+          catEjec[e.categoria] = (catEjec[e.categoria] || 0) + val;
+        }
       }
     }
 
-    var superavit = totalIngresos - totalGastos;
-    var pctGlobal = totalGastos > 0 && totalIngresos > 0
-      ? Math.round((totalEjecGastos / totalGastos) * 100) : 0;
-    var hasActuals = ejecucionData.length > 0;
+    // For "Todo" view, compare actuals against budget up to last informe month only
+    var compareBudget = totalGastos;
+    if (selectedMonth === 0 && lastMonth > 0) {
+      compareBudget = 0;
+      for (var i = 0; i < budgetData.length; i++) {
+        var r = budgetData[i];
+        if (r.tipo !== 'Ingresos' && r.mesNum <= lastMonth) {
+          compareBudget += r.monto;
+        }
+      }
+    }
+
+    var pctGlobal = compareBudget > 0
+      ? Math.round((totalEjecGastos / compareBudget) * 100) : 0;
     var period = selectedMonth > 0 ? MONTH_FULL[selectedMonth - 1] : 'Anual';
     var infoLine = budgetMeta.ultimoInforme
       ? '\u00daltimo informe: ' + budgetMeta.ultimoInforme
@@ -360,16 +396,19 @@
     kpis.innerHTML =
       kpiCard('B/. ' + fmtNum(totalIngresos), 'Presupuesto Ingresos', period) +
       kpiCard('B/. ' + fmtNum(totalGastos), 'Presupuesto Gastos', period) +
-      (hasActuals
+      (showActuals
         ? kpiCard('B/. ' + fmtNum(totalEjecGastos), 'Ejecutado Real',
-            infoLine, totalEjecGastos > totalGastos ? 'negative' : '')
-        : kpiCard('B/. ' + fmtNum(superavit),
-            superavit >= 0 ? 'Super\u00e1vit' : 'D\u00e9ficit',
-            period, superavit >= 0 ? 'positive' : 'negative')) +
-      kpiCard(pctGlobal + '%', 'Ejecuci\u00f3n',
-        hasActuals ? 'del presupuesto de gastos' : 'sin datos reales a\u00fan');
+            infoLine, totalEjecGastos > compareBudget ? 'negative' : '')
+        : kpiCard('B/. ' + fmtNum(totalIngresos - totalGastos),
+            (totalIngresos - totalGastos) >= 0 ? 'Super\u00e1vit Proyectado' : 'D\u00e9ficit Proyectado',
+            period, (totalIngresos - totalGastos) >= 0 ? 'positive' : 'negative')) +
+      kpiCard(showActuals ? pctGlobal + '%' : '\u2014',
+        'Ejecuci\u00f3n',
+        showActuals
+          ? (selectedMonth > 0 ? 'del presupuesto de ' + MONTH_FULL[selectedMonth - 1] : 'acumulado a ' + (budgetMeta.ultimoInforme || ''))
+          : 'sin datos reales para este mes');
 
-    // Category cards — show budget vs actual
+    // Category cards
     var cats = document.getElementById('budgetCategories');
     var maxCat = 0;
     for (var c = 0; c < CAT_ORDER.length; c++) {
@@ -397,7 +436,7 @@
         '<div class="budget-cat-bar"><div class="budget-cat-fill" style="width:' +
         pctBar + '%;background:' + (CAT_COLORS[cat] || 'var(--blue)') + '"></div></div>';
 
-      if (hasActuals && executed > 0) {
+      if (showActuals && executed > 0) {
         catHtml += '<div class="budget-cat-pct" style="color:' +
           (overBudget ? 'var(--red)' : 'var(--green)') + '">' +
           'Ejecutado: B/. ' + fmtNum(executed) + ' (' + pctExec + '%)</div>';
@@ -489,7 +528,8 @@
     }
     detail.setAttribute('data-cat', cat);
 
-    var hasActuals = ejecucionData.length > 0;
+    var hasActuals = ejecucionData.length > 0 &&
+      (selectedMonth === 0 || monthHasActuals(selectedMonth));
 
     // Get budget items
     var budgetItems = {};
