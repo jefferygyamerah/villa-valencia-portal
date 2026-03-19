@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>APROVIVA – Portal Residentes | Villa Valencia</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay" style="display:none;">
+  <div class="login-box">
+    <div style="font-size:2.5rem;margin-bottom:0.5rem;">&#x1F305;</div>
+    <h2>Portal APROVIVA</h2>
+    <p>Bienvenido al portal de residentes de<br><strong>Villa Valencia</strong>.<br>Inicia sesi&oacute;n con tu cuenta Google autorizada.</p>
+    <div id="login-error" class="login-error"></div>
+    <div id="g-signin-btn" style="display:flex;justify-content:center;margin-bottom:0.75rem;"></div>
+    <p class="login-note">Solo residentes y propietarios autorizados de Villa Valencia tienen acceso.</p>
+    <button class="demo-btn" id="demo-btn">Ver demo sin iniciar sesi&oacute;n &rarr;</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-wrap">
+    <div style="background:linear-gradient(135deg,#1A6BB8,#145694);border-radius:10px;padding:6px 10px;display:flex;align-items:center;gap:6px;">
+      <span style="font-size:1.4rem;">&#x1F305;</span>
+    </div>
+    <div class="logo-text">
+      <span>APROVIVA</span>
+      <span>Portal de Residentes &middot; Villa Valencia</span>
+    </div>
+  </div>
+  <div id="auth-area">
+    <button class="btn-login" onclick="document.getElementById('loginOverlay').style.display='flex'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+      Iniciar Sesi&oacute;n
+    </button>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="active">&#x1F3E0; Inicio</a>
+  <a href="#" data-drive="asambleas" target="_blank">&#x1F4CB; Asambleas</a>
+  <a href="#" data-drive="finanzas" target="_blank">&#x1F4B0; Finanzas</a>
+  <a href="#" data-drive="comunicados" target="_blank">&#x1F4E3; Comunicados</a>
+  <a href="#pqrs">&#x1F4DD; PQRS</a>
+  <a href="proveedores.html">&#x1F527; Proveedores</a>
+  <a href="#" data-drive="planos" target="_blank">&#x1F4D0; Planos</a>
+  <a href="#" data-drive="documentos" target="_blank">&#x1F4C1; Documentos</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">Portal Residentes 2026</div>
+  <h1>Bienvenido a Villa Valencia</h1>
+  <p>Tu espacio digital para acceder a toda la informaci&oacute;n de la copropiedad, gestionar solicitudes y mantenerte informado.</p>
+</div>
+
+<!-- PROTECTED CONTENT -->
+<div id="protected-content" class="hidden">
+<main>
+
+  <!-- QUICK ACCESS -->
+  <h2 class="section-title">&#x26A1; Acceso R&aacute;pido</h2>
+  <div class="cards-grid">
+    <a class="card" href="#" data-drive="asambleas" target="_blank">
+      <div class="card-icon" style="background:#e8f2fc;">&#x1F4CB;</div>
+      <h3>Asambleas</h3>
+      <p>Actas y convocatorias 2022&ndash;2026</p>
+    </a>
+    <a class="card" href="#" data-drive="finanzas" target="_blank">
+      <div class="card-icon" style="background:#fef9e7;">&#x1F4B0;</div>
+      <h3>Informes Financieros</h3>
+      <p>Presupuesto y reportes mensuales</p>
+    </a>
+    <a class="card" href="#" data-drive="comunicados" target="_blank">
+      <div class="card-icon" style="background:#f0fdf4;">&#x1F4E3;</div>
+      <h3>Comunicados</h3>
+      <p>Circulares y avisos oficiales</p>
+    </a>
+    <a class="card" href="#pqrs">
+      <div class="card-icon" style="background:#fdf2f8;">&#x1F4DD;</div>
+      <h3>Radicar PQRS</h3>
+      <p>Peticiones, quejas y sugerencias</p>
+    </a>
+    <a class="card" href="proveedores.html">
+      <div class="card-icon" style="background:#f0f9ff;">&#x1F527;</div>
+      <h3>Proveedores</h3>
+      <p>Directorio recomendado por la comunidad</p>
+    </a>
+    <a class="card" href="#" data-drive="planos" target="_blank">
+      <div class="card-icon" style="background:#fff7ed;">&#x1F4D0;</div>
+      <h3>Planos</h3>
+      <p>Planos oficiales de la unidad</p>
+    </a>
+  </div>
+
+  <!-- TWO COLUMNS -->
+  <div class="two-col">
+
+    <!-- COMUNICADOS RECIENTES -->
+    <div class="panel">
+      <div class="panel-title">&#x1F4E3; Comunicados Recientes</div>
+      <div class="comunicado-item">
+        <div class="com-date">MAR<br>2026</div>
+        <div class="com-body">
+          <h4>Mantenimiento zonas comunes &ndash; Semana Santa</h4>
+          <p>Restricciones de acceso del 14 al 18 de abril</p>
+          <span class="com-tag" style="background:#e8f2fc;color:#1A6BB8;">Aviso</span>
+        </div>
+      </div>
+      <div class="comunicado-item">
+        <div class="com-date">FEB<br>2026</div>
+        <div class="com-body">
+          <h4>Resultados Asamblea Ordinaria 2026</h4>
+          <p>Presupuesto aprobado y nuevos representantes</p>
+          <span class="com-tag" style="background:#f0fdf4;color:#16a34a;">Asamblea</span>
+        </div>
+      </div>
+      <div class="comunicado-item">
+        <div class="com-date">ENE<br>2026</div>
+        <div class="com-body">
+          <h4>Nuevo sistema de PQRS en l&iacute;nea</h4>
+          <p>Ya puedes radicar solicitudes desde el portal</p>
+          <span class="com-tag" style="background:#fef9e7;color:#d97706;">Novedad</span>
+        </div>
+      </div>
+      <a class="view-all" href="#" data-drive="comunicados" target="_blank">Ver todos los comunicados &rarr;</a>
+    </div>
+
+    <!-- PQRS -->
+    <div class="panel" id="pqrs">
+      <div class="panel-title">&#x1F4DD; Radicar PQRS</div>
+      <p style="font-size:0.82rem;color:var(--text-light);line-height:1.5;margin-bottom:1rem;">
+        Env&iacute;a tu petici&oacute;n, queja, reclamo o sugerencia a trav&eacute;s del formulario oficial de APROVIVA.
+        Tu solicitud ser&aacute; atendida por la administraci&oacute;n.
+      </p>
+      <button class="btn-primary" id="pqrs-submit">
+        Abrir formulario PQRS &rarr;
+      </button>
+      <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.75rem;text-align:center;">
+        Se abrir&aacute; el formulario de Google Forms en una nueva pesta&ntilde;a.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- FINANZAS PREVIEW -->
+  <h2 class="section-title">&#x1F4B0; Informe Financiero &ndash; Febrero 2026</h2>
+  <div class="panel" style="margin-bottom:2.5rem;">
+    <table class="fin-table">
+      <thead>
+        <tr>
+          <th>Concepto</th>
+          <th>Presupuestado</th>
+          <th>Ejecutado</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Administraci&oacute;n</td>
+          <td>$4.500.000</td>
+          <td>$4.500.000</td>
+          <td class="badge-ok">&#x2713; Al d&iacute;a</td>
+        </tr>
+        <tr>
+          <td>Mantenimiento &aacute;reas comunes</td>
+          <td>$2.200.000</td>
+          <td>$1.850.000</td>
+          <td class="badge-ok">&#x2713; Al d&iacute;a</td>
+        </tr>
+        <tr>
+          <td>Servicios p&uacute;blicos zonas comunes</td>
+          <td>$1.800.000</td>
+          <td>$2.100.000</td>
+          <td class="badge-pending">&#x26A0; Sobrepaso</td>
+        </tr>
+        <tr>
+          <td>Fondo de imprevistos</td>
+          <td>$800.000</td>
+          <td>$800.000</td>
+          <td class="badge-ok">&#x2713; Al d&iacute;a</td>
+        </tr>
+      </tbody>
+    </table>
+    <a class="view-all" href="#" data-drive="finanzas" target="_blank">Ver informe completo en PDF &rarr;</a>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <strong>APROVIVA</strong> &middot; Asociaci&oacute;n de Propietarios Villa Valencia<br>
+  Portal de Residentes &middot; Todos los derechos reservados &copy; 2026
+</footer>
+</div><!-- /protected-content -->
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

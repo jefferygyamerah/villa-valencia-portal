@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Proveedores – APROVIVA | Villa Valencia</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay" style="display:none;">
+  <div class="login-box">
+    <div style="font-size:2.5rem;margin-bottom:0.5rem;">&#x1F305;</div>
+    <h2>Portal APROVIVA</h2>
+    <p>Bienvenido al portal de residentes de<br><strong>Villa Valencia</strong>.<br>Inicia sesi&oacute;n con tu cuenta Google autorizada.</p>
+    <div id="login-error" class="login-error"></div>
+    <div id="g-signin-btn" style="display:flex;justify-content:center;margin-bottom:0.75rem;"></div>
+    <p class="login-note">Solo residentes y propietarios autorizados de Villa Valencia tienen acceso.</p>
+    <button class="demo-btn" id="demo-btn">Ver demo sin iniciar sesi&oacute;n &rarr;</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">&larr; <a href="index.html">Portal APROVIVA</a> &nbsp;&middot;&nbsp; Directorio de Proveedores &middot; Villa Valencia</div>
+
+<!-- HEADER -->
+<header>
+  <div class="brand">
+    <div class="brand-icon">&#x1F305;</div>
+    <div class="brand-text">
+      <strong>Proveedores Villa Valencia</strong>
+      <span>APROVIVA &middot; Directorio Comunitario</span>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <button class="btn-suggest" onclick="window._openSuggest()">&#x2795; Agregar Proveedor</button>
+    <div id="auth-area"></div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero hero--left">
+  <div class="hero-inner">
+    <div class="hero-badge">Directorio Comunitario 2026</div>
+    <h1>Proveedores de Confianza</h1>
+    <p>Profesionales y empresas recomendados directamente por propietarios de Villa Valencia. Todos con n&uacute;mero de casa verificado.</p>
+    <div class="hero-stats">
+      <div class="stat"><strong id="statTotal">12</strong><span>Proveedores registrados</span></div>
+      <div class="stat"><strong>10</strong><span>Categor&iacute;as de servicio</span></div>
+      <div class="stat"><strong>100%</strong><span>Recomendados por residentes</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROTECTED CONTENT -->
+<div id="protected-content" class="hidden">
+<div class="main-sidebar">
+  <!-- SIDEBAR -->
+  <div>
+    <div class="sidebar-panel">
+      <div class="sidebar-title">Filtrar por categor&iacute;a</div>
+      <button class="cat-btn active" onclick="window._filterCat('all',this)"><span class="cat-icon">&#x1F50D;</span>Todos<span class="cat-count" id="cnt-all">12</span></button>
+      <button class="cat-btn" onclick="window._filterCat('aires',this)"><span class="cat-icon">&#x2744;&#xFE0F;</span>Aires Acondicionados<span class="cat-count" id="cnt-aires">2</span></button>
+      <button class="cat-btn" onclick="window._filterCat('catering',this)"><span class="cat-icon">&#x1F37D;&#xFE0F;</span>Catering / Eventos<span class="cat-count" id="cnt-catering">1</span></button>
+      <button class="cat-btn" onclick="window._filterCat('jardineria',this)"><span class="cat-icon">&#x1F33F;</span>Jardiner&iacute;a<span class="cat-count" id="cnt-jardineria">2</span></button>
+      <button class="cat-btn" onclick="window._filterCat('linea-blanca',this)"><span class="cat-icon">&#x1FAE7;</span>L&iacute;nea Blanca<span class="cat-count" id="cnt-linea-blanca">1</span></button>
+      <button class="cat-btn" onclick="window._filterCat('plomeria',this)"><span class="cat-icon">&#x1F6B0;</span>Plomer&iacute;a<span class="cat-count" id="cnt-plomeria">1</span></button>
+      <button class="cat-btn" onclick="window._filterCat('general',this)"><span class="cat-icon">&#x1F528;</span>Trabajos Generales<span class="cat-count" id="cnt-general">1</span></button>
+      <button class="cat-btn" onclick="window._filterCat('fumigacion',this)"><span class="cat-icon">&#x1FAB2;</span>Fumigaci&oacute;n<span class="cat-count" id="cnt-fumigacion">1</span></button>
+      <button class="cat-btn" onclick="window._filterCat('techo',this)"><span class="cat-icon">&#x1F3E0;</span>Techo y Canales<span class="cat-count" id="cnt-techo">1</span></button>
+      <button class="cat-btn" onclick="window._filterCat('solar',this)"><span class="cat-icon">&#x2600;&#xFE0F;</span>Paneles Solares<span class="cat-count" id="cnt-solar">1</span></button>
+      <button class="cat-btn" onclick="window._filterCat('vidrios',this)"><span class="cat-icon">&#x1FA9F;</span>Vidrios y Aluminio<span class="cat-count" id="cnt-vidrios">1</span></button>
+    </div>
+  </div>
+
+  <!-- GRID -->
+  <div>
+    <div class="search-wrap">
+      <span class="search-icon">&#x1F50D;</span>
+      <input type="text" placeholder="Buscar por nombre o servicio..." id="searchInput" oninput="(function(){var e=document.createEvent('Event');e.initEvent('input',true,true);document.getElementById('searchInput').dispatchEvent(e)})()"/>
+    </div>
+    <div class="grid-header">
+      <div class="grid-title" id="gridTitle">Todos los Proveedores</div>
+      <div class="grid-count" id="gridCount">12 proveedores</div>
+    </div>
+    <div class="providers-grid" id="providerGrid"></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <strong>APROVIVA</strong> &middot; Asociaci&oacute;n de Propietarios Villa Valencia<br>
+  Portal de Residentes &middot; Todos los derechos reservados &copy; 2026
+</footer>
+</div><!-- /protected-content -->
+
+<!-- SUGGEST MODAL -->
+<div class="modal-overlay" id="suggestModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">&#x2795; Agregar un Proveedor</div>
+      <button class="modal-close" onclick="window._closeSuggest()">&#x2715;</button>
+    </div>
+    <div id="suggestForm">
+      <div class="modal-desc">&#x1F4CB; Tu recomendaci&oacute;n aparecer&aacute; en el directorio una vez verificada por la Junta Directiva de APROVIVA.</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nombre / Empresa <span class="req">*</span></label>
+          <input type="text" class="form-input" placeholder="Ej. Juan P&eacute;rez"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categor&iacute;a <span class="req">*</span></label>
+          <select class="form-select">
+            <option value="">Seleccionar...</option>
+            <option>Aires Acondicionados</option>
+            <option>Catering / Eventos</option>
+            <option>Jardiner&iacute;a</option>
+            <option>L&iacute;nea Blanca</option>
+            <option>Plomer&iacute;a</option>
+            <option>Trabajos Generales</option>
+            <option>Fumigaci&oacute;n</option>
+            <option>Techo y Canales</option>
+            <option>Paneles Solares</option>
+            <option>Vidrios y Aluminio</option>
+            <option>Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo de servicio que ofrece <span class="req">*</span></label>
+        <input type="text" class="form-input" placeholder="Ej. Instalaci&oacute;n y mantenimiento de A/C"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tel&eacute;fono <span class="req">*</span></label>
+          <input type="tel" class="form-input" placeholder="6000-0000"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo electr&oacute;nico</label>
+          <input type="email" class="form-input" placeholder="opcional"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tu n&uacute;mero de casa <span class="req">*</span></label>
+          <input type="text" class="form-input" placeholder="Ej. 104"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tu nombre</label>
+          <input type="text" class="form-input" placeholder="Residente que recomienda"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">&iquest;Por qu&eacute; lo recomiendas?</label>
+        <textarea class="form-textarea" placeholder="Cu&eacute;ntanos tu experiencia (opcional)..."></textarea>
+      </div>
+      <button class="btn-submit" onclick="window._submitSuggest()">Enviar recomendaci&oacute;n &rarr;</button>
+      <p class="approval-note">&#x1F512; Revisado por APROVIVA antes de publicarse.</p>
+    </div>
+    <div class="success-msg" id="suggestSuccess">
+      <div class="success-icon-wrap">&#x2705;</div>
+      <h3>&iexcl;Recomendaci&oacute;n enviada!</h3>
+      <p>Gracias. La Junta Directiva de APROVIVA revisar&aacute; la informaci&oacute;n y la publicar&aacute; en el directorio en los pr&oacute;ximos d&iacute;as h&aacute;biles.</p>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="detail-overlay" id="detailModal">
+  <div class="detail-modal" id="detailContent"></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/proveedores.js"></script>
+</body>
+</html>
