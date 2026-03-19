@@ -316,6 +316,7 @@
   }
 
   function selectMonth(m) {
+    if (m > 0 && m > getLastInformeMonth()) return;
     selectedMonth = m;
     var btns = document.querySelectorAll('.budget-month-btn');
     for (var i = 0; i < btns.length; i++) {
