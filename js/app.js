@@ -1,5 +1,5 @@
 /**
- * APROVIVA Portal – Main page logic
+ * Portal APROVIVA – Lógica de la página principal
  */
 (function () {
   'use strict';
@@ -11,7 +11,7 @@
       config.APPS_SCRIPT_URL.indexOf('YOUR_') === -1;
   }
 
-  // ── Drive links ──
+  // ── Enlaces de Drive ──
   function populateDriveLinks() {
     var links = config.DRIVE_LINKS;
     var els = document.querySelectorAll('[data-drive]');
@@ -29,7 +29,7 @@
     }
   }
 
-  // ── PQRS Modal ──
+  // ── Modal PQRS ──
   function openPqrs() {
     document.getElementById('pqrsModal').classList.add('open');
   }
@@ -107,7 +107,7 @@
     }
   }
 
-  // ── Dashboard ──
+  // ── Panel de control ──
   function loadDashboard() {
     var loading = document.getElementById('dashLoading');
     var content = document.getElementById('dashContent');
@@ -241,7 +241,7 @@
     return div.innerHTML;
   }
 
-  // ── Budget Dashboard ──
+  // ── Panel de presupuesto ──
   var budgetData = [];
   var ejecucionData = [];
   var budgetMeta = {};
@@ -342,7 +342,7 @@
     var showActuals = ejecucionData.length > 0 &&
       (selectedMonth === 0 || monthHasActuals(selectedMonth));
 
-    // Budget totals
+    // Totales de presupuesto
     var totalIngresos = 0, totalGastos = 0;
     var catBudget = {};
     for (var i = 0; i < filtered.length; i++) {
@@ -355,10 +355,10 @@
       }
     }
 
-    // Actual totals from ejecucion
-    // ejecutadoMes = single month, ejecutadoAcumulado = cumulative
-    // When viewing a specific month that has data: use ejecutadoMes
-    // When viewing "Todo": use ejecutadoAcumulado (cumulative through last informe)
+    // Totales reales de ejecución
+    // ejecutadoMes = mes individual, ejecutadoAcumulado = acumulado
+    // Al ver un mes específico con datos: usar ejecutadoMes
+    // Al ver "Todo": usar ejecutadoAcumulado (acumulado hasta el último informe)
     var totalEjecGastos = 0;
     var catEjec = {};
     if (showActuals) {
@@ -373,7 +373,7 @@
       }
     }
 
-    // For "Todo" view, compare actuals against budget up to last informe month only
+    // En vista "Todo", comparar datos reales contra presupuesto solo hasta el mes del último informe
     var compareBudget = totalGastos;
     if (selectedMonth === 0 && lastMonth > 0) {
       compareBudget = 0;
@@ -392,7 +392,7 @@
       ? '\u00daltimo informe: ' + budgetMeta.ultimoInforme
       : '';
 
-    // KPIs
+    // Indicadores clave
     var kpis = document.getElementById('budgetKpis');
     kpis.innerHTML =
       kpiCard('B/. ' + fmtNum(totalIngresos), 'Presupuesto Ingresos', period) +
@@ -409,7 +409,7 @@
           ? (selectedMonth > 0 ? 'del presupuesto de ' + MONTH_FULL[selectedMonth - 1] : 'acumulado a ' + (budgetMeta.ultimoInforme || ''))
           : 'sin datos reales para este mes');
 
-    // Category cards
+    // Tarjetas por categoría
     var cats = document.getElementById('budgetCategories');
     var maxCat = 0;
     for (var c = 0; c < CAT_ORDER.length; c++) {
@@ -450,10 +450,10 @@
     }
     cats.innerHTML = catHtml;
 
-    // Monthly trend
+    // Tendencia mensual
     renderTrend();
 
-    // Reset detail
+    // Reiniciar detalle
     var detail = document.getElementById('budgetDetail');
     detail.innerHTML = '';
   }
@@ -532,7 +532,7 @@
     var hasActuals = ejecucionData.length > 0 &&
       (selectedMonth === 0 || monthHasActuals(selectedMonth));
 
-    // Get budget items
+    // Obtener partidas del presupuesto
     var budgetItems = {};
     var bFiltered = budgetData.filter(function (r) {
       return r.categoria === cat && r.tipo !== 'Ingresos' &&
@@ -543,7 +543,7 @@
         (budgetItems[bFiltered[i].concepto] || 0) + bFiltered[i].monto;
     }
 
-    // Get actual items
+    // Obtener partidas de ejecución
     var execItems = {};
     for (var i = 0; i < ejecucionData.length; i++) {
       if (ejecucionData[i].categoria === cat) {
@@ -551,7 +551,7 @@
       }
     }
 
-    // Merge all concepts
+    // Combinar todos los conceptos
     var allConcepts = {};
     for (var k in budgetItems) allConcepts[k] = true;
     for (var k in execItems) allConcepts[k] = true;
@@ -595,7 +595,7 @@
   window._selectMonth = selectMonth;
   window._toggleCat = toggleCat;
 
-  // ── Init ──
+  // ── Inicialización ──
   window._openPqrs = openPqrs;
   window._closePqrs = closePqrs;
   window._submitPqrs = submitPqrs;

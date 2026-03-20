@@ -1,12 +1,12 @@
 /**
- * Reporting data generator for APROVIVA Portal.
+ * Generador de datos de reportes para el Portal APROVIVA.
  *
- * Reads the latest monthly informe financiero (XLSX) from Drive,
- * extracts budget vs actual from "Estado de Presupuesto" sheet,
- * and writes a flat table to the reporting spreadsheet.
+ * Lee el último informe financiero mensual (XLSX) desde Drive,
+ * extrae presupuesto vs real de la hoja "Estado de Presupuesto",
+ * y escribe una tabla plana en la hoja de reportes.
  *
- * Auto-refreshes via hourly trigger.
- * Run setupReporting() once, then installTriggers() once.
+ * Se actualiza automáticamente mediante trigger por hora.
+ * Ejecutar setupReporting() una vez, luego installTriggers() una vez.
  */
 
 var FINANZAS_FOLDER_ID = '1JFxrA8lMiCyBeKjahEu1wGW58BsSs0qA';
@@ -17,16 +17,16 @@ var BUDGET_SHEET_NAME = 'PRESUPUESTO 2026 REVISADO';
 
 function setupReporting() {
   var finanzasFolder = DriveApp.getFolderById(FINANZAS_FOLDER_ID);
-  var reportingFolders = finanzasFolder.getFoldersByName('Reporting - No Editar');
+  var reportingFolders = finanzasFolder.getFoldersByName('Reportes - No Editar');
   var reportingFolder;
   if (reportingFolders.hasNext()) {
     reportingFolder = reportingFolders.next();
   } else {
-    reportingFolder = finanzasFolder.createFolder('Reporting - No Editar');
-    reportingFolder.setDescription('Datos para dashboards. No editar — se actualiza automáticamente.');
+    reportingFolder = finanzasFolder.createFolder('Reportes - No Editar');
+    reportingFolder.setDescription('Datos para paneles de control. No editar — se actualiza automáticamente.');
   }
 
-  var fileName = 'Presupuesto 2026 - Dashboard Data';
+  var fileName = 'Presupuesto 2026 - Datos del Panel';
   var existing = reportingFolder.getFilesByName(fileName);
   var ss;
   if (existing.hasNext()) {
@@ -38,8 +38,8 @@ function setupReporting() {
 
   refreshBudgetData(ss);
 
-  Logger.log('Reporting spreadsheet: ' + ss.getUrl());
-  Logger.log('Spreadsheet ID: ' + ss.getId());
+  Logger.log('Hoja de reportes: ' + ss.getUrl());
+  Logger.log('ID de la hoja: ' + ss.getId());
   return ss.getId();
 }
 
@@ -49,28 +49,28 @@ function refreshBudgetData(ss) {
     if (!ss) return;
   }
 
-  // Read the latest informe to get actuals
+  // Leer el último informe para obtener datos reales
   var actuals = readLatestInforme();
 
-  // Read the annual budget for baseline
+  // Leer el presupuesto anual como línea base
   var budget = readAnnualBudget();
 
-  // Build flat table combining budget + actuals
+  // Construir tabla plana combinando presupuesto + datos reales
   writeFlatTable(ss, budget, actuals);
 }
 
 function getReportingSpreadsheet() {
   var finanzasFolder = DriveApp.getFolderById(FINANZAS_FOLDER_ID);
-  var reportingFolders = finanzasFolder.getFoldersByName('Reporting - No Editar');
+  var reportingFolders = finanzasFolder.getFoldersByName('Reportes - No Editar');
   if (!reportingFolders.hasNext()) return null;
-  var files = reportingFolders.next().getFilesByName('Presupuesto 2026 - Dashboard Data');
+  var files = reportingFolders.next().getFilesByName('Presupuesto 2026 - Datos del Panel');
   if (!files.hasNext()) return null;
   return SpreadsheetApp.open(files.next());
 }
 
 /**
- * Find and read the latest monthly informe XLSX.
- * Returns array of {concepto, presupuestoAnual, mesActual, realAcumulado, pctEjecucion, saldo, categoria}
+ * Busca y lee el último informe mensual XLSX.
+ * Devuelve array de {concepto, presupuestoAnual, mesActual, realAcumulado, pctEjecucion, saldo, categoria}
  */
 function readLatestInforme() {
   var folder = DriveApp.getFolderById(ENTREGA_FOLDER_ID);
@@ -92,7 +92,7 @@ function readLatestInforme() {
 
   if (!latestXlsx) return { rows: [], month: '', fileDate: null };
 
-  // Convert XLSX to Google Sheets temporarily
+  // Convertir XLSX a Google Sheets temporalmente
   var blob = latestXlsx.getBlob();
   var converted = Drive.Files.insert(
     { title: 'temp-informe-' + Date.now(), mimeType: 'application/vnd.google-apps.spreadsheet' },
@@ -106,7 +106,7 @@ function readLatestInforme() {
   if (presSheet) {
     var data = presSheet.getDataRange().getValues();
 
-    // Extract month from header (row 2 typically: "Al 31 de Enero de 2026")
+    // Extraer mes del encabezado (fila 2 típicamente: "Al 31 de Enero de 2026")
     for (var h = 0; h < Math.min(5, data.length); h++) {
       var headerText = String(data[h][0] || '');
       var monthMatch = headerText.match(/(?:Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)/i);
@@ -116,19 +116,19 @@ function readLatestInforme() {
       }
     }
 
-    // Parse rows — the format is:
-    // Col A: Cuenta (concept name)
+    // Parsear filas — el formato es:
+    // Col A: Cuenta (nombre del concepto)
     // Col B: Presupuesto Anual
-    // Col C: Mes actual amount
+    // Col C: Monto del mes actual
     // Col D: Real Acumulado
-    // Col E: % Ejecucion
+    // Col E: % Ejecución
     // Col F: Saldo Restante
     var currentCategory = '';
     for (var i = 6; i < data.length; i++) {
       var concepto = String(data[i][0] || '').trim();
       if (!concepto) continue;
 
-      // Detect category headers
+      // Detectar encabezados de categoría
       if (concepto === 'Ingresos' || concepto === 'Total de Ingresos') {
         if (concepto === 'Ingresos') currentCategory = 'Ingresos';
         continue;
@@ -141,7 +141,7 @@ function readLatestInforme() {
       if (concepto.indexOf('Mantenimientos Correctivos') !== -1 && !data[i][1]) { currentCategory = 'Mantenimientos Correctivos'; continue; }
       if (concepto.indexOf('Otros Gastos') !== -1 && !data[i][1]) { currentCategory = 'Otros Gastos'; continue; }
 
-      // Skip totals
+      // Omitir totales
       if (concepto.indexOf('Total de') !== -1 || concepto.indexOf('TOTAL') !== -1) continue;
 
       var presAnual = Number(data[i][1]) || 0;
@@ -150,7 +150,7 @@ function readLatestInforme() {
       var pctEjec = Number(data[i][4]) || 0;
       var saldo = Number(data[i][5]) || 0;
 
-      // Only include rows that have some data
+      // Solo incluir filas que tengan algún dato
       if (presAnual || mesActual || realAcum) {
         result.rows.push({
           concepto: concepto,
@@ -165,14 +165,14 @@ function readLatestInforme() {
     }
   }
 
-  // Clean up temp file
+  // Eliminar archivo temporal
   DriveApp.getFileById(converted.id).setTrashed(true);
 
   return result;
 }
 
 /**
- * Read the annual budget spreadsheet for monthly planned amounts.
+ * Lee la hoja de presupuesto anual para obtener los montos planificados mensuales.
  */
 function readAnnualBudget() {
   var source = SpreadsheetApp.openById(BUDGET_SPREADSHEET_ID);
@@ -182,7 +182,7 @@ function readAnnualBudget() {
   var months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-  // Map row indices to categories (from budget spreadsheet structure)
+  // Mapear índices de fila a categorías (según estructura de la hoja de presupuesto)
   var items = [
     [5, 'Ingresos'], [6, 'Ingresos'],
     [12, 'Servicios Básicos'], [13, 'Servicios Básicos'], [14, 'Servicios Básicos'],
@@ -228,13 +228,13 @@ function readAnnualBudget() {
 }
 
 /**
- * Write combined budget + actuals to the reporting spreadsheet.
+ * Escribe presupuesto + datos reales combinados en la hoja de reportes.
  */
 function writeFlatTable(ss, budget, actuals) {
   var months = budget.months;
 
-  // Sheet 1: Budget (monthly planned)
-  var headers = ['Tipo', 'Categoría', 'Concepto', 'Mes', 'Mes_Num', 'Presupuestado'];
+  // Hoja 1: Presupuesto (planificado mensual)
+  var headers = ['Tipo', 'Categoría', 'Concepto', 'Mes', 'Mes_Núm', 'Presupuestado'];
   var flatRows = [headers];
   for (var i = 0; i < budget.rows.length; i++) {
     var r = budget.rows[i];
@@ -245,9 +245,9 @@ function writeFlatTable(ss, budget, actuals) {
   }
   writeSheet(ss, 'Presupuesto', flatRows, 5);
 
-  // Sheet 2: Ejecucion (actuals from latest informe)
+  // Hoja 2: Ejecución (datos reales del último informe)
   var execHeaders = ['Categoría', 'Concepto', 'Presupuesto_Anual',
-                     'Ejecutado_Mes', 'Ejecutado_Acumulado', 'Pct_Ejecucion', 'Saldo_Restante'];
+                     'Ejecutado_Mes', 'Ejecutado_Acumulado', 'Pct_Ejecución', 'Saldo_Restante'];
   var execRows = [execHeaders];
   for (var i = 0; i < actuals.rows.length; i++) {
     var a = actuals.rows[i];
@@ -256,7 +256,7 @@ function writeFlatTable(ss, budget, actuals) {
   }
   writeSheet(ss, 'Ejecucion', execRows, 2);
 
-  // Sheet 3: Meta
+  // Hoja 3: Metadatos
   var metaSheet = ss.getSheetByName('Meta') || ss.insertSheet('Meta');
   metaSheet.clear();
   metaSheet.getRange(1, 1).setValue('Última actualización');
@@ -268,7 +268,7 @@ function writeFlatTable(ss, budget, actuals) {
   metaSheet.getRange(4, 1).setValue('Nota');
   metaSheet.getRange(4, 2).setValue('No editar — se regenera automáticamente');
 
-  // Clean up extra sheets
+  // Limpiar hojas sobrantes
   var sheets = ss.getSheets();
   for (var s = 0; s < sheets.length; s++) {
     var name = sheets[s].getName();
@@ -302,19 +302,19 @@ function writeSheet(ss, name, rows, currencyCol) {
 }
 
 /**
- * Install triggers for automatic refresh.
- * Run ONCE from the Apps Script editor.
+ * Instala triggers para actualización automática.
+ * Ejecutar UNA VEZ desde el editor de Apps Script.
  */
 function installTriggers() {
   removeTriggers();
 
-  // Hourly trigger — picks up new informe uploads
+  // Trigger por hora — detecta nuevas subidas de informes
   ScriptApp.newTrigger('triggerRefresh')
     .timeBased()
     .everyHours(1)
     .create();
 
-  Logger.log('Hourly trigger installed');
+  Logger.log('Trigger por hora instalado');
 }
 
 function removeTriggers() {

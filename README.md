@@ -1,32 +1,31 @@
-# Villa Valencia Portal
+# Portal Villa Valencia
 
-Digital portal for Villa Valencia HOA (APROVIVA), Costa Sur, Don Bosco, Panama.
+Portal digital para la HOA de Villa Valencia (APROVIVA), Costa Sur, Don Bosco, Panamá.
 
-## Overview
+## Descripción
 
-Community portal for 118 homeowners providing transparency into HOA operations, finances, and maintenance. Static site hosted on GitHub Pages.
+Portal comunitario para 118 propietarios que brinda transparencia sobre las operaciones, finanzas y mantenimiento de la asociación. Sitio estático alojado en GitHub Pages.
 
-## Structure
+## Estructura
 
 ```
-index.html          Main portal (dashboard, comunicados, PQRS, financials)
-proveedores.html    Provider directory with search and filtering
-css/styles.css      Shared styles
-js/config.js        Configuration (Google Client ID, form URLs, Drive links)
-js/auth.js          Google Sign-In + demo mode
-js/app.js           Portal page logic
-js/proveedores.js   Provider directory logic
-docs/               Reference documents and prototypes
+index.html          Portal principal (dashboard, comunicados, PQRS, finanzas)
+proveedores.html    Directorio de proveedores con búsqueda y filtros
+css/styles.css      Estilos compartidos
+js/config.js        Configuración (URLs de Apps Script, enlaces de Drive)
+js/app.js           Lógica de la página principal
+js/proveedores.js   Lógica del directorio de proveedores
+apps-script/        Backend en Google Apps Script
+docs/               Documentos de referencia y prototipos
 ```
 
-## Configuration
+## Configuración
 
-Edit `js/config.js` with your values:
+Edita `js/config.js` con tus valores:
 
-- `GOOGLE_CLIENT_ID` — OAuth 2.0 client ID from Google Cloud Console
-- `PQRS_FORM_URL` — Published Google Form URL
-- `DRIVE_LINKS` — Google Drive folder URLs for each document section
+- `APPS_SCRIPT_URL` — URL del Web App de Google Apps Script desplegado
+- `DRIVE_LINKS` — URLs de las carpetas de Google Drive para cada sección de documentos
 
-## Deployment
+## Despliegue
 
-Hosted on GitHub Pages from the `master` branch root. Add `.nojekyll` to skip Jekyll processing.
+Alojado en GitHub Pages desde la raíz de la rama `master`. Incluye `.nojekyll` para omitir el procesamiento de Jekyll.

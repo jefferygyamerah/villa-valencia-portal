@@ -1,7 +1,7 @@
 /**
- * APROVIVA Portal — Google Apps Script
+ * Portal APROVIVA — Google Apps Script
  *
- * Handles PQRS submissions and provider suggestions.
+ * Maneja envíos de PQRS y sugerencias de proveedores.
  */
 
 var PQRS_SHEET = 'Portal';
@@ -33,7 +33,7 @@ function getProvidersSheet() {
   return sheet;
 }
 
-// POST — dispatch based on payload type
+// POST — despacha según tipo de payload
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
   var type = data._type || 'pqrs';
@@ -78,7 +78,7 @@ function saveProvider(data) {
   ).setMimeType(ContentService.MimeType.JSON);
 }
 
-// GET — return PQRS data for dashboard
+// GET — devuelve datos de PQRS para el dashboard
 function doGet(e) {
   var action = (e && e.parameter && e.parameter.action) || 'pqrs';
 
@@ -92,7 +92,7 @@ function doGet(e) {
   if (action === 'install-triggers') {
     installTriggers();
     return ContentService.createTextOutput(
-      JSON.stringify({ status: 'ok', message: 'Triggers installed' })
+      JSON.stringify({ status: 'ok', message: 'Triggers instalados' })
     ).setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -127,11 +127,11 @@ function doGet(e) {
   ).setMimeType(ContentService.MimeType.JSON);
 }
 
-// Dump a monthly informe for inspection
+// Volcado de un informe mensual para inspección
 function dumpInforme() {
-  // January 2026 XLSX - open it via Drive
+  // Enero 2026 XLSX — abrir vía Drive
   var file = DriveApp.getFileById('1ZBaZpvgZ3SuJRzOpRD5TUERWUzXXzp-n');
-  // Convert XLSX to Google Sheets to read it
+  // Convertir XLSX a Google Sheets para leerlo
   var blob = file.getBlob();
   var converted = Drive.Files.insert(
     { title: 'temp-informe-read', mimeType: 'application/vnd.google-apps.spreadsheet' },
@@ -150,7 +150,7 @@ function dumpInforme() {
       });
     });
   }
-  // Clean up temp file
+  // Eliminar archivo temporal
   DriveApp.getFileById(converted.id).setTrashed(true);
 
   return ContentService.createTextOutput(
@@ -158,14 +158,14 @@ function dumpInforme() {
   ).setMimeType(ContentService.MimeType.JSON);
 }
 
-// Return budget + actuals from reporting spreadsheet
+// Devuelve presupuesto + datos reales desde la hoja de reportes
 function serveBudgetData() {
   var REPORTING_ID = '1MI6BHRy7Y5abCb1jI1YQcEq19-bAuTDvddznDNfwcaA';
   var ss = SpreadsheetApp.openById(REPORTING_ID);
 
   var result = { budget: [], ejecucion: [], meta: {} };
 
-  // Budget (monthly planned)
+  // Presupuesto (planificado mensual)
   var budgetSheet = ss.getSheetByName('Presupuesto');
   if (budgetSheet) {
     var data = budgetSheet.getDataRange().getValues();
@@ -181,7 +181,7 @@ function serveBudgetData() {
     }
   }
 
-  // Ejecucion (actuals from latest informe)
+  // Ejecución (datos reales del último informe)
   var execSheet = ss.getSheetByName('Ejecucion');
   if (execSheet) {
     var eData = execSheet.getDataRange().getValues();
@@ -198,7 +198,7 @@ function serveBudgetData() {
     }
   }
 
-  // Meta
+  // Metadatos
   var metaSheet = ss.getSheetByName('Meta');
   if (metaSheet) {
     var mData = metaSheet.getDataRange().getValues();

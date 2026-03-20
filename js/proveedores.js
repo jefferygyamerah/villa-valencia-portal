@@ -1,5 +1,5 @@
 /**
- * APROVIVA Portal – Proveedores page logic
+ * Portal APROVIVA – Lógica de la página de proveedores
  */
 (function () {
   'use strict';
@@ -202,20 +202,20 @@
     btn.textContent = 'Enviar recomendaci\u00f3n \u2192';
   }
 
-  // Event delegation for provider cards
+  // Delegación de eventos para tarjetas de proveedores
   function setupCardClicks() {
     var grid = document.getElementById('providerGrid');
     if (!grid) return;
     grid.addEventListener('click', function (e) {
       var card = e.target.closest('.provider-card');
       if (!card) return;
-      if (e.target.closest('a')) return; // let links handle themselves
+      if (e.target.closest('a')) return; // dejar que los enlaces se manejen solos
       var id = parseInt(card.getAttribute('data-id'), 10);
       if (id) openDetail(id);
     });
   }
 
-  // Close modals on backdrop click
+  // Cerrar modales al hacer clic en el fondo
   function setupModalBackdrops() {
     var suggest = document.getElementById('suggestModal');
     if (suggest) {
@@ -231,7 +231,7 @@
     }
   }
 
-  // Expose functions needed by inline onclick handlers
+  // Exponer funciones necesarias para los onclick en línea
   window._filterCat = filterCat;
   window._openSuggest = openSuggest;
   window._closeSuggest = closeSuggest;
