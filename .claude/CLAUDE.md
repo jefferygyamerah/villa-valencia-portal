@@ -1,27 +1,45 @@
-# Villa Valencia Portal
+# CLAUDE.md — Portal Residencial Villa Valencia
 
-HOA digital portal for Villa Valencia (APROVIVA), Costa Sur, Panama.
+## Proyecto
 
-## Context
+Portal público para residentes de Villa Valencia (APROVIVA), barriada de 118 casas.
+Transparencia financiera, PQRS, y directorio de proveedores.
 
-- 118 houses, B/. 200/month maintenance fee
-- Board: President (José Palermo), Secretary (Jeff), Treasurer (James Crookston)
-- Admin company: Panama Profit
-- Operational context: `~/claude-assistant/knowledge/aproviva/context-reference.md`
+## Arquitectura
 
-## Project Rules
+- **Frontend:** Static HTML/CSS/JS hosted on GitHub Pages
+- **Backend:** Google Apps Script web app (deployed v15)
+- **Data:** Google Sheets (PQRS, Proveedores, Budget/Reporting)
+- **Live URL:** https://jefferygyamerah.github.io/villa-valencia-portal/
 
-- Do NOT update `~/claude-assistant/knowledge/`, MEMORY.md, or task backlog
-- Session notes stay local in this repo
-- All user-facing content must support Spanish (primary) and English
-- Financial amounts in Balboas (B/.)
+## Key IDs
 
-## Stack
+- Apps Script: `1pXDEUSqByv4w4Ff1xetQTf2zkBM__aOp-YV2MmJ2aRqXMsFOaxzYLG2I`
+- PQRS Sheet: `1kD0v-nGH4h7AJg7i4wTdkJuQ_vkjzBF28blGvQXAGYo`
+- Budget Sheet: `1CGmPqMbRsC3EI-8Gq53zd1rjjt-EeG62XidwuBSddgk`
+- Reporting Sheet: `1MI6BHRy7Y5abCb1jI1YQcEq19-bAuTDvddznDNfwcaA`
 
-TBD — will be decided during planning phase.
+## What's Live
+
+- Portal fully open (no OAuth)
+- PQRS inline form + dashboard with KPIs, bar charts, recent reports
+- Provider suggestion form → Proveedores sheet
+- Budget dashboard: presupuesto vs ejecucion real from monthly informes
+  - Month selector, category cards with % execution, expandable line items
+- Hourly auto-refresh trigger for budget data
+
+## Auto-Update Chain
+
+Accountant uploads monthly XLSX → Drive "Entrega de Informes" → hourly trigger → Apps Script reads "Estado de Presupuesto" sheet → updates reporting spreadsheet → portal fetches on page load
 
 ## Conventions
 
-- Commits: imperative mood, 72 char subject max
-- Feature branches, PRs to main
-- No secrets in repo — use environment variables
+- All user-facing text in Spanish
+- Internal code in English
+- Term: "barriada" (not "copropiedad")
+
+## Clasp
+
+- Path: `~/.local/bin/clasp` (v3.3.0)
+- CLI tokens lack script.scriptapp and full Drive scopes — run trigger/scope-sensitive functions from Apps Script editor
+- Push, version, deploy work from CLI
