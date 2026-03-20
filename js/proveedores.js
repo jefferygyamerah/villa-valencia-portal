@@ -1,43 +1,25 @@
 /**
  * APROVIVA Portal – Proveedores page logic
+ *
+ * Pure/shared functions are loaded from proveedores.pure.js via window.APROVIVA.
  */
 (function () {
   'use strict';
 
-  var PROVIDERS = [
-    { id:1,  cat:'aires',       icon:'\u2744\uFE0F', name:'Ra\u00fal Moreno',              service:'Limpieza, reparaci\u00f3n e instalaci\u00f3n de aires acondicionados', phone:'6588-7198', email:null,                       casa:'98'  },
-    { id:2,  cat:'catering',    icon:'\uD83C\uDF7D\uFE0F', name:'Cheffy Le Cheff',          service:'Catering, comida y equipo para fiestas',                     phone:'269-1220',  email:'Ventas@cheffylecheff.com', casa:'60'  },
-    { id:3,  cat:'jardineria',  icon:'\uD83C\uDF3F', name:'H\u00e9ctor Ca\u00f1ate',        service:'Jardiner\u00eda',                                            phone:'6461-7563', email:null,                       casa:'98'  },
-    { id:4,  cat:'linea-blanca',icon:'\uD83E\uDEE7', name:'Antonio',                        service:'Lavadoras, secadoras \u2014 reparaci\u00f3n y mantenimiento', phone:'6983-8544', email:null,                       casa:'98'  },
-    { id:5,  cat:'plomeria',    icon:'\uD83D\uDEB0', name:'Dario Hernandez',                service:'Plomer\u00eda',                                              phone:'6634-4065', email:null,                       casa:'104' },
-    { id:6,  cat:'general',     icon:'\uD83D\uDD28', name:'Marcos Sanchez',                 service:'Trabajos generales: pintura, techo, alba\u00f1iler\u00eda',   phone:'6484-6335', email:null,                       casa:'104' },
-    { id:7,  cat:'aires',       icon:'\u2744\uFE0F', name:'Felix',                          service:'Aires acondicionados \u2014 instalaci\u00f3n y mantenimiento',phone:'6813-4069', email:null,                       casa:'104' },
-    { id:8,  cat:'fumigacion',  icon:'\uD83E\uDEB2', name:'Alexis Angulo',                  service:'Fumigaci\u00f3n',                                            phone:'6320-3154', email:null,                       casa:'104' },
-    { id:9,  cat:'jardineria',  icon:'\uD83C\uDF3F', name:'Norbing Mercado',                service:'Jardiner\u00eda',                                            phone:'6580-2214', email:null,                       casa:'104' },
-    { id:10, cat:'techo',       icon:'\uD83C\uDFE0', name:'Carlos Ya\u00f1ez',              service:'Techo y canales de techo',                                   phone:'6487-0098', email:null,                       casa:'104' },
-    { id:11, cat:'solar',       icon:'\u2600\uFE0F', name:'W&A Engineering Solutions',      service:'Instalaci\u00f3n y mantenimiento de paneles solares',         phone:'6998-5838', email:null,                       casa:'66'  },
-    { id:12, cat:'vidrios',     icon:'\uD83E\uDE9F', name:'Vidrios y Aluminio Mega',        service:'Ventanas y vidrios',                                         phone:'6415-8511', email:null,                       casa:'89'  },
-  ];
+  var A = window.APROVIVA;
 
-  var CATEGORY_LABELS = {
-    'aires':'Aires Acondicionados', 'catering':'Catering / Eventos',
-    'jardineria':'Jardiner\u00eda', 'linea-blanca':'L\u00ednea Blanca',
-    'plomeria':'Plomer\u00eda',     'general':'Trabajos Generales',
-    'fumigacion':'Fumigaci\u00f3n', 'techo':'Techo y Canales',
-    'solar':'Paneles Solares',      'vidrios':'Vidrios y Aluminio'
-  };
+  // Shared data and functions from proveedores.pure.js
+  var PROVIDERS = A.PROVIDERS;
+  var categoryLabel = A.categoryLabel;
+  var filterProviders = A.filterProviders;
+  var findProviderById = A.findProviderById;
+  var validateSuggestFields = A.validateSuggestFields;
+  var providerCountText = A.providerCountText;
+
+  // escapeHtml comes from app.pure.js (loaded on all pages)
+  var escapeHtml = A.escapeHtml;
 
   var currentCat = 'all';
-
-  function categoryLabel(cat) {
-    return CATEGORY_LABELS[cat] || cat;
-  }
-
-  function escapeHtml(str) {
-    var div = document.createElement('div');
-    div.appendChild(document.createTextNode(str));
-    return div.innerHTML;
-  }
 
   function renderCard(p) {
     return '<div class="provider-card" data-id="' + p.id + '">' +
@@ -63,15 +45,8 @@
   }
 
   function applyFilters() {
-    var search = document.getElementById('searchInput').value.toLowerCase();
-    var filtered = PROVIDERS.filter(function (p) {
-      var matchCat = currentCat === 'all' || p.cat === currentCat;
-      var matchSearch = !search ||
-        p.name.toLowerCase().indexOf(search) !== -1 ||
-        p.service.toLowerCase().indexOf(search) !== -1 ||
-        categoryLabel(p.cat).toLowerCase().indexOf(search) !== -1;
-      return matchCat && matchSearch;
-    });
+    var search = document.getElementById('searchInput').value;
+    var filtered = filterProviders(PROVIDERS, currentCat, search);
 
     var grid = document.getElementById('providerGrid');
     if (filtered.length) {
@@ -81,8 +56,7 @@
         '<div class="empty-icon">\uD83D\uDD0D</div>' +
         '<h3>Sin resultados</h3><p>Intenta con otra b\u00fasqueda.</p></div>';
     }
-    document.getElementById('gridCount').textContent =
-      filtered.length + ' proveedor' + (filtered.length !== 1 ? 'es' : '');
+    document.getElementById('gridCount').textContent = providerCountText(filtered.length);
   }
 
   function filterCat(cat, btn) {
@@ -103,10 +77,7 @@
   }
 
   function openDetail(id) {
-    var p = null;
-    for (var i = 0; i < PROVIDERS.length; i++) {
-      if (PROVIDERS[i].id === id) { p = PROVIDERS[i]; break; }
-    }
+    var p = findProviderById(PROVIDERS, id);
     if (!p) return;
 
     document.getElementById('detailContent').innerHTML =
@@ -161,7 +132,15 @@
     var telefono = document.getElementById('sug-telefono').value.trim();
     var casa = document.getElementById('sug-casa').value.trim();
 
-    if (!nombre || !categoria || !servicio || !telefono || !casa) {
+    var validation = validateSuggestFields({
+      nombre: nombre,
+      categoria: categoria,
+      servicio: servicio,
+      telefono: telefono,
+      casa: casa
+    });
+
+    if (!validation.valid) {
       alert('Por favor completa los campos obligatorios (*).');
       return;
     }

@@ -2,6 +2,7 @@
  * APROVIVA Portal — Google Apps Script
  *
  * Handles PQRS submissions and provider suggestions.
+ * Pure logic lives in Shared.gs (shared with Jest test suite).
  */
 
 var PQRS_SHEET = 'Portal';
@@ -35,26 +36,17 @@ function getProvidersSheet() {
 
 // POST — dispatch based on payload type
 function doPost(e) {
-  var data = JSON.parse(e.postData.contents);
-  var type = data._type || 'pqrs';
+  var parsed = parsePostPayload(e.postData.contents);
 
-  if (type === 'provider') {
-    return saveProvider(data);
+  if (parsed.type === 'provider') {
+    return saveProvider(parsed.data);
   }
-  return savePqrs(data);
+  return savePqrs(parsed.data);
 }
 
 function savePqrs(data) {
   var sheet = getPqrsSheet();
-  sheet.appendRow([
-    new Date(),
-    data.resumen || '',
-    data.descripcion || '',
-    data.tipo || '',
-    data.ubicacion || '',
-    data.urgencia || '',
-    data.casa || ''
-  ]);
+  sheet.appendRow(buildPqrsRow(data, new Date()));
   return ContentService.createTextOutput(
     JSON.stringify({ status: 'ok' })
   ).setMimeType(ContentService.MimeType.JSON);
@@ -62,17 +54,7 @@ function savePqrs(data) {
 
 function saveProvider(data) {
   var sheet = getProvidersSheet();
-  sheet.appendRow([
-    new Date(),
-    data.nombre || '',
-    data.categoria || '',
-    data.servicio || '',
-    data.telefono || '',
-    data.correo || '',
-    data.casa || '',
-    data.recomendadoPor || '',
-    data.comentario || ''
-  ]);
+  sheet.appendRow(buildProviderRow(data, new Date()));
   return ContentService.createTextOutput(
     JSON.stringify({ status: 'ok' })
   ).setMimeType(ContentService.MimeType.JSON);
@@ -106,21 +88,7 @@ function doGet(e) {
 
   var sheet = getPqrsSheet();
   var data = sheet.getDataRange().getValues();
-  var rows = [];
-
-  for (var i = 1; i < data.length; i++) {
-    rows.push({
-      timestamp: data[i][0] instanceof Date
-        ? data[i][0].toISOString()
-        : String(data[i][0]),
-      resumen: data[i][1] || '',
-      descripcion: data[i][2] || '',
-      tipo: data[i][3] || '',
-      ubicacion: data[i][4] || '',
-      urgencia: data[i][5] || '',
-      casa: String(data[i][6] || '')
-    });
-  }
+  var rows = parseSheetToPqrsRows(data);
 
   return ContentService.createTextOutput(
     JSON.stringify({ rows: rows })
@@ -168,48 +136,19 @@ function serveBudgetData() {
   // Budget (monthly planned)
   var budgetSheet = ss.getSheetByName('Presupuesto');
   if (budgetSheet) {
-    var data = budgetSheet.getDataRange().getValues();
-    for (var i = 1; i < data.length; i++) {
-      result.budget.push({
-        tipo: data[i][0] || '',
-        categoria: data[i][1] || '',
-        concepto: data[i][2] || '',
-        mes: data[i][3] || '',
-        mesNum: Number(data[i][4]) || 0,
-        monto: Number(data[i][5]) || 0
-      });
-    }
+    result.budget = parseBudgetSheet(budgetSheet.getDataRange().getValues());
   }
 
   // Ejecucion (actuals from latest informe)
   var execSheet = ss.getSheetByName('Ejecucion');
   if (execSheet) {
-    var eData = execSheet.getDataRange().getValues();
-    for (var i = 1; i < eData.length; i++) {
-      result.ejecucion.push({
-        categoria: eData[i][0] || '',
-        concepto: eData[i][1] || '',
-        presupuestoAnual: Number(eData[i][2]) || 0,
-        ejecutadoMes: Number(eData[i][3]) || 0,
-        ejecutadoAcumulado: Number(eData[i][4]) || 0,
-        pctEjecucion: Number(eData[i][5]) || 0,
-        saldoRestante: Number(eData[i][6]) || 0
-      });
-    }
+    result.ejecucion = parseEjecucionSheet(execSheet.getDataRange().getValues());
   }
 
   // Meta
   var metaSheet = ss.getSheetByName('Meta');
   if (metaSheet) {
-    var mData = metaSheet.getDataRange().getValues();
-    for (var i = 0; i < mData.length; i++) {
-      var key = String(mData[i][0] || '').trim();
-      var val = mData[i][1];
-      if (key === 'Último informe') result.meta.ultimoInforme = val || '';
-      if (key === 'Última actualización') {
-        result.meta.ultimaActualizacion = val instanceof Date ? val.toISOString() : String(val);
-      }
-    }
+    result.meta = parseMetaSheet(metaSheet.getDataRange().getValues());
   }
 
   return ContentService.createTextOutput(

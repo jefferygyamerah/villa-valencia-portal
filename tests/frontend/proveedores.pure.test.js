@@ -54,6 +54,7 @@ describe('PROVIDERS data', () => {
     PROVIDERS.forEach(p => {
       expect(p.id).toBeDefined();
       expect(p.cat).toBeTruthy();
+      expect(p.icon).toBeTruthy();
       expect(p.name).toBeTruthy();
       expect(p.service).toBeTruthy();
       expect(p.phone).toBeTruthy();

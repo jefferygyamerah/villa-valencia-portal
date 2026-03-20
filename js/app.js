@@ -1,15 +1,25 @@
 /**
  * APROVIVA Portal – Main page logic
+ *
+ * Pure/shared functions are loaded from app.pure.js via window.APROVIVA.
  */
 (function () {
   'use strict';
 
   var config = window.APROVIVA_CONFIG;
+  var A = window.APROVIVA;
 
-  function isScriptConfigured() {
-    return config.APPS_SCRIPT_URL &&
-      config.APPS_SCRIPT_URL.indexOf('YOUR_') === -1;
-  }
+  // Shared functions from app.pure.js
+  var escapeHtml = A.escapeHtml;
+  var formatDate = A.formatDate;
+  var fmtNum = A.fmtNum;
+  var isScriptConfigured = A.isScriptConfigured;
+  var getLastInformeMonth = A.getLastInformeMonth;
+  var computeDashboardKpis = A.computeDashboardKpis;
+  var computeBudgetSummary = A.computeBudgetSummary;
+  var computeMonthlyTrend = A.computeMonthlyTrend;
+  var validatePqrsFields = A.validatePqrsFields;
+  var MONTH_FULL = A.MONTH_FULL;
 
   // ── Drive links ──
   function populateDriveLinks() {
@@ -54,7 +64,14 @@
     var urgencia = document.getElementById('pqrs-urgencia').value;
     var casa = document.getElementById('pqrs-casa').value.trim();
 
-    if (!descripcion || !tipo || !ubicacion || !casa) {
+    var validation = validatePqrsFields({
+      descripcion: descripcion,
+      tipo: tipo,
+      ubicacion: ubicacion,
+      casa: casa
+    });
+
+    if (!validation.valid) {
       alert('Por favor completa los campos obligatorios (*).');
       return;
     }
@@ -63,7 +80,7 @@
     btn.disabled = true;
     btn.textContent = 'Enviando...';
 
-    if (!isScriptConfigured()) {
+    if (!isScriptConfigured(config)) {
       showPqrsSuccess();
       return;
     }
@@ -115,7 +132,7 @@
 
     if (!loading) return;
 
-    if (!isScriptConfigured()) {
+    if (!isScriptConfigured(config)) {
       loading.style.display = 'none';
       error.style.display = 'block';
       error.textContent = 'Configura APPS_SCRIPT_URL en js/config.js para ver el dashboard.';
@@ -135,40 +152,22 @@
       });
   }
 
-  function renderDashboard(rows) {
-    // KPIs
-    var total = rows.length;
-    var alta = 0, media = 0, baja = 0;
-    var tipoCounts = {};
-    var ubicacionCounts = {};
-
-    for (var i = 0; i < rows.length; i++) {
-      var r = rows[i];
-      var urg = (r.urgencia || '').toLowerCase();
-      if (urg === 'alta') alta++;
-      else if (urg === 'media') media++;
-      else if (urg === 'baja') baja++;
-
-      var t = r.tipo || 'Sin tipo';
-      tipoCounts[t] = (tipoCounts[t] || 0) + 1;
-
-      var u = r.ubicacion || 'Sin ubicación';
-      ubicacionCounts[u] = (ubicacionCounts[u] || 0) + 1;
-    }
-
-    setText('kpi-total', total);
-    setText('kpi-alta', alta);
-    setText('kpi-media', media);
-    setText('kpi-baja', baja);
-
-    renderBarChart('chart-tipo', tipoCounts, total);
-    renderBarChart('chart-ubicacion', ubicacionCounts, total);
-    renderRecent(rows);
-  }
-
   function setText(id, val) {
     var el = document.getElementById(id);
     if (el) el.textContent = val;
+  }
+
+  function renderDashboard(rows) {
+    var kpis = computeDashboardKpis(rows);
+
+    setText('kpi-total', kpis.total);
+    setText('kpi-alta', kpis.alta);
+    setText('kpi-media', kpis.media);
+    setText('kpi-baja', kpis.baja);
+
+    renderBarChart('chart-tipo', kpis.tipoCounts, kpis.total);
+    renderBarChart('chart-ubicacion', kpis.ubicacionCounts, kpis.total);
+    renderRecent(rows);
   }
 
   function renderBarChart(containerId, counts, total) {
@@ -223,24 +222,6 @@
     el.innerHTML = html || '<div style="font-size:0.8rem;color:var(--text-light);padding:1rem 0">Sin reportes a&uacute;n</div>';
   }
 
-  function formatDate(ts) {
-    try {
-      var d = new Date(ts);
-      var day = d.getDate();
-      var months = ['ene','feb','mar','abr','may','jun',
-                    'jul','ago','sep','oct','nov','dic'];
-      return day + ' ' + months[d.getMonth()];
-    } catch (e) {
-      return '';
-    }
-  }
-
-  function escapeHtml(str) {
-    var div = document.createElement('div');
-    div.appendChild(document.createTextNode(str));
-    return div.innerHTML;
-  }
-
   // ── Budget Dashboard ──
   var budgetData = [];
   var ejecucionData = [];
@@ -257,19 +238,9 @@
   };
   var MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun',
                      'Jul','Ago','Sep','Oct','Nov','Dic'];
-  var MONTH_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   var CAT_ORDER = ['Servicios B\u00e1sicos', 'Gastos de Funcionamiento',
     'Gastos de Personal', 'Mantenimientos Preventivos',
     'Mantenimientos Correctivos', 'Otros Gastos'];
-
-  function getLastInformeMonth() {
-    var name = (budgetMeta.ultimoInforme || '').trim();
-    for (var i = 0; i < MONTH_FULL.length; i++) {
-      if (MONTH_FULL[i].toLowerCase() === name.toLowerCase()) return i + 1;
-    }
-    return 0;
-  }
 
   function loadBudget() {
     var loading = document.getElementById('budgetLoading');
@@ -277,7 +248,7 @@
     var error = document.getElementById('budgetError');
     if (!loading) return;
 
-    if (!isScriptConfigured()) {
+    if (!isScriptConfigured(config)) {
       loading.style.display = 'none';
       error.style.display = 'block';
       return;
@@ -303,7 +274,7 @@
   function renderMonthBar() {
     var bar = document.getElementById('budgetMonthBar');
     if (!bar) return;
-    var lastMonth = getLastInformeMonth();
+    var lastMonth = getLastInformeMonth(budgetMeta);
     var html = '<button class="budget-month-btn active" onclick="window._selectMonth(0)">Todo</button>';
     for (var m = 0; m < 12; m++) {
       var hasData = (m + 1) <= lastMonth;
@@ -316,7 +287,7 @@
   }
 
   function selectMonth(m) {
-    if (m > 0 && m > getLastInformeMonth()) return;
+    if (m > 0 && m > getLastInformeMonth(budgetMeta)) return;
     selectedMonth = m;
     var btns = document.querySelectorAll('.budget-month-btn');
     for (var i = 0; i < btns.length; i++) {
@@ -325,68 +296,10 @@
     renderBudget();
   }
 
-  function monthHasActuals(m) {
-    var lastMonth = getLastInformeMonth();
-    return m > 0 && m <= lastMonth;
-  }
-
   function renderBudget() {
-    var filtered = budgetData;
-    if (selectedMonth > 0) {
-      filtered = budgetData.filter(function (r) {
-        return r.mesNum === selectedMonth;
-      });
-    }
+    var lastMonth = getLastInformeMonth(budgetMeta);
+    var summary = computeBudgetSummary(budgetData, ejecucionData, selectedMonth, lastMonth);
 
-    var lastMonth = getLastInformeMonth();
-    var showActuals = ejecucionData.length > 0 &&
-      (selectedMonth === 0 || monthHasActuals(selectedMonth));
-
-    // Budget totals
-    var totalIngresos = 0, totalGastos = 0;
-    var catBudget = {};
-    for (var i = 0; i < filtered.length; i++) {
-      var r = filtered[i];
-      if (r.tipo === 'Ingresos') {
-        totalIngresos += r.monto;
-      } else {
-        totalGastos += r.monto;
-        catBudget[r.categoria] = (catBudget[r.categoria] || 0) + r.monto;
-      }
-    }
-
-    // Actual totals from ejecucion
-    // ejecutadoMes = single month, ejecutadoAcumulado = cumulative
-    // When viewing a specific month that has data: use ejecutadoMes
-    // When viewing "Todo": use ejecutadoAcumulado (cumulative through last informe)
-    var totalEjecGastos = 0;
-    var catEjec = {};
-    if (showActuals) {
-      var useField = (selectedMonth > 0) ? 'ejecutadoMes' : 'ejecutadoAcumulado';
-      for (var i = 0; i < ejecucionData.length; i++) {
-        var e = ejecucionData[i];
-        var val = e[useField] || 0;
-        if (e.categoria !== 'Ingresos') {
-          totalEjecGastos += val;
-          catEjec[e.categoria] = (catEjec[e.categoria] || 0) + val;
-        }
-      }
-    }
-
-    // For "Todo" view, compare actuals against budget up to last informe month only
-    var compareBudget = totalGastos;
-    if (selectedMonth === 0 && lastMonth > 0) {
-      compareBudget = 0;
-      for (var i = 0; i < budgetData.length; i++) {
-        var r = budgetData[i];
-        if (r.tipo !== 'Ingresos' && r.mesNum <= lastMonth) {
-          compareBudget += r.monto;
-        }
-      }
-    }
-
-    var pctGlobal = compareBudget > 0
-      ? Math.round((totalEjecGastos / compareBudget) * 100) : 0;
     var period = selectedMonth > 0 ? MONTH_FULL[selectedMonth - 1] : 'Anual';
     var infoLine = budgetMeta.ultimoInforme
       ? '\u00daltimo informe: ' + budgetMeta.ultimoInforme
@@ -395,17 +308,17 @@
     // KPIs
     var kpis = document.getElementById('budgetKpis');
     kpis.innerHTML =
-      kpiCard('B/. ' + fmtNum(totalIngresos), 'Presupuesto Ingresos', period) +
-      kpiCard('B/. ' + fmtNum(totalGastos), 'Presupuesto Gastos', period) +
-      (showActuals
-        ? kpiCard('B/. ' + fmtNum(totalEjecGastos), 'Ejecutado Real',
-            infoLine, totalEjecGastos > compareBudget ? 'negative' : '')
-        : kpiCard('B/. ' + fmtNum(totalIngresos - totalGastos),
-            (totalIngresos - totalGastos) >= 0 ? 'Super\u00e1vit Proyectado' : 'D\u00e9ficit Proyectado',
-            period, (totalIngresos - totalGastos) >= 0 ? 'positive' : 'negative')) +
-      kpiCard(showActuals ? pctGlobal + '%' : '\u2014',
+      kpiCard('B/. ' + fmtNum(summary.totalIngresos), 'Presupuesto Ingresos', period) +
+      kpiCard('B/. ' + fmtNum(summary.totalGastos), 'Presupuesto Gastos', period) +
+      (summary.showActuals
+        ? kpiCard('B/. ' + fmtNum(summary.totalEjecGastos), 'Ejecutado Real',
+            infoLine, summary.totalEjecGastos > summary.compareBudget ? 'negative' : '')
+        : kpiCard('B/. ' + fmtNum(summary.totalIngresos - summary.totalGastos),
+            (summary.totalIngresos - summary.totalGastos) >= 0 ? 'Super\u00e1vit Proyectado' : 'D\u00e9ficit Proyectado',
+            period, (summary.totalIngresos - summary.totalGastos) >= 0 ? 'positive' : 'negative')) +
+      kpiCard(summary.showActuals ? summary.pctGlobal + '%' : '\u2014',
         'Ejecuci\u00f3n',
-        showActuals
+        summary.showActuals
           ? (selectedMonth > 0 ? 'del presupuesto de ' + MONTH_FULL[selectedMonth - 1] : 'acumulado a ' + (budgetMeta.ultimoInforme || ''))
           : 'sin datos reales para este mes');
 
@@ -413,15 +326,15 @@
     var cats = document.getElementById('budgetCategories');
     var maxCat = 0;
     for (var c = 0; c < CAT_ORDER.length; c++) {
-      var v = catBudget[CAT_ORDER[c]] || catEjec[CAT_ORDER[c]] || 0;
+      var v = summary.catBudget[CAT_ORDER[c]] || summary.catEjec[CAT_ORDER[c]] || 0;
       if (v > maxCat) maxCat = v;
     }
 
     var catHtml = '';
     for (var c = 0; c < CAT_ORDER.length; c++) {
       var cat = CAT_ORDER[c];
-      var budgeted = catBudget[cat] || 0;
-      var executed = catEjec[cat] || 0;
+      var budgeted = summary.catBudget[cat] || 0;
+      var executed = summary.catEjec[cat] || 0;
       if (!budgeted && !executed) continue;
 
       var barBase = budgeted || executed;
@@ -437,13 +350,13 @@
         '<div class="budget-cat-bar"><div class="budget-cat-fill" style="width:' +
         pctBar + '%;background:' + (CAT_COLORS[cat] || 'var(--blue)') + '"></div></div>';
 
-      if (showActuals && executed > 0) {
+      if (summary.showActuals && executed > 0) {
         catHtml += '<div class="budget-cat-pct" style="color:' +
           (overBudget ? 'var(--red)' : 'var(--green)') + '">' +
           'Ejecutado: B/. ' + fmtNum(executed) + ' (' + pctExec + '%)</div>';
       } else {
         catHtml += '<div class="budget-cat-pct">' +
-          (totalGastos > 0 ? Math.round((budgeted / totalGastos) * 100) : 0) +
+          (summary.totalGastos > 0 ? Math.round((budgeted / summary.totalGastos) * 100) : 0) +
           '% del total</div>';
       }
       catHtml += '</div>';
@@ -470,46 +383,25 @@
     var trend = document.getElementById('budgetTrend');
     if (!trend) return;
 
-    var monthCats = [];
-    var maxMonth = 0;
-    for (var m = 1; m <= 12; m++) {
-      var monthData = {};
-      var monthTotal = 0;
-      for (var i = 0; i < budgetData.length; i++) {
-        var r = budgetData[i];
-        if (r.mesNum === m && r.tipo !== 'Ingresos') {
-          monthData[r.categoria] = (monthData[r.categoria] || 0) + r.monto;
-          monthTotal += r.monto;
-        }
-      }
-      monthCats.push(monthData);
-      if (monthTotal > maxMonth) maxMonth = monthTotal;
-    }
-
-    var activeCats = CAT_ORDER.filter(function (c) {
-      for (var m = 0; m < 12; m++) {
-        if (monthCats[m][c]) return true;
-      }
-      return false;
-    });
+    var trendData = computeMonthlyTrend(budgetData, CAT_ORDER);
 
     var html = '';
     for (var m = 0; m < 12; m++) {
       html += '<div class="budget-trend-col">' +
         '<div class="budget-trend-stack" style="height:140px">';
-      for (var c = 0; c < activeCats.length; c++) {
-        var val = monthCats[m][activeCats[c]] || 0;
-        var segH = maxMonth > 0 ? Math.round((val / maxMonth) * 140) : 0;
+      for (var c = 0; c < trendData.activeCats.length; c++) {
+        var val = trendData.monthCats[m][trendData.activeCats[c]] || 0;
+        var segH = trendData.maxMonth > 0 ? Math.round((val / trendData.maxMonth) * 140) : 0;
         html += '<div class="budget-trend-seg" style="height:' + segH +
-          'px;background:' + (CAT_COLORS[activeCats[c]] || '#ccc') + '"></div>';
+          'px;background:' + (CAT_COLORS[trendData.activeCats[c]] || '#ccc') + '"></div>';
       }
       html += '</div><div class="budget-trend-label">' + MONTH_NAMES[m] + '</div></div>';
     }
 
     var legendHtml = '<div class="budget-trend-legend">';
-    for (var c = 0; c < activeCats.length; c++) {
+    for (var c = 0; c < trendData.activeCats.length; c++) {
       legendHtml += '<div class="budget-legend-item"><div class="budget-legend-dot" style="background:' +
-        CAT_COLORS[activeCats[c]] + '"></div>' + activeCats[c] + '</div>';
+        CAT_COLORS[trendData.activeCats[c]] + '"></div>' + trendData.activeCats[c] + '</div>';
     }
     legendHtml += '</div>';
 
@@ -529,8 +421,9 @@
     }
     detail.setAttribute('data-cat', cat);
 
+    var lastMonth = getLastInformeMonth(budgetMeta);
     var hasActuals = ejecucionData.length > 0 &&
-      (selectedMonth === 0 || monthHasActuals(selectedMonth));
+      (selectedMonth === 0 || (selectedMonth > 0 && selectedMonth <= lastMonth));
 
     // Get budget items
     var budgetItems = {};
@@ -583,13 +476,6 @@
     }
     html += '</tbody></table>';
     detail.innerHTML = html;
-  }
-
-  function fmtNum(n) {
-    return n.toLocaleString('es-PA', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    });
   }
 
   window._selectMonth = selectMonth;

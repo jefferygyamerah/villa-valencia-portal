@@ -5,6 +5,7 @@
  * extracts budget vs actual from "Estado de Presupuesto" sheet,
  * and writes a flat table to the reporting spreadsheet.
  *
+ * Pure logic lives in Shared.gs (shared with Jest test suite).
  * Auto-refreshes via hourly trigger.
  * Run setupReporting() once, then installTriggers() once.
  */
@@ -70,7 +71,7 @@ function getReportingSpreadsheet() {
 
 /**
  * Find and read the latest monthly informe XLSX.
- * Returns array of {concepto, presupuestoAnual, mesActual, realAcumulado, pctEjecucion, saldo, categoria}
+ * Returns { rows: [...], month: string, fileDate: Date }
  */
 function readLatestInforme() {
   var folder = DriveApp.getFolderById(ENTREGA_FOLDER_ID);
@@ -109,9 +110,9 @@ function readLatestInforme() {
     // Extract month from header (row 2 typically: "Al 31 de Enero de 2026")
     for (var h = 0; h < Math.min(5, data.length); h++) {
       var headerText = String(data[h][0] || '');
-      var monthMatch = headerText.match(/(?:Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)/i);
-      if (monthMatch) {
-        result.month = monthMatch[0];
+      var monthName = extractMonthFromHeader(headerText);
+      if (monthName) {
+        result.month = monthName;
         break;
       }
     }
@@ -128,21 +129,16 @@ function readLatestInforme() {
       var concepto = String(data[i][0] || '').trim();
       if (!concepto) continue;
 
-      // Detect category headers
-      if (concepto === 'Ingresos' || concepto === 'Total de Ingresos') {
-        if (concepto === 'Ingresos') currentCategory = 'Ingresos';
+      // Detect category headers using shared function
+      var detectedCat = detectInformeCategory(concepto, !!data[i][1]);
+      if (detectedCat) {
+        currentCategory = detectedCat;
         continue;
       }
-      if (concepto.indexOf('Gastos Generales') !== -1) { currentCategory = 'Gastos'; continue; }
-      if (concepto.indexOf('Gastos de Personal') !== -1) { currentCategory = 'Gastos de Personal'; continue; }
-      if (concepto.indexOf('Servicios Básicos') !== -1 && !data[i][1]) { currentCategory = 'Servicios Básicos'; continue; }
-      if (concepto.indexOf('Gastos de Funcionamiento') !== -1 && !data[i][1]) { currentCategory = 'Gastos de Funcionamiento'; continue; }
-      if (concepto.indexOf('Mantenimientos Preventivos') !== -1 && !data[i][1]) { currentCategory = 'Mantenimientos Preventivos'; continue; }
-      if (concepto.indexOf('Mantenimientos Correctivos') !== -1 && !data[i][1]) { currentCategory = 'Mantenimientos Correctivos'; continue; }
-      if (concepto.indexOf('Otros Gastos') !== -1 && !data[i][1]) { currentCategory = 'Otros Gastos'; continue; }
+      if (concepto === 'Total de Ingresos') continue;
 
-      // Skip totals
-      if (concepto.indexOf('Total de') !== -1 || concepto.indexOf('TOTAL') !== -1) continue;
+      // Skip totals using shared function
+      if (isSkippableRow(concepto)) continue;
 
       var presAnual = Number(data[i][1]) || 0;
       var mesActual = Number(data[i][2]) || 0;
@@ -231,18 +227,8 @@ function readAnnualBudget() {
  * Write combined budget + actuals to the reporting spreadsheet.
  */
 function writeFlatTable(ss, budget, actuals) {
-  var months = budget.months;
-
-  // Sheet 1: Budget (monthly planned)
-  var headers = ['Tipo', 'Categoría', 'Concepto', 'Mes', 'Mes_Num', 'Presupuestado'];
-  var flatRows = [headers];
-  for (var i = 0; i < budget.rows.length; i++) {
-    var r = budget.rows[i];
-    var tipo = r.categoria === 'Ingresos' ? 'Ingresos' : 'Gastos';
-    for (var m = 0; m < 12; m++) {
-      flatRows.push([tipo, r.categoria, r.concepto, months[m], m + 1, r.monthly[m]]);
-    }
-  }
+  // Sheet 1: Budget (monthly planned) — uses shared buildBudgetFlatTable
+  var flatRows = buildBudgetFlatTable(budget.rows, budget.months);
   writeSheet(ss, 'Presupuesto', flatRows, 5);
 
   // Sheet 2: Ejecucion (actuals from latest informe)

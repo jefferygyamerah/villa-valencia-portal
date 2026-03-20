@@ -193,17 +193,24 @@ function validatePqrsFields(fields) {
   return { valid: missing.length === 0, missing: missing };
 }
 
+var _exports = {
+  formatDate: formatDate,
+  escapeHtml: escapeHtml,
+  fmtNum: fmtNum,
+  isScriptConfigured: isScriptConfigured,
+  getLastInformeMonth: getLastInformeMonth,
+  computeDashboardKpis: computeDashboardKpis,
+  computeBudgetSummary: computeBudgetSummary,
+  computeMonthlyTrend: computeMonthlyTrend,
+  validatePqrsFields: validatePqrsFields,
+  MONTH_FULL: MONTH_FULL,
+};
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    formatDate: formatDate,
-    escapeHtml: escapeHtml,
-    fmtNum: fmtNum,
-    isScriptConfigured: isScriptConfigured,
-    getLastInformeMonth: getLastInformeMonth,
-    computeDashboardKpis: computeDashboardKpis,
-    computeBudgetSummary: computeBudgetSummary,
-    computeMonthlyTrend: computeMonthlyTrend,
-    validatePqrsFields: validatePqrsFields,
-    MONTH_FULL: MONTH_FULL,
-  };
+  module.exports = _exports;
+} else if (typeof window !== 'undefined') {
+  window.APROVIVA = window.APROVIVA || {};
+  for (var _k in _exports) {
+    if (_exports.hasOwnProperty(_k)) window.APROVIVA[_k] = _exports[_k];
+  }
 }
