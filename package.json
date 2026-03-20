@@ -1,0 +1,19 @@
+{
+  "name": "villa-valencia-portal",
+  "version": "1.0.0",
+  "description": "Digital portal for Villa Valencia HOA (APROVIVA), Costa Sur, Don Bosco, Panama.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "jest --coverage"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0"
+  }
+}
