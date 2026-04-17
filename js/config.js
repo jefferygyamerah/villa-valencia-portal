@@ -21,8 +21,8 @@ window.APROVIVA_CONFIG = {
 
   // Role-based login URLs — set each secure destination when available
   ROLE_LOGIN_LINKS: {
-    residentes: '/aproviva-portal.html?lane=resident',
-    administracion: '/aproviva-portal.html?lane=admin',
-    junta: '/aproviva-portal.html?lane=junta',
+    residentes: 'https://vv-auth-app.vercel.app/es/resident/login?next=/es/resident/inicio',
+    administracion: 'https://vv-auth-app.vercel.app/es/admin/login?next=/es/admin/inicio',
+    junta: 'https://vv-auth-app.vercel.app/es/admin/login?next=/es/admin/junta',
   },
 };

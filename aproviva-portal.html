@@ -697,7 +697,7 @@
     <div style="font-size:2.5rem;margin-bottom:0.5rem;">🌅</div>
     <h2>Portal APROVIVA</h2>
     <p id="loginIntro">Bienvenido al portal de residentes de<br><strong>Villa Valencia</strong>.<br>Inicia sesi&oacute;n con tu cuenta Google autorizada.</p>
-    <button class="btn-google" onclick="closeLogin()">
+    <button class="btn-google" onclick="openSecureLogin()">
       <svg viewBox="0 0 24 24" width="20" height="20">
         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -722,7 +722,7 @@
       <span id="portalLaneLabel">Portal de Residentes · Villa Valencia</span>
     </div>
   </div>
-  <a class="btn-login" href="#" onclick="document.getElementById('loginOverlay').style.display='flex'">
+  <a class="btn-login" href="#" onclick="document.getElementById('loginOverlay').style.display='flex';return false;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
     </svg>
@@ -913,27 +913,30 @@
       badge: 'Portal Residentes 2026',
       title: 'Bienvenido a Villa Valencia',
       description: 'Tu espacio digital para acceder a toda la informaci&oacute;n de la copropiedad, gestionar solicitudes y mantenerte informado.',
-      intro: 'Bienvenido al portal de residentes de<br><strong>Villa Valencia</strong>.<br>Inicia sesi&oacute;n con tu cuenta Google autorizada.',
-      action: 'Continuar con Google',
-      note: 'Solo residentes y propietarios autorizados de Villa Valencia tienen acceso.'
+      intro: 'Bienvenido al acceso residencial de<br><strong>Villa Valencia</strong>.<br>Entrar&aacute;s al portal seguro para recibir tu enlace o c&oacute;digo de ingreso.',
+      action: 'Ir al acceso residencial',
+      note: 'Usa el correo registrado con el que recibes informaci&oacute;n de tu residencia.',
+      url: 'https://vv-auth-app.vercel.app/es/resident/login?next=/es/resident/inicio'
     },
     admin: {
       label: 'Acceso administrativo · Villa Valencia',
       badge: 'Operaci&oacute;n del edificio',
       title: 'Ingreso administrativo Villa Valencia',
       description: 'Conserjer&iacute;a, supervisor y gerencia comparten una misma capa para operar, supervisar y dar continuidad al edificio.',
-      intro: 'Bienvenido al acceso administrativo de<br><strong>Villa Valencia</strong>.<br>Conserjer&iacute;a, supervisor y gerencia comparten esta entrada operativa.',
-      action: 'Continuar con acceso administrativo',
-      note: 'Usa tu correo administrativo autorizado para continuar.'
+      intro: 'Bienvenido al acceso administrativo de<br><strong>Villa Valencia</strong>.<br>Entrar&aacute;s al panel real de conserjer&iacute;a, supervisi&oacute;n y gerencia.',
+      action: 'Ir al acceso administrativo',
+      note: 'Usa tu correo y tu contrase&ntilde;a administrativa autorizados.',
+      url: 'https://vv-auth-app.vercel.app/es/admin/login?next=/es/admin/inicio'
     },
     junta: {
       label: 'Acceso junta · Villa Valencia',
       badge: 'Gobernanza del edificio',
       title: 'Ingreso junta Villa Valencia',
       description: 'La junta revisa prioridades, aprobaciones y seguimiento desde una capa de gobernanza conectada a la operaci&oacute;n.',
-      intro: 'Bienvenido al acceso de junta de<br><strong>Villa Valencia</strong>.<br>La junta entra por la misma capa administrativa con lectura ejecutiva y de gobernanza.',
-      action: 'Continuar con acceso de junta',
-      note: 'Usa tu correo autorizado de junta o solicita activaci&oacute;n a la coordinaci&oacute;n del edificio.'
+      intro: 'Bienvenido al acceso de junta de<br><strong>Villa Valencia</strong>.<br>Entrar&aacute;s a la vista de gobernanza y seguimiento ejecutivo del edificio.',
+      action: 'Ir al acceso de junta',
+      note: 'Usa tu correo y tu acceso autorizado de junta para continuar.',
+      url: 'https://vv-auth-app.vercel.app/es/admin/login?next=/es/admin/junta'
     }
   }[lane] || null;
 
@@ -947,6 +950,7 @@
   var title = document.getElementById('heroLaneTitle');
   var description = document.getElementById('heroLaneDescription');
   var overlay = document.getElementById('loginOverlay');
+  window.APROVIVA_SECURE_LOGIN_URL = copy.url;
 
   if (intro) intro.innerHTML = copy.intro;
   if (action) action.textContent = copy.action;
@@ -957,6 +961,11 @@
   if (description) description.innerHTML = copy.description;
   if (overlay && params.has('lane')) overlay.style.display = 'flex';
 })();
+
+function openSecureLogin() {
+  var targetUrl = window.APROVIVA_SECURE_LOGIN_URL || 'https://vv-auth-app.vercel.app/es/resident/login?next=/es/resident/inicio';
+  window.location.href = targetUrl;
+}
 </script>
 </body>
 </html>

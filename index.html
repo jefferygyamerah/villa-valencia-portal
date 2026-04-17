@@ -153,13 +153,9 @@
   </style>
   <script>
     function openRoleLogin(roleKey) {
-      var routes = {
-        residentes: '/aproviva-portal.html?lane=resident',
-        administracion: '/aproviva-portal.html?lane=admin',
-        junta: '/aproviva-portal.html?lane=junta'
-      };
-
-      var targetUrl = routes[roleKey];
+      var config = (window.APROVIVA_CONFIG || {});
+      var roleLinks = config.ROLE_LOGIN_LINKS || {};
+      var targetUrl = roleLinks[roleKey];
       if (targetUrl) {
         window.location.href = targetUrl;
         return false;
