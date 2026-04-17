@@ -1,605 +1,179 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>APROVIVA – Portal Residentes | Villa Valencia</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/styles.css"/>
   <style>
-    :root {
-      --blue: #1A6BB8;
-      --blue-dark: #145694;
-      --blue-light: #e8f2fc;
-      --gold: #F5C842;
-      --gold-dark: #d4a91a;
-      --white: #ffffff;
-      --gray: #f7f9fc;
-      --text: #1a2340;
-      --text-light: #5a6a85;
-      --border: #dde6f0;
+    .field-message {
+      margin: 0.35rem 0 0;
+      min-height: 1rem;
+      font-size: 0.76rem;
+      line-height: 1.35;
+      color: #b91c1c;
+      display: none;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--gray);
-      color: var(--text);
-    }
-
-    /* ── HEADER ── */
-    header {
-      background: var(--white);
-      border-bottom: 3px solid var(--gold);
-      padding: 0 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 80px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 2px 12px rgba(26,107,184,0.08);
-    }
-
-    .logo-wrap {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .logo-wrap img {
-      height: 56px;
-      width: auto;
-    }
-
-    .logo-text {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .logo-text span:first-child {
-      font-family: 'Playfair Display', serif;
-      font-size: 0.75rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--blue);
-      font-weight: 700;
-    }
-
-    .logo-text span:last-child {
-      font-size: 0.7rem;
-      color: var(--text-light);
-      letter-spacing: 0.05em;
-    }
-
-    .btn-login {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--white);
-      border: 2px solid var(--blue);
-      color: var(--blue);
-      padding: 0.5rem 1.25rem;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
-    }
-
-    .btn-login:hover {
-      background: var(--blue);
-      color: var(--white);
-    }
-
-    .btn-login svg { width: 18px; height: 18px; }
-
-    /* ── NAV ── */
-    nav {
-      background: var(--blue);
-      padding: 0 2rem;
-      display: flex;
-      gap: 0;
-      overflow-x: auto;
-    }
-
-    nav a {
-      color: rgba(255,255,255,0.8);
-      text-decoration: none;
-      font-size: 0.85rem;
-      font-weight: 500;
-      padding: 0.9rem 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      white-space: nowrap;
-      transition: all 0.2s;
-      border-bottom: 3px solid transparent;
-    }
-
-    nav a:hover, nav a.active {
-      color: var(--white);
-      border-bottom-color: var(--gold);
-      background: rgba(255,255,255,0.08);
-    }
-
-    /* ── HERO ── */
-    .hero {
-      background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 60%, #2080d0 100%);
-      color: var(--white);
-      padding: 3.5rem 2rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: -40px; right: -40px;
-      width: 200px; height: 200px;
-      background: var(--gold);
-      opacity: 0.08;
-      border-radius: 50%;
-    }
-
-    .hero::after {
-      content: '';
-      position: absolute;
-      bottom: -60px; left: -30px;
-      width: 250px; height: 250px;
-      background: var(--gold);
-      opacity: 0.05;
-      border-radius: 50%;
-    }
-
-    .hero h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.2rem;
-      margin-bottom: 0.5rem;
-      position: relative;
-    }
-
-    .hero p {
-      font-size: 1rem;
-      opacity: 0.85;
-      max-width: 520px;
-      margin: 0 auto 2rem;
-      line-height: 1.6;
-      position: relative;
-    }
-
-    .hero-badge {
-      display: inline-block;
-      background: var(--gold);
-      color: var(--blue-dark);
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      padding: 0.3rem 0.8rem;
-      border-radius: 20px;
-      margin-bottom: 1rem;
-      position: relative;
-    }
-
-    /* ── MAIN GRID ── */
-    main {
-      max-width: 1100px;
-      margin: 2rem auto;
-      padding: 0 1.5rem;
-    }
-
-    .section-title {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.35rem;
-      color: var(--blue-dark);
-      margin-bottom: 1rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 2px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    /* ── QUICK ACCESS CARDS ── */
-    .cards-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2.5rem;
-    }
-
-    .card {
-      background: var(--white);
-      border-radius: 12px;
-      padding: 1.5rem 1.25rem;
-      text-align: center;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: all 0.2s;
-      box-shadow: 0 1px 6px rgba(26,107,184,0.06);
-      text-decoration: none;
-      color: inherit;
+    .field-message.show {
       display: block;
     }
 
-    .card:hover {
-      border-color: var(--blue);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(26,107,184,0.14);
+    .form-input.is-invalid,
+    .form-select.is-invalid,
+    .form-textarea.is-invalid {
+      border-color: #d97706;
+      background: #fffaf0;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12);
     }
 
-    .card-icon {
-      width: 52px; height: 52px;
+    .form-status {
+      display: none;
+      margin-bottom: 0.9rem;
+      padding: 0.8rem 0.95rem;
       border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 0.9rem;
-      font-size: 1.5rem;
-    }
-
-    .card h3 {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 0.25rem;
-    }
-
-    .card p {
-      font-size: 0.75rem;
-      color: var(--text-light);
-      line-height: 1.4;
-    }
-
-    /* ── TWO COLUMNS ── */
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      margin-bottom: 2.5rem;
-    }
-
-    @media (max-width: 700px) {
-      .two-col { grid-template-columns: 1fr; }
-      .cards-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    /* ── PANEL ── */
-    .panel {
-      background: var(--white);
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 6px rgba(26,107,184,0.06);
-    }
-
-    .panel-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--blue-dark);
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    /* ── COMUNICADOS LIST ── */
-    .comunicado-item {
-      display: flex;
-      gap: 1rem;
-      padding: 0.85rem 0;
-      border-bottom: 1px solid var(--border);
-      align-items: flex-start;
-    }
-
-    .comunicado-item:last-child { border-bottom: none; }
-
-    .com-date {
-      background: var(--blue-light);
-      color: var(--blue);
-      border-radius: 8px;
-      padding: 0.4rem 0.6rem;
-      text-align: center;
-      min-width: 52px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      line-height: 1.3;
-    }
-
-    .com-body h4 {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 0.15rem;
-    }
-
-    .com-body p {
-      font-size: 0.75rem;
-      color: var(--text-light);
-    }
-
-    .com-tag {
-      display: inline-block;
-      font-size: 0.65rem;
-      font-weight: 600;
-      padding: 0.15rem 0.5rem;
-      border-radius: 10px;
-      margin-top: 0.25rem;
-    }
-
-    /* ── PQRS MINI FORM ── */
-    .pqrs-form label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 0.25rem;
-      margin-top: 0.75rem;
-    }
-
-    .pqrs-form select,
-    .pqrs-form input,
-    .pqrs-form textarea {
-      width: 100%;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      padding: 0.55rem 0.75rem;
-      font-size: 0.82rem;
-      font-family: 'Inter', sans-serif;
-      color: var(--text);
-      background: var(--gray);
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .pqrs-form select:focus,
-    .pqrs-form input:focus,
-    .pqrs-form textarea:focus {
-      border-color: var(--blue);
-      background: var(--white);
-    }
-
-    .pqrs-form textarea { height: 80px; resize: none; }
-
-    .btn-primary {
-      background: var(--blue);
-      color: var(--white);
-      border: none;
-      border-radius: 8px;
-      padding: 0.65rem 1.5rem;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 1rem;
-      width: 100%;
-      transition: background 0.2s;
-    }
-
-    .btn-primary:hover { background: var(--blue-dark); }
-
-    /* ── FINANZAS TABLE ── */
-    .fin-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    .fin-table th {
-      background: var(--blue-light);
-      color: var(--blue-dark);
-      text-align: left;
-      padding: 0.6rem 0.75rem;
-      font-weight: 600;
-    }
-    .fin-table td {
-      padding: 0.6rem 0.75rem;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-    }
-    .fin-table tr:hover td { background: var(--gray); }
-
-    .badge-ok { color: #16a34a; font-weight: 600; }
-    .badge-pending { color: #d97706; font-weight: 600; }
-
-    .view-all {
-      display: block;
-      text-align: center;
-      margin-top: 1rem;
-      color: var(--blue);
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-decoration: none;
-      cursor: pointer;
-    }
-
-    .view-all:hover { text-decoration: underline; }
-
-    /* ── FOOTER ── */
-    footer {
-      background: var(--blue-dark);
-      color: rgba(255,255,255,0.7);
-      text-align: center;
-      padding: 1.5rem;
-      margin-top: 2rem;
-      font-size: 0.8rem;
-    }
-
-    footer strong { color: var(--white); }
-
-    /* ── LOGIN OVERLAY ── */
-    .login-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(20,40,80,0.7);
-      backdrop-filter: blur(6px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-    }
-
-    .login-box {
-      background: var(--white);
-      border-radius: 16px;
-      padding: 2.5rem 2rem;
-      max-width: 380px;
-      width: 90%;
-      text-align: center;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.25);
-    }
-
-    .login-box img { height: 70px; margin-bottom: 1rem; }
-
-    .login-box h2 {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.4rem;
-      color: var(--blue-dark);
-      margin-bottom: 0.25rem;
-    }
-
-    .login-box p {
-      font-size: 0.82rem;
-      color: var(--text-light);
-      margin-bottom: 1.75rem;
+      font-size: 0.84rem;
       line-height: 1.5;
     }
 
-    .btn-google {
+    .form-status.show {
+      display: block;
+    }
+
+    .form-status.error {
+      background: #fff7ed;
+      color: #9a3412;
+      border: 1px solid #fdba74;
+    }
+
+    .form-status.success {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .success-actions {
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.6rem;
       justify-content: center;
-      gap: 0.75rem;
-      background: var(--white);
-      border: 2px solid var(--border);
-      border-radius: 10px;
-      padding: 0.85rem 1.5rem;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text);
-      cursor: pointer;
-      width: 100%;
-      transition: all 0.2s;
-      margin-bottom: 0.75rem;
-    }
-
-    .btn-google:hover {
-      border-color: var(--blue);
-      box-shadow: 0 4px 12px rgba(26,107,184,0.15);
-    }
-
-    .login-note {
-      font-size: 0.72rem;
-      color: var(--text-light);
       margin-top: 1rem;
     }
 
-    .demo-btn {
-      background: none;
-      border: none;
-      color: var(--blue);
-      font-size: 0.8rem;
+    .success-actions .btn-submit,
+    .success-actions .btn-secondary {
+      min-width: 11rem;
+    }
+
+    .btn-secondary {
+      appearance: none;
+      border: 1px solid rgba(26, 107, 184, 0.18);
+      background: #fff;
+      color: #1A6BB8;
+      border-radius: 14px;
+      padding: 0.85rem 1.1rem;
+      font-weight: 600;
       cursor: pointer;
-      text-decoration: underline;
-      margin-top: 0.5rem;
+      box-shadow: 0 8px 20px rgba(26, 107, 184, 0.08);
+    }
+
+    .btn-secondary:hover {
+      background: #f8fbff;
+    }
+
+    .dash-error-actions {
+      margin-top: 0.75rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .dash-retry-btn {
+      appearance: none;
+      border: 1px solid rgba(26, 107, 184, 0.18);
+      background: #fff;
+      color: #1A6BB8;
+      border-radius: 14px;
+      padding: 0.72rem 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(26, 107, 184, 0.08);
+    }
+
+    .dash-retry-btn:hover {
+      background: #f8fbff;
     }
   </style>
 </head>
 <body>
 
-<!-- LOGIN OVERLAY -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-box">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"
-         onerror="this.style.display='none'"
-         alt="Villa Valencia" />
-    <div style="font-size:2.5rem;margin-bottom:0.5rem;">🌅</div>
-    <h2>Portal APROVIVA</h2>
-    <p>Bienvenido al portal de residentes de<br><strong>Villa Valencia</strong>.<br>Inicia sesión con tu cuenta Google autorizada.</p>
-    <button class="btn-google" onclick="closeLogin()">
-      <svg viewBox="0 0 24 24" width="20" height="20">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-      </svg>
-      Continuar con Google
-    </button>
-    <p class="login-note">Solo residentes y propietarios autorizados de Villa Valencia tienen acceso.</p>
-    <button class="demo-btn" onclick="closeLogin()">Ver demo sin iniciar sesión →</button>
-  </div>
-</div>
-
 <!-- HEADER -->
 <header>
   <div class="logo-wrap">
-    <div style="background: linear-gradient(135deg,#1A6BB8,#145694); border-radius:10px; padding:6px 10px; display:flex; align-items:center; gap:6px;">
-      <span style="font-size:1.4rem;">🌅</span>
+    <div style="background:linear-gradient(135deg,#1A6BB8,#145694);border-radius:10px;padding:6px 10px;display:flex;align-items:center;gap:6px;">
+      <span style="font-size:1.4rem;">&#x1F305;</span>
     </div>
     <div class="logo-text">
       <span>APROVIVA</span>
-      <span>Portal de Residentes · Villa Valencia</span>
+      <span>Portal de Residentes &middot; Villa Valencia</span>
     </div>
   </div>
-  <a class="btn-login" href="#" onclick="document.getElementById('loginOverlay').style.display='flex'">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-    </svg>
-    Iniciar Sesión
-  </a>
 </header>
 
 <!-- NAV -->
 <nav>
-  <a href="#" class="active">🏠 Inicio</a>
-  <a href="#">📋 Asambleas</a>
-  <a href="#">💰 Finanzas</a>
-  <a href="#">📣 Comunicados</a>
-  <a href="#">📝 PQRS</a>
-  <a href="#">🔧 Proveedores</a>
-  <a href="#">📐 Planos</a>
-  <a href="#">📁 Documentos</a>
+  <a href="index.html" class="active">&#x1F3E0; Inicio</a>
+  <a href="#" data-drive="asambleas" target="_blank">&#x1F4CB; Asambleas</a>
+  <a href="#finanzas">&#x1F4B0; Finanzas</a>
+    <a href="#" data-drive="comunicados" target="_blank">&#x1F4E3; Comunicados</a>
+    <a href="#pqrs">&#x1F4DD; PQRS</a>
+    <a href="proveedores.html">&#x1F527; Proveedores</a>
+    <a href="#" data-drive="planos" target="_blank">&#x1F4D0; Planos</a>
+    <a href="#" data-drive="proyectos" target="_blank">&#x1F4C1; Proyectos</a>
 </nav>
 
 <!-- HERO -->
 <div class="hero">
   <div class="hero-badge">Portal Residentes 2026</div>
   <h1>Bienvenido a Villa Valencia</h1>
-  <p>Tu espacio digital para acceder a toda la información de la copropiedad, gestionar solicitudes y mantenerte informado.</p>
+  <p>Tu espacio digital para acceder a toda la informaci&oacute;n de la barriada, gestionar solicitudes y mantenerte informado.</p>
 </div>
 
-<!-- MAIN -->
+<!-- MAIN CONTENT -->
 <main>
 
   <!-- QUICK ACCESS -->
-  <h2 class="section-title">⚡ Acceso Rápido</h2>
+  <h2 class="section-title">&#x26A1; Acceso R&aacute;pido</h2>
   <div class="cards-grid">
-    <a class="card" href="#">
-      <div class="card-icon" style="background:#e8f2fc;">📋</div>
+    <a class="card" href="#" data-drive="asambleas" target="_blank">
+      <div class="card-icon" style="background:#e8f2fc;">&#x1F4CB;</div>
       <h3>Asambleas</h3>
-      <p>Actas y convocatorias 2022–2026</p>
+      <p>Actas y convocatorias 2022&ndash;2026</p>
     </a>
-    <a class="card" href="#">
-      <div class="card-icon" style="background:#fef9e7;">💰</div>
+    <a class="card" href="#finanzas">
+      <div class="card-icon" style="background:#fef9e7;">&#x1F4B0;</div>
       <h3>Informes Financieros</h3>
-      <p>Presupuesto y reportes mensuales</p>
+      <p>Ejecuci&oacute;n presupuestaria 2026</p>
     </a>
-    <a class="card" href="#">
-      <div class="card-icon" style="background:#f0fdf4;">📣</div>
+    <a class="card" href="#" data-drive="comunicados" target="_blank">
+      <div class="card-icon" style="background:#f0fdf4;">&#x1F4E3;</div>
       <h3>Comunicados</h3>
       <p>Circulares y avisos oficiales</p>
     </a>
-    <a class="card" href="#">
-      <div class="card-icon" style="background:#fdf2f8;">📝</div>
+    <a class="card" href="#" data-action="open-pqrs">
+      <div class="card-icon" style="background:#fdf2f8;">&#x1F4DD;</div>
       <h3>Radicar PQRS</h3>
       <p>Peticiones, quejas y sugerencias</p>
     </a>
-    <a class="card" href="#">
-      <div class="card-icon" style="background:#f0f9ff;">🔧</div>
+    <a class="card" href="proveedores.html">
+      <div class="card-icon" style="background:#f0f9ff;">&#x1F527;</div>
       <h3>Proveedores</h3>
       <p>Directorio recomendado por la comunidad</p>
     </a>
-    <a class="card" href="#">
-      <div class="card-icon" style="background:#fff7ed;">📐</div>
+    <a class="card" href="#" data-drive="planos" target="_blank">
+      <div class="card-icon" style="background:#fff7ed;">&#x1F4D0;</div>
       <h3>Planos</h3>
-      <p>Planos oficiales de la unidad</p>
+      <p>Planos oficiales de la barriada</p>
     </a>
   </div>
 
@@ -608,17 +182,15 @@
 
     <!-- COMUNICADOS RECIENTES -->
     <div class="panel">
-      <div class="panel-title">📣 Comunicados Recientes</div>
-
+      <div class="panel-title">&#x1F4E3; Comunicados Recientes</div>
       <div class="comunicado-item">
         <div class="com-date">MAR<br>2026</div>
         <div class="com-body">
-          <h4>Mantenimiento zonas comunes – Semana Santa</h4>
+          <h4>Mantenimiento zonas comunes &ndash; Semana Santa</h4>
           <p>Restricciones de acceso del 14 al 18 de abril</p>
           <span class="com-tag" style="background:#e8f2fc;color:#1A6BB8;">Aviso</span>
         </div>
       </div>
-
       <div class="comunicado-item">
         <div class="com-date">FEB<br>2026</div>
         <div class="com-body">
@@ -627,95 +199,219 @@
           <span class="com-tag" style="background:#f0fdf4;color:#16a34a;">Asamblea</span>
         </div>
       </div>
-
       <div class="comunicado-item">
         <div class="com-date">ENE<br>2026</div>
         <div class="com-body">
-          <h4>Nuevo sistema de PQRS en línea</h4>
+          <h4>Nuevo sistema de PQRS en l&iacute;nea</h4>
           <p>Ya puedes radicar solicitudes desde el portal</p>
           <span class="com-tag" style="background:#fef9e7;color:#d97706;">Novedad</span>
         </div>
       </div>
-
-      <a class="view-all" href="#">Ver todos los comunicados →</a>
+      <a class="view-all" href="#" data-drive="comunicados" target="_blank">Ver todos los comunicados &rarr;</a>
     </div>
 
-    <!-- PQRS FORM -->
-    <div class="panel">
-      <div class="panel-title">📝 Radicar PQRS</div>
-      <div class="pqrs-form">
-        <label>Tipo de solicitud</label>
-        <select>
-          <option>Petición</option>
-          <option>Queja</option>
-          <option>Reclamo</option>
-          <option>Sugerencia</option>
-        </select>
-        <label>Unidad / Apartamento</label>
-        <input type="text" placeholder="Ej. Apto 301 Torre A" />
-        <label>Descripción</label>
-        <textarea placeholder="Describe tu solicitud con detalle..."></textarea>
-        <button class="btn-primary">Enviar Solicitud</button>
-      </div>
+    <!-- PQRS -->
+    <div class="panel" id="pqrs">
+      <div class="panel-title">&#x1F4DD; Radicar PQRS</div>
+      <p style="font-size:0.82rem;color:var(--text-light);line-height:1.5;margin-bottom:1rem;">
+        Env&iacute;a tu petici&oacute;n, queja, reclamo o sugerencia a trav&eacute;s del formulario oficial de APROVIVA.
+        Tu solicitud ser&aacute; atendida por la administraci&oacute;n.
+      </p>
+      <button class="btn-primary" type="button" data-action="open-pqrs">
+        Radicar PQRS &rarr;
+      </button>
     </div>
 
   </div>
 
-  <!-- FINANZAS PREVIEW -->
-  <h2 class="section-title">💰 Informe Financiero – Febrero 2026</h2>
-  <div class="panel" style="margin-bottom:2.5rem;">
-    <table class="fin-table">
-      <thead>
-        <tr>
-          <th>Concepto</th>
-          <th>Presupuestado</th>
-          <th>Ejecutado</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Administración</td>
-          <td>$4.500.000</td>
-          <td>$4.500.000</td>
-          <td class="badge-ok">✓ Al día</td>
-        </tr>
-        <tr>
-          <td>Mantenimiento áreas comunes</td>
-          <td>$2.200.000</td>
-          <td>$1.850.000</td>
-          <td class="badge-ok">✓ Al día</td>
-        </tr>
-        <tr>
-          <td>Servicios públicos zonas comunes</td>
-          <td>$1.800.000</td>
-          <td>$2.100.000</td>
-          <td class="badge-pending">⚠ Sobrepaso</td>
-        </tr>
-        <tr>
-          <td>Fondo de imprevistos</td>
-          <td>$800.000</td>
-          <td>$800.000</td>
-          <td class="badge-ok">✓ Al día</td>
-        </tr>
-      </tbody>
-    </table>
-    <a class="view-all" href="#">Ver informe completo en PDF →</a>
+  <!-- PQRS DASHBOARD -->
+  <h2 class="section-title">&#x1F4CA; Estado de Reportes PQRS</h2>
+  <p class="section-helper">
+    Este tablero ayuda a ver qu&eacute; temas necesitan seguimiento primero, cu&aacute;les zonas concentran m&aacute;s reportes y si los residentes est&aacute;n usando el canal de PQRS como se espera.
+  </p>
+  <div id="pqrs-dashboard" class="pqrs-dashboard">
+    <div class="dash-loading" id="dashLoading">Cargando datos...</div>
+    <div class="dash-content" id="dashContent" style="display:none;">
+      <!-- KPI CARDS -->
+      <div class="dash-kpis">
+        <div class="dash-kpi">
+          <div class="dash-kpi-value" id="kpi-total">0</div>
+          <div class="dash-kpi-label">Total reportes</div>
+        </div>
+        <div class="dash-kpi">
+          <div class="dash-kpi-value dash-kpi-alta" id="kpi-alta">0</div>
+          <div class="dash-kpi-label">Urgencia alta</div>
+        </div>
+        <div class="dash-kpi">
+          <div class="dash-kpi-value dash-kpi-media" id="kpi-media">0</div>
+          <div class="dash-kpi-label">Urgencia media</div>
+        </div>
+        <div class="dash-kpi">
+          <div class="dash-kpi-value dash-kpi-baja" id="kpi-baja">0</div>
+          <div class="dash-kpi-label">Urgencia baja</div>
+        </div>
+      </div>
+      <!-- CHARTS ROW -->
+      <div class="dash-charts">
+        <div class="dash-chart-panel">
+          <div class="dash-chart-title">Por tipo de reporte</div>
+          <div id="chart-tipo"></div>
+        </div>
+        <div class="dash-chart-panel">
+          <div class="dash-chart-title">Por ubicaci&oacute;n</div>
+          <div id="chart-ubicacion"></div>
+        </div>
+      </div>
+      <!-- RECENT REPORTS -->
+      <div class="dash-recent-panel">
+        <div class="dash-chart-title">Reportes recientes</div>
+        <div id="dash-recent"></div>
+      </div>
+    </div>
+    <div class="dash-error" id="dashError" style="display:none;">
+      <div>No pudimos cargar los datos del tablero en este momento. Puedes intentarlo de nuevo.</div>
+      <div class="dash-error-actions">
+        <button class="dash-retry-btn" type="button" onclick="window._retryDashboard()">Reintentar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINANZAS DASHBOARD -->
+  <h2 class="section-title" id="finanzas">&#x1F4B0; Presupuesto 2026</h2>
+  <p class="section-helper">
+    Usa este panel para comparar lo presupuestado frente a lo ejecutado, detectar desviaciones a tiempo y entender d&oacute;nde conviene enfocar la gesti&oacute;n administrativa del mes.
+  </p>
+  <div id="budget-dashboard" class="budget-dashboard">
+    <div class="dash-loading" id="budgetLoading">Cargando presupuesto...</div>
+    <div id="budgetContent" style="display:none;">
+      <!-- MONTH SELECTOR -->
+      <div class="budget-month-bar" id="budgetMonthBar"></div>
+      <!-- KPIs -->
+      <div class="budget-kpis" id="budgetKpis"></div>
+      <!-- CATEGORY BARS -->
+      <div class="budget-categories" id="budgetCategories"></div>
+      <!-- MONTHLY TREND -->
+      <div class="budget-trend-panel">
+        <div class="dash-chart-title">Distribuci&oacute;n mensual por categor&iacute;a</div>
+        <div class="budget-trend" id="budgetTrend"></div>
+      </div>
+      <!-- LINE ITEMS (expandable) -->
+      <div class="budget-detail-panel" id="budgetDetail"></div>
+    </div>
+    <div class="dash-error" id="budgetError" style="display:none;">
+      <div>No pudimos cargar el presupuesto en este momento. Intenta otra vez en unos segundos.</div>
+      <div class="dash-error-actions">
+        <button class="dash-retry-btn" type="button" onclick="window._retryBudget()">Reintentar</button>
+      </div>
+    </div>
+    <a class="view-all" href="#" data-drive="finanzas" target="_blank" style="margin-top:1rem;">Ver documentos en Drive &rarr;</a>
   </div>
 
 </main>
 
+<!-- PQRS MODAL -->
+<div class="modal-overlay" id="pqrsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">&#x1F4DD; Radicar PQRS</div>
+      <button class="modal-close" type="button" onclick="window._closePqrs()">&#x2715;</button>
+    </div>
+    <div id="pqrsForm">
+      <div class="modal-desc">&#x1F4CB; Tu reporte ser&aacute; recibido por la administraci&oacute;n de APROVIVA y atendido seg&uacute;n su prioridad.</div>
+      <div class="form-status" id="pqrs-form-status" aria-live="polite"></div>
+      <div class="form-group">
+        <label class="form-label">Resumen del reporte</label>
+        <input type="text" class="form-input" id="pqrs-resumen" placeholder="Ej. Fuga de agua en la calle 3"/>
+        <p class="field-message" id="pqrs-resumen-error"></p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripci&oacute;n detallada <span class="req">*</span></label>
+        <textarea class="form-textarea" id="pqrs-descripcion" placeholder="Describe la situaci&oacute;n con el mayor detalle posible..." style="height:100px;"></textarea>
+        <p class="field-message" id="pqrs-descripcion-error"></p>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo de reporte <span class="req">*</span></label>
+          <select class="form-select" id="pqrs-tipo">
+            <option value="">Seleccionar...</option>
+            <option>Incidencia t&eacute;cnica</option>
+            <option>Solicitud de mantenimiento</option>
+            <option>Propuesta de mejora</option>
+            <option>Queja o comentario</option>
+            <option>Consulta administrativa</option>
+            <option>Otro</option>
+          </select>
+          <p class="field-message" id="pqrs-tipo-error"></p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ubicaci&oacute;n <span class="req">*</span></label>
+          <select class="form-select" id="pqrs-ubicacion">
+            <option value="">Seleccionar...</option>
+            <option>Garita</option>
+            <option>Piscina</option>
+            <option>&Aacute;rea Social</option>
+            <option>Calles</option>
+            <option>Otro</option>
+            <option>No Aplica</option>
+          </select>
+          <p class="field-message" id="pqrs-ubicacion-error"></p>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Urgencia</label>
+          <select class="form-select" id="pqrs-urgencia">
+            <option value="">Seleccionar...</option>
+            <option>Alta</option>
+            <option>Media</option>
+            <option>Baja</option>
+          </select>
+          <p class="field-message" id="pqrs-urgencia-error"></p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">N&uacute;mero de casa <span class="req">*</span></label>
+          <input type="text" class="form-input" id="pqrs-casa" placeholder="Ej. 104"/>
+          <p class="field-message" id="pqrs-casa-error"></p>
+        </div>
+      </div>
+      <p style="font-size:0.72rem;color:var(--text-light);margin-bottom:0.5rem;">&#x1F4F7; &iquest;Tienes fotos? Env&iacute;alas al WhatsApp de la administraci&oacute;n junto con tu n&uacute;mero de casa.</p>
+      <button class="btn-submit" type="button" onclick="window._submitPqrs()">Enviar reporte &rarr;</button>
+      <p class="approval-note">&#x1F512; Tu reporte es confidencial y ser&aacute; atendido por la administraci&oacute;n.</p>
+    </div>
+    <div class="success-msg" id="pqrsSuccess">
+      <div class="success-icon-wrap">&#x2705;</div>
+      <h3>&iexcl;Reporte enviado!</h3>
+      <p>Gracias. La administraci&oacute;n de APROVIVA revisar&aacute; tu reporte y te contactar&aacute; si necesita m&aacute;s informaci&oacute;n.</p>
+      <div class="success-actions">
+        <button class="btn-secondary" type="button" onclick="window._resetPqrsForm()">Radicar otro reporte</button>
+        <button class="btn-submit" type="button" onclick="window._closePqrs()">Cerrar ventana</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTION NOTICE MODAL -->
+<div class="modal-overlay" id="actionNoticeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="actionNoticeTitle">Aviso</div>
+      <button class="modal-close" type="button" onclick="window._closeActionNotice()">&#x2715;</button>
+    </div>
+    <div class="modal-desc" id="actionNoticeBody">
+      Este acceso no tiene un destino disponible en este momento.
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn-submit" type="button" onclick="window._closeActionNotice()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- FOOTER -->
 <footer>
-  <strong>APROVIVA</strong> · Asociación de Propietarios Villa Valencia<br>
-  Portal de Residentes · Todos los derechos reservados © 2026
+  <strong>APROVIVA</strong> &middot; Asociaci&oacute;n de Propietarios Villa Valencia<br>
+  Portal de Residentes &middot; Todos los derechos reservados &copy; 2026
 </footer>
-
-<script>
-  function closeLogin() {
-    document.getElementById('loginOverlay').style.display = 'none';
-  }
-</script>
-
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

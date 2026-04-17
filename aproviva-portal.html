@@ -269,6 +269,177 @@
     }
 
     /* ── PANEL ── */
+    @media (max-width: 1024px) {
+      header {
+        height: auto;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 1rem 1.25rem;
+      }
+
+      .logo-wrap {
+        width: 100%;
+      }
+
+      .btn-login {
+        width: 100%;
+        justify-content: center;
+      }
+
+      nav {
+        padding: 0 1rem;
+        scrollbar-width: none;
+      }
+
+      nav::-webkit-scrollbar {
+        display: none;
+      }
+
+      nav a {
+        padding: 0.8rem 1rem;
+      }
+
+      main {
+        margin-top: 1.5rem;
+      }
+
+      .cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        min-width: 0;
+      }
+
+      .comunicado-item {
+        gap: 0.8rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      header {
+        padding: 0.9rem 1rem;
+      }
+
+      .logo-wrap {
+        gap: 0.75rem;
+        align-items: flex-start;
+      }
+
+      .logo-wrap img {
+        height: 48px;
+      }
+
+      .logo-text span:first-child {
+        font-size: 0.68rem;
+        letter-spacing: 0.16em;
+      }
+
+      .logo-text span:last-child {
+        font-size: 0.67rem;
+        line-height: 1.3;
+      }
+
+      .btn-login {
+        font-size: 0.82rem;
+        padding: 0.55rem 1rem;
+      }
+
+      nav {
+        padding: 0 0.75rem;
+      }
+
+      nav a {
+        padding: 0.75rem 0.85rem;
+        font-size: 0.78rem;
+      }
+
+      .hero {
+        padding: 2.25rem 1rem;
+      }
+
+      .hero h1 {
+        font-size: 1.65rem;
+        line-height: 1.15;
+      }
+
+      .hero p {
+        font-size: 0.92rem;
+        margin-bottom: 1.5rem;
+      }
+
+      main {
+        padding: 0 1rem;
+        margin: 1.25rem auto;
+      }
+
+      .section-title {
+        font-size: 1.1rem;
+      }
+
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 1.25rem 1rem;
+      }
+
+      .card-icon {
+        width: 46px;
+        height: 46px;
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .panel {
+        padding: 1rem;
+        border-radius: 14px;
+      }
+
+      .panel-title {
+        font-size: 0.95rem;
+      }
+
+      .comunicado-item {
+        flex-direction: column;
+      }
+
+      .com-date {
+        min-width: 0;
+        width: fit-content;
+      }
+
+      .pqrs-form label {
+        margin-top: 0.65rem;
+      }
+
+      .pqrs-form select,
+      .pqrs-form input,
+      .pqrs-form textarea {
+        font-size: 0.85rem;
+      }
+
+      .table-wrap {
+        margin: 0 -0.25rem;
+        padding: 0 0.25rem;
+      }
+
+      .table-wrap .fin-table {
+        min-width: 540px;
+        font-size: 0.75rem;
+      }
+
+      footer {
+        padding: 1.25rem 1rem;
+        font-size: 0.75rem;
+      }
+    }
+
     .panel {
       background: var(--white);
       border-radius: 12px;
@@ -398,6 +569,19 @@
 
     .badge-ok { color: #16a34a; font-weight: 600; }
     .badge-pending { color: #d97706; font-weight: 600; }
+
+    .budget-panel {
+      margin-bottom: 2.5rem;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .table-wrap .fin-table {
+      min-width: 560px;
+    }
 
     .view-all {
       display: block;
@@ -663,43 +847,45 @@
 
   <!-- FINANZAS PREVIEW -->
   <h2 class="section-title">💰 Informe Financiero – Febrero 2026</h2>
-  <div class="panel" style="margin-bottom:2.5rem;">
-    <table class="fin-table">
-      <thead>
-        <tr>
-          <th>Concepto</th>
-          <th>Presupuestado</th>
-          <th>Ejecutado</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Administración</td>
-          <td>$4.500.000</td>
-          <td>$4.500.000</td>
-          <td class="badge-ok">✓ Al día</td>
-        </tr>
-        <tr>
-          <td>Mantenimiento áreas comunes</td>
-          <td>$2.200.000</td>
-          <td>$1.850.000</td>
-          <td class="badge-ok">✓ Al día</td>
-        </tr>
-        <tr>
-          <td>Servicios públicos zonas comunes</td>
-          <td>$1.800.000</td>
-          <td>$2.100.000</td>
-          <td class="badge-pending">⚠ Sobrepaso</td>
-        </tr>
-        <tr>
-          <td>Fondo de imprevistos</td>
-          <td>$800.000</td>
-          <td>$800.000</td>
-          <td class="badge-ok">✓ Al día</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="panel budget-panel">
+    <div class="table-wrap" aria-label="Informe financiero mensual">
+      <table class="fin-table">
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th>Presupuestado</th>
+            <th>Ejecutado</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Administración</td>
+            <td>$4.500.000</td>
+            <td>$4.500.000</td>
+            <td class="badge-ok">✓ Al día</td>
+          </tr>
+          <tr>
+            <td>Mantenimiento áreas comunes</td>
+            <td>$2.200.000</td>
+            <td>$1.850.000</td>
+            <td class="badge-ok">✓ Al día</td>
+          </tr>
+          <tr>
+            <td>Servicios públicos zonas comunes</td>
+            <td>$1.800.000</td>
+            <td>$2.100.000</td>
+            <td class="badge-pending">⚠ Sobrepaso</td>
+          </tr>
+          <tr>
+            <td>Fondo de imprevistos</td>
+            <td>$800.000</td>
+            <td>$800.000</td>
+            <td class="badge-ok">✓ Al día</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <a class="view-all" href="#">Ver informe completo en PDF →</a>
   </div>
 

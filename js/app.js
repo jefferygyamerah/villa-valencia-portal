@@ -5,10 +5,141 @@
   'use strict';
 
   var config = window.APROVIVA_CONFIG;
+  var pqrsFields = [
+    'pqrs-resumen',
+    'pqrs-descripcion',
+    'pqrs-tipo',
+    'pqrs-ubicacion',
+    'pqrs-urgencia',
+    'pqrs-casa'
+  ];
 
   function isScriptConfigured() {
     return config.APPS_SCRIPT_URL &&
       config.APPS_SCRIPT_URL.indexOf('YOUR_') === -1;
+  }
+
+  function getEl(id) {
+    return document.getElementById(id);
+  }
+
+  function setText(id, val) {
+    var el = getEl(id);
+    if (el) el.textContent = val;
+  }
+
+  function setFieldError(id, message) {
+    var input = getEl(id);
+    var error = getEl(id + '-error');
+    if (input) {
+      input.classList.toggle('is-invalid', !!message);
+      input.setAttribute('aria-invalid', message ? 'true' : 'false');
+    }
+    if (error) {
+      error.textContent = message || '';
+      error.classList.toggle('show', !!message);
+    }
+  }
+
+  function clearPqrsErrors() {
+    for (var i = 0; i < pqrsFields.length; i++) {
+      setFieldError(pqrsFields[i], '');
+    }
+    var status = getEl('pqrs-form-status');
+    if (status) {
+      status.textContent = '';
+      status.className = 'form-status';
+    }
+  }
+
+  function showPqrsStatus(type, message) {
+    var status = getEl('pqrs-form-status');
+    if (!status) return;
+    status.className = 'form-status show ' + type;
+    status.textContent = message;
+  }
+
+  function setSubmitState(isBusy) {
+    var btn = document.querySelector('#pqrsForm .btn-submit');
+    if (!btn) return;
+    btn.disabled = !!isBusy;
+    btn.textContent = isBusy ? 'Enviando...' : 'Enviar reporte →';
+  }
+
+  function showPqrsForm() {
+    var form = getEl('pqrsForm');
+    var success = getEl('pqrsSuccess');
+    if (form) form.style.display = '';
+    if (success) success.classList.remove('show');
+    clearPqrsErrors();
+    setSubmitState(false);
+  }
+
+  function resetPqrsForm() {
+    for (var i = 0; i < pqrsFields.length; i++) {
+      var el = getEl(pqrsFields[i]);
+      if (el) el.value = '';
+    }
+    showPqrsForm();
+  }
+
+  function validatePqrs() {
+    var descripcion = getEl('pqrs-descripcion');
+    var tipo = getEl('pqrs-tipo');
+    var ubicacion = getEl('pqrs-ubicacion');
+    var casa = getEl('pqrs-casa');
+    var valid = true;
+    var firstInvalid = null;
+
+    clearPqrsErrors();
+
+    if (!descripcion || !descripcion.value.trim()) {
+      setFieldError('pqrs-descripcion', 'Cuéntanos un poco más para poder revisar el caso.');
+      valid = false;
+      firstInvalid = firstInvalid || descripcion;
+    }
+    if (!tipo || !tipo.value) {
+      setFieldError('pqrs-tipo', 'Selecciona el tipo de reporte.');
+      valid = false;
+      firstInvalid = firstInvalid || tipo;
+    }
+    if (!ubicacion || !ubicacion.value) {
+      setFieldError('pqrs-ubicacion', 'Indica la ubicación del reporte.');
+      valid = false;
+      firstInvalid = firstInvalid || ubicacion;
+    }
+    if (!casa || !casa.value.trim()) {
+      setFieldError('pqrs-casa', 'Escribe el número de casa para ubicarte.');
+      valid = false;
+      firstInvalid = firstInvalid || casa;
+    }
+
+    if (!valid) {
+      showPqrsStatus('error', 'Revisa los campos marcados en rojo antes de enviar.');
+      if (firstInvalid && typeof firstInvalid.focus === 'function') {
+        firstInvalid.focus();
+      }
+    }
+
+    return valid;
+  }
+
+  function openSection(sectionId) {
+    var el = getEl(sectionId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function openActionNotice(title, body) {
+    setText('actionNoticeTitle', title || 'Aviso');
+    setText('actionNoticeBody', body || 'Este acceso no tiene un destino disponible en este momento.');
+    var modal = getEl('actionNoticeModal');
+    if (modal) modal.classList.add('open');
+  }
+
+  function closeActionNotice() {
+    var modal = getEl('actionNoticeModal');
+    if (modal) modal.classList.remove('open');
   }
 
   // ── Drive links ──
@@ -21,9 +152,13 @@
         els[i].href = links[key];
         els[i].target = '_blank';
         els[i].rel = 'noopener';
+        els[i].removeAttribute('aria-disabled');
       } else {
-        els[i].removeAttribute('href');
-        els[i].style.opacity = '0.5';
+        els[i].href = '#';
+        els[i].removeAttribute('target');
+        els[i].removeAttribute('rel');
+        els[i].setAttribute('aria-disabled', 'true');
+        els[i].style.opacity = '0.82';
         els[i].title = 'Enlace pendiente de configurar';
       }
     }
@@ -31,40 +166,42 @@
 
   // ── PQRS Modal ──
   function openPqrs() {
-    document.getElementById('pqrsModal').classList.add('open');
+    var modal = getEl('pqrsModal');
+    if (modal) modal.classList.add('open');
+    showPqrsForm();
   }
 
   function closePqrs() {
-    document.getElementById('pqrsModal').classList.remove('open');
-    document.getElementById('pqrsForm').style.display = '';
-    document.getElementById('pqrsSuccess').classList.remove('show');
-    var fields = ['pqrs-resumen', 'pqrs-descripcion', 'pqrs-tipo',
-                  'pqrs-ubicacion', 'pqrs-urgencia', 'pqrs-casa'];
-    for (var i = 0; i < fields.length; i++) {
-      var el = document.getElementById(fields[i]);
-      if (el) el.value = '';
-    }
+    var modal = getEl('pqrsModal');
+    if (modal) modal.classList.remove('open');
+    resetPqrsForm();
   }
 
   function submitPqrs() {
-    var resumen = document.getElementById('pqrs-resumen').value.trim();
-    var descripcion = document.getElementById('pqrs-descripcion').value.trim();
-    var tipo = document.getElementById('pqrs-tipo').value;
-    var ubicacion = document.getElementById('pqrs-ubicacion').value;
-    var urgencia = document.getElementById('pqrs-urgencia').value;
-    var casa = document.getElementById('pqrs-casa').value.trim();
+    var resumenEl = getEl('pqrs-resumen');
+    var descripcionEl = getEl('pqrs-descripcion');
+    var tipoEl = getEl('pqrs-tipo');
+    var ubicacionEl = getEl('pqrs-ubicacion');
+    var urgenciaEl = getEl('pqrs-urgencia');
+    var casaEl = getEl('pqrs-casa');
 
-    if (!descripcion || !tipo || !ubicacion || !casa) {
-      alert('Por favor completa los campos obligatorios (*).');
+    if (!validatePqrs()) {
       return;
     }
 
-    var btn = document.querySelector('#pqrsForm .btn-submit');
-    btn.disabled = true;
-    btn.textContent = 'Enviando...';
+    var resumen = resumenEl ? resumenEl.value.trim() : '';
+    var descripcion = descripcionEl ? descripcionEl.value.trim() : '';
+    var tipo = tipoEl ? tipoEl.value : '';
+    var ubicacion = ubicacionEl ? ubicacionEl.value : '';
+    var urgencia = urgenciaEl ? urgenciaEl.value : '';
+    var casa = casaEl ? casaEl.value.trim() : '';
+
+    setSubmitState(true);
+    showPqrsStatus('success', 'Enviando tu reporte...');
 
     if (!isScriptConfigured()) {
-      showPqrsSuccess();
+      setSubmitState(false);
+      showPqrsStatus('error', 'El sistema de envío todavía no está configurado.');
       return;
     }
 
@@ -86,20 +223,22 @@
       showPqrsSuccess();
       loadDashboard();
     }).catch(function () {
-      showPqrsSuccess();
+      setSubmitState(false);
+      showPqrsStatus('error', 'No pudimos enviar tu reporte. Revisa tu conexión e inténtalo de nuevo.');
     });
   }
 
   function showPqrsSuccess() {
-    document.getElementById('pqrsForm').style.display = 'none';
-    document.getElementById('pqrsSuccess').classList.add('show');
-    var btn = document.querySelector('#pqrsForm .btn-submit');
-    btn.disabled = false;
-    btn.textContent = 'Enviar reporte \u2192';
+    var form = getEl('pqrsForm');
+    var success = getEl('pqrsSuccess');
+    if (form) form.style.display = 'none';
+    if (success) success.classList.add('show');
+    setSubmitState(false);
+    clearPqrsErrors();
   }
 
   function setupPqrsBackdrop() {
-    var modal = document.getElementById('pqrsModal');
+    var modal = getEl('pqrsModal');
     if (modal) {
       modal.addEventListener('click', function (e) {
         if (e.target === modal) closePqrs();
@@ -107,18 +246,78 @@
     }
   }
 
+  function setupPortalActions() {
+    document.addEventListener('click', function (e) {
+      var driveEl = e.target.closest && e.target.closest('[data-drive]');
+      if (driveEl) {
+        e.preventDefault();
+        var key = driveEl.getAttribute('data-drive');
+        var url = config.DRIVE_LINKS && config.DRIVE_LINKS[key];
+        if (url && url.indexOf('YOUR_') === -1) {
+          window.open(url, '_blank', 'noopener');
+        } else {
+          openActionNotice('Documento no disponible', 'Este acceso aún no tiene un enlace configurado. Vuelve más tarde o avísale a la administración.');
+        }
+        return;
+      }
+
+      var actionEl = e.target.closest && e.target.closest('[data-action]');
+      if (actionEl) {
+        var action = actionEl.getAttribute('data-action');
+        if (action === 'open-pqrs') {
+          e.preventDefault();
+          openPqrs();
+          return;
+        }
+      }
+
+      var sectionLink = e.target.closest && e.target.closest('a[href^="#"]');
+      if (sectionLink) {
+        var href = sectionLink.getAttribute('href');
+        if (href && href.length > 1) {
+          e.preventDefault();
+          openSection(href.slice(1));
+        }
+      }
+    });
+
+    ['pqrs-resumen', 'pqrs-descripcion', 'pqrs-tipo', 'pqrs-ubicacion', 'pqrs-casa'].forEach(function (id) {
+      var el = getEl(id);
+      if (!el) return;
+      var eventName = (el.tagName === 'SELECT') ? 'change' : 'input';
+      el.addEventListener(eventName, function () {
+        setFieldError(id, '');
+        var status = getEl('pqrs-form-status');
+        if (status && status.className.indexOf('error') !== -1) {
+          status.className = 'form-status';
+          status.textContent = '';
+        }
+      });
+    });
+  }
+
+  function retryDashboard() {
+    loadDashboard();
+  }
+
+  function retryBudget() {
+    loadBudget();
+  }
+
   // ── Dashboard ──
   function loadDashboard() {
-    var loading = document.getElementById('dashLoading');
-    var content = document.getElementById('dashContent');
-    var error = document.getElementById('dashError');
+    var loading = getEl('dashLoading');
+    var content = getEl('dashContent');
+    var error = getEl('dashError');
 
     if (!loading) return;
 
     if (!isScriptConfigured()) {
       loading.style.display = 'none';
+      content.style.display = 'none';
       error.style.display = 'block';
-      error.textContent = 'Configura APPS_SCRIPT_URL en js/config.js para ver el dashboard.';
+      error.innerHTML = '<div>La información todavía no está conectada. Revisa la configuración del Apps Script.</div>' +
+        '<div class="dash-error-actions"><button class="dash-retry-btn" type="button" onclick="window._retryDashboard()">Reintentar</button></div>';
       return;
     }
 
@@ -126,12 +325,16 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         loading.style.display = 'none';
+        error.style.display = 'none';
         content.style.display = '';
         renderDashboard(data.rows || []);
       })
       .catch(function () {
         loading.style.display = 'none';
+        content.style.display = 'none';
         error.style.display = 'block';
+        error.innerHTML = '<div>No pudimos cargar los datos del tablero ahora mismo. Puedes intentarlo otra vez.</div>' +
+          '<div class="dash-error-actions"><button class="dash-retry-btn" type="button" onclick="window._retryDashboard()">Reintentar</button></div>';
       });
   }
 
@@ -166,13 +369,8 @@
     renderRecent(rows);
   }
 
-  function setText(id, val) {
-    var el = document.getElementById(id);
-    if (el) el.textContent = val;
-  }
-
   function renderBarChart(containerId, counts, total) {
-    var el = document.getElementById(containerId);
+    var el = getEl(containerId);
     if (!el) return;
 
     var sorted = Object.keys(counts).sort(function (a, b) {
@@ -193,11 +391,11 @@
         '</div>';
     }
 
-    el.innerHTML = html || '<div style="font-size:0.8rem;color:var(--text-light)">Sin datos</div>';
+    el.innerHTML = html || '<div style="font-size:0.8rem;color:var(--text-light)">Todavia no hay suficiente informacion para mostrar esta distribucion.</div>';
   }
 
   function renderRecent(rows) {
-    var el = document.getElementById('dash-recent');
+    var el = getEl('dash-recent');
     if (!el) return;
 
     var recent = rows.slice(-10).reverse();
@@ -220,7 +418,7 @@
         '</div>';
     }
 
-    el.innerHTML = html || '<div style="font-size:0.8rem;color:var(--text-light);padding:1rem 0">Sin reportes a&uacute;n</div>';
+    el.innerHTML = html || '<div style="font-size:0.8rem;color:var(--text-light);padding:1rem 0">Todavia no hay reportes recientes. Cuando entren nuevos casos, apareceran aqui con su prioridad y ubicacion.</div>';
   }
 
   function formatDate(ts) {
@@ -272,14 +470,17 @@
   }
 
   function loadBudget() {
-    var loading = document.getElementById('budgetLoading');
-    var content = document.getElementById('budgetContent');
-    var error = document.getElementById('budgetError');
+    var loading = getEl('budgetLoading');
+    var content = getEl('budgetContent');
+    var error = getEl('budgetError');
     if (!loading) return;
 
     if (!isScriptConfigured()) {
       loading.style.display = 'none';
+      content.style.display = 'none';
       error.style.display = 'block';
+      error.innerHTML = '<div>El presupuesto todavía no está conectado. Revisa la configuración del Apps Script.</div>' +
+        '<div class="dash-error-actions"><button class="dash-retry-btn" type="button" onclick="window._retryBudget()">Reintentar</button></div>';
       return;
     }
 
@@ -290,18 +491,22 @@
         ejecucionData = data.ejecucion || [];
         budgetMeta = data.meta || {};
         loading.style.display = 'none';
+        error.style.display = 'none';
         content.style.display = '';
         renderMonthBar();
         renderBudget();
       })
       .catch(function () {
         loading.style.display = 'none';
+        content.style.display = 'none';
         error.style.display = 'block';
+        error.innerHTML = '<div>No pudimos cargar el presupuesto ahora mismo. Vuelve a intentarlo en unos segundos.</div>' +
+          '<div class="dash-error-actions"><button class="dash-retry-btn" type="button" onclick="window._retryBudget()">Reintentar</button></div>';
       });
   }
 
   function renderMonthBar() {
-    var bar = document.getElementById('budgetMonthBar');
+    var bar = getEl('budgetMonthBar');
     if (!bar) return;
     var lastMonth = getLastInformeMonth();
     var html = '<button class="budget-month-btn active" onclick="window._selectMonth(0)">Todo</button>';
@@ -393,7 +598,7 @@
       : '';
 
     // KPIs
-    var kpis = document.getElementById('budgetKpis');
+    var kpis = getEl('budgetKpis');
     kpis.innerHTML =
       kpiCard('B/. ' + fmtNum(totalIngresos), 'Presupuesto Ingresos', period) +
       kpiCard('B/. ' + fmtNum(totalGastos), 'Presupuesto Gastos', period) +
@@ -410,7 +615,7 @@
           : 'sin datos reales para este mes');
 
     // Category cards
-    var cats = document.getElementById('budgetCategories');
+    var cats = getEl('budgetCategories');
     var maxCat = 0;
     for (var c = 0; c < CAT_ORDER.length; c++) {
       var v = catBudget[CAT_ORDER[c]] || catEjec[CAT_ORDER[c]] || 0;
@@ -454,7 +659,7 @@
     renderTrend();
 
     // Reset detail
-    var detail = document.getElementById('budgetDetail');
+    var detail = getEl('budgetDetail');
     detail.innerHTML = '';
   }
 
@@ -467,7 +672,7 @@
   }
 
   function renderTrend() {
-    var trend = document.getElementById('budgetTrend');
+    var trend = getEl('budgetTrend');
     if (!trend) return;
 
     var monthCats = [];
@@ -519,7 +724,7 @@
   }
 
   function toggleCat(cat) {
-    var detail = document.getElementById('budgetDetail');
+    var detail = getEl('budgetDetail');
     if (!detail) return;
 
     if (detail.getAttribute('data-cat') === cat) {
@@ -599,10 +804,15 @@
   window._openPqrs = openPqrs;
   window._closePqrs = closePqrs;
   window._submitPqrs = submitPqrs;
+  window._resetPqrsForm = resetPqrsForm;
+  window._retryDashboard = retryDashboard;
+  window._retryBudget = retryBudget;
+  window._closeActionNotice = closeActionNotice;
 
   document.addEventListener('DOMContentLoaded', function () {
     populateDriveLinks();
     setupPqrsBackdrop();
+    setupPortalActions();
     loadDashboard();
     loadBudget();
   });
