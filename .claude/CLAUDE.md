@@ -10,7 +10,13 @@ Transparencia financiera, PQRS, y directorio de proveedores.
 - **Frontend:** Static HTML/CSS/JS hosted on GitHub Pages
 - **Backend:** Google Apps Script web app (deployed v15)
 - **Data:** Google Sheets (PQRS, Proveedores, Budget/Reporting)
-- **Live URL:** https://jefferygyamerah.github.io/villa-valencia-portal/
+- **Live URL:** https://villavalencia.vercel.app/
+
+## Orden ejecutiva
+
+- Este repo representa el portal real de Villa Valencia / APROVIVA para usuarios finales.
+- `ph-management` y `ph-management-hub` son la misma linea de producto PH Management y no deben confundirse con este runtime cliente.
+- No convertir este portal en sitio comercial de PH Management.
 
 ## Key IDs
 

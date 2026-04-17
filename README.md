@@ -2,6 +2,12 @@
 
 Digital portal for Villa Valencia HOA (APROVIVA), Costa Sur, Don Bosco, Panama.
 
+## Production Identity
+
+- `villavalencia.vercel.app` is the Villa Valencia/APROVIVA live production webapp for HOA management.
+- This portal is the end-user runtime, not the PH Management vanilla product site.
+- Keep this repo client-specific and operational.
+
 ## Overview
 
 Community portal for 118 homeowners providing transparency into HOA operations, finances, and maintenance. Static site hosted on GitHub Pages.
@@ -29,4 +35,5 @@ Edit `js/config.js` with your values:
 
 ## Deployment
 
-Hosted on GitHub Pages from the `master` branch root. Add `.nojekyll` to skip Jekyll processing.
+Historical static hosting can still use GitHub Pages from the `master` branch root with `.nojekyll`.
+Production identity remains `villavalencia.vercel.app`.
