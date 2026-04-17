@@ -1407,3 +1407,36 @@ footer strong { color: var(--white); }
     font-size: 0.75rem;
   }
 }
+
+/* villa valencia responsive convergence */
+@media (max-width: 1024px) {
+  nav {
+    scrollbar-width: auto;
+    padding-bottom: 0.35rem;
+  }
+
+  nav::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+
+  nav ul {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+}
+
+@media (max-width: 820px) {
+  .cards-grid,
+  .form-row,
+  .budget-kpis,
+  .dash-kpis,
+  .dash-charts {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar-panel {
+    position: static;
+    top: auto;
+  }
+}
