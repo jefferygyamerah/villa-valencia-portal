@@ -103,7 +103,71 @@
     .dash-retry-btn:hover {
       background: #f8fbff;
     }
+
+    .access-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .access-card::after {
+      content: '';
+      position: absolute;
+      inset: auto -22px -22px auto;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: rgba(26, 107, 184, 0.08);
+      pointer-events: none;
+    }
+
+    .access-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.4rem 0.7rem;
+      border-radius: 999px;
+      background: #eef5ff;
+      color: #1A6BB8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .access-card h3 {
+      margin-top: 0.95rem;
+    }
+
+    .access-card p {
+      margin-bottom: 0.95rem;
+    }
+
+    .access-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #145694;
+    }
   </style>
+  <script>
+    function openRoleLogin(roleKey) {
+      var routes = {
+        residentes: '/aproviva-portal.html?lane=resident',
+        administracion: '/aproviva-portal.html?lane=admin',
+        junta: '/aproviva-portal.html?lane=junta'
+      };
+
+      var targetUrl = routes[roleKey];
+      if (targetUrl) {
+        window.location.href = targetUrl;
+        return false;
+      }
+
+      return false;
+    }
+  </script>
 </head>
 <body>
 
@@ -123,6 +187,7 @@
 <!-- NAV -->
 <nav>
   <a href="index.html" class="active">&#x1F3E0; Inicio</a>
+  <a href="#accesos">&#x1F512; Accesos</a>
   <a href="#" data-drive="asambleas" target="_blank">&#x1F4CB; Asambleas</a>
   <a href="#finanzas">&#x1F4B0; Finanzas</a>
     <a href="#" data-drive="comunicados" target="_blank">&#x1F4E3; Comunicados</a>
@@ -142,7 +207,35 @@
 <!-- MAIN CONTENT -->
 <main>
 
-  <!-- QUICK ACCESS -->
+  <!-- ROLE ACCESS -->
+  <h2 class="section-title" id="accesos">&#x1F512; Accesos Villa Valencia</h2>
+  <p style="color:var(--muted);max-width:840px;line-height:1.7;margin:-6px 0 20px;">
+    Villa Valencia separa el acceso por capa: residentes entran por su portal, conserjer&iacute;a, supervisor y gerencia comparten la entrada administrativa, y la junta entra por esa misma capa con lectura de gobernanza.
+  </p>
+  <div class="cards-grid">
+    <a class="card access-card" href="#" onclick="return openRoleLogin('residentes')">
+      <div class="access-badge">Portal activo</div>
+      <h3>Ingreso residentes</h3>
+      <p>Documentos, avisos, solicitudes y seguimiento claro para la comunidad.</p>
+    </a>
+    <a class="card access-card" href="#" onclick="return openRoleLogin('administracion')">
+      <div class="access-badge">Operaci&oacute;n del d&iacute;a</div>
+      <h3>Ingreso administraci&oacute;n</h3>
+      <p>Conserjer&iacute;a, supervisor y gerencia contin&uacute;an turnos, incidencias, inventario y control diario desde una misma entrada.</p>
+    </a>
+    <a class="card access-card" href="#" onclick="return openRoleLogin('junta')">
+      <div class="access-badge">Gobernanza</div>
+      <h3>Ingreso junta</h3>
+      <p>La junta entra por la misma capa administrativa para revisar prioridades, aprobaciones y seguimiento ejecutivo del edificio.</p>
+    </a>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 28px;">
+    <span class="access-badge">Conserjer&iacute;a</span>
+    <span class="access-badge">Supervisor</span>
+    <span class="access-badge">Gerencia</span>
+    <span class="access-badge">Junta</span>
+  </div>
+
   <h2 class="section-title">&#x26A1; Acceso R&aacute;pido</h2>
   <div class="cards-grid">
     <a class="card" href="#" data-drive="asambleas" target="_blank">

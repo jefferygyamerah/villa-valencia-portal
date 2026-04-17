@@ -18,4 +18,11 @@ window.APROVIVA_CONFIG = {
     planos:      'https://drive.google.com/drive/folders/1cRsTsxNqq4M2V0BGYBOZOT7jTJqTVyWP',
     proyectos:   'https://drive.google.com/drive/folders/1AafYkFFj23xFcSWaS4yfAgBGUOLcetu4',
   },
+
+  // Role-based login URLs — set each secure destination when available
+  ROLE_LOGIN_LINKS: {
+    residentes: '/aproviva-portal.html?lane=resident',
+    administracion: '/aproviva-portal.html?lane=admin',
+    junta: '/aproviva-portal.html?lane=junta',
+  },
 };
