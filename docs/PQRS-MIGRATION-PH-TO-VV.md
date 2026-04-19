@@ -75,7 +75,8 @@ This document frames **moving PQRS submit, lookup, storage, and map-facing reads
 ## Implemented API (Villa Valencia Supabase)
 
 - **Pattern:** **PostgREST** (`INSERT` into `public.pqrs_cases`) + **`lookup_pqrs_case(text)`** RPC (`SECURITY DEFINER`) so `anon` cannot `SELECT` the full table.
-- **Migration file:** [aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql](../aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql)
+- **Migration files (en orden):** [20260422120000_pqrs_cases.sql](../aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql), luego [20260422200000_pqrs_cases_align_existing.sql](../aproviva-suite/supabase/migrations/20260422200000_pqrs_cases_align_existing.sql) si la tabla `pqrs_cases` ya existía con otro esquema (p. ej. ph-management).
+- **CI opcional:** [`.github/workflows/apply-vv-supabase-sql.yml`](../.github/workflows/apply-vv-supabase-sql.yml) — secret `SUPABASE_DB_URL`, ejecutar workflow manualmente en GitHub.
 - **Portal:** [js/config.js](../js/config.js) — `PQRS_USE_VV_SUPABASE`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `BUILDING_ID`. Keep `PQRS_USE_VV_SUPABASE: false` until the SQL is applied and smoke-tested; then set `true` to stop calling ph-management for submit/lookup.
 
 ---

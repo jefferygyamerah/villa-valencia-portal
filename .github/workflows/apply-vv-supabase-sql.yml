@@ -1,0 +1,33 @@
+# Opcional: aplica migraciones SQL en el proyecto Supabase usando la connection string.
+# Configurar secret SUPABASE_DB_URL en GitHub (Settings → Secrets → Actions):
+# postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+# Ejecutar manualmente: Actions → Apply VV Supabase SQL → Run workflow.
+
+name: Apply VV Supabase SQL
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply migrations in order
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -e
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "SUPABASE_DB_URL secret is not set. Add it in repo Settings → Secrets."
+            exit 1
+          fi
+          for f in aproviva-suite/supabase/migrations/*.sql; do
+            echo "=== $f ==="
+            psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done
+          echo "Done."
