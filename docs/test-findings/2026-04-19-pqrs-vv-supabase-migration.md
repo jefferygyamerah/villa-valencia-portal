@@ -9,11 +9,17 @@
 - **Portal:** Submit uses `Prefer: return=representation` to read generated `case_reference`; ubicación options expose `value` slugs aligned with `SITE_PLACES` ids.
 - **Rollback:** Set `PQRS_USE_VV_SUPABASE: false` to restore ph-management submit/lookup.
 
-## Preconditions for manual / browser QA
+## Repo / deploy (agent-completed)
 
-1. Run [aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql](../../aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql) in Supabase SQL Editor (project `tgoitmwdpdkhlpqpwrvs`).
-2. Set `PQRS_USE_VV_SUPABASE: true` in [js/config.js](../../js/config.js) (local or preview only until smoke-tested).
-3. Submit a test PQRS from the portal; confirm row in `pqrs_cases` and lookup by reference on the status panel.
+- **Git:** pushed `939f25f` (PQRS + migrations + docs), `47a039d` (align existing `pqrs_cases` + GitHub Action).
+- **CI:** [`.github/workflows/apply-vv-supabase-sql.yml`](../../.github/workflows/apply-vv-supabase-sql.yml) — set repository secret `SUPABASE_DB_URL`, run workflow **Apply VV Supabase SQL** once to execute all `aproviva-suite/supabase/migrations/*.sql` in order.
+
+## Preconditions for live DB + browser QA
+
+1. Apply SQL: Supabase Dashboard **SQL Editor** (paste migrations in order), **or** GitHub Actions workflow above with `SUPABASE_DB_URL`.
+2. If `pqrs_cases` pre-existed without VV columns, ensure [20260422200000_pqrs_cases_align_existing.sql](../../aproviva-suite/supabase/migrations/20260422200000_pqrs_cases_align_existing.sql) ran after [20260422120000_pqrs_cases.sql](../../aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql).
+3. Set `PQRS_USE_VV_SUPABASE: true` in [js/config.js](../../js/config.js) and redeploy.
+4. Submit a test PQRS from the portal; confirm lookup RPC returns the row.
 
 ## Findings (P0–P2)
 
