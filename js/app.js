@@ -11,8 +11,10 @@
     'pqrs-tipo',
     'pqrs-ubicacion',
     'pqrs-urgencia',
-    'pqrs-casa'
+    'pqrs-casa',
+    'pqrs-correo'
   ];
+  var lastSubmittedCaseId = '';
 
   function isScriptConfigured() {
     return config.APPS_SCRIPT_URL &&
@@ -88,6 +90,7 @@
     var tipo = getEl('pqrs-tipo');
     var ubicacion = getEl('pqrs-ubicacion');
     var casa = getEl('pqrs-casa');
+    var correo = getEl('pqrs-correo');
     var valid = true;
     var firstInvalid = null;
 
@@ -112,6 +115,11 @@
       setFieldError('pqrs-casa', 'Escribe el número de casa para ubicarte.');
       valid = false;
       firstInvalid = firstInvalid || casa;
+    }
+    if (correo && correo.value.trim() && !isValidEmail(correo.value.trim())) {
+      setFieldError('pqrs-correo', 'Revisa el formato del correo electrónico.');
+      valid = false;
+      firstInvalid = firstInvalid || correo;
     }
 
     if (!valid) {
@@ -184,6 +192,7 @@
     var ubicacionEl = getEl('pqrs-ubicacion');
     var urgenciaEl = getEl('pqrs-urgencia');
     var casaEl = getEl('pqrs-casa');
+    var correoEl = getEl('pqrs-correo');
 
     if (!validatePqrs()) {
       return;
@@ -195,6 +204,7 @@
     var ubicacion = ubicacionEl ? ubicacionEl.value : '';
     var urgencia = urgenciaEl ? urgenciaEl.value : '';
     var casa = casaEl ? casaEl.value.trim() : '';
+    var correo = correoEl ? correoEl.value.trim() : '';
 
     setSubmitState(true);
     showPqrsStatus('success', 'Enviando tu reporte...');
@@ -211,16 +221,25 @@
       tipo: tipo,
       ubicacion: ubicacion,
       urgencia: urgencia,
-      casa: casa
+      casa: casa,
+      correo: correo
     };
 
     fetch(config.APPS_SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload)
+    }).then(function (response) {
+      return response.text().then(function (rawText) {
+        if (!response.ok) {
+          throw new Error('HTTP_' + response.status);
+        }
+
+        var parsed = parseResponseBody(rawText);
+        var caseId = getCaseIdFromResponse(parsed, rawText);
+        showPqrsSuccess(caseId);
+      });
     }).then(function () {
-      showPqrsSuccess();
       loadDashboard();
     }).catch(function () {
       setSubmitState(false);
@@ -228,13 +247,122 @@
     });
   }
 
-  function showPqrsSuccess() {
+  function showPqrsSuccess(caseId) {
     var form = getEl('pqrsForm');
     var success = getEl('pqrsSuccess');
+    var reference = getEl('pqrs-case-reference');
+
+    lastSubmittedCaseId = caseId || '';
+
     if (form) form.style.display = 'none';
     if (success) success.classList.add('show');
+    if (reference) {
+      reference.textContent = lastSubmittedCaseId
+        ? ('Referencia del caso: ' + lastSubmittedCaseId)
+        : 'Referencia del caso: generada, pero no disponible en la respuesta.';
+    }
     setSubmitState(false);
     clearPqrsErrors();
+  }
+
+  function parseResponseBody(rawText) {
+    if (!rawText) return null;
+
+    try {
+      return JSON.parse(rawText);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function getCaseIdFromResponse(parsed, rawText) {
+    if (parsed && typeof parsed === 'object') {
+      if (parsed.caseId) return String(parsed.caseId);
+      if (parsed.id) return String(parsed.id);
+      if (parsed.case_id) return String(parsed.case_id);
+    }
+
+    if (rawText) {
+      var match = String(rawText).match(/(PQRS-[A-Za-z0-9\-]+)/i);
+      if (match && match[1]) return match[1];
+    }
+
+    return '';
+  }
+
+  function lookupPqrsStatus() {
+    var input = getEl('pqrs-status-id');
+    var feedback = getEl('pqrs-status-feedback');
+    var caseId = input ? input.value.trim() : '';
+
+    if (!feedback) return;
+
+    if (!caseId) {
+      feedback.className = 'pqrs-status-feedback show error';
+      feedback.textContent = 'Ingresa una referencia de caso para consultar.';
+      if (input && typeof input.focus === 'function') input.focus();
+      return;
+    }
+
+    if (!isScriptConfigured()) {
+      feedback.className = 'pqrs-status-feedback show error';
+      feedback.textContent = 'La consulta de estado no está disponible porque el Apps Script no está configurado.';
+      return;
+    }
+
+    feedback.className = 'pqrs-status-feedback show';
+    feedback.textContent = 'Consultando estado...';
+
+    fetch(config.APPS_SCRIPT_URL + '?action=status&id=' + encodeURIComponent(caseId))
+      .then(function (response) {
+        return response.text().then(function (rawText) {
+          if (!response.ok) {
+            throw new Error('HTTP_' + response.status);
+          }
+
+          var parsed = parseResponseBody(rawText);
+          if (!parsed || parsed.status !== 'ok') {
+            throw new Error('INVALID_STATUS_RESPONSE');
+          }
+
+          renderLookupStatusSuccess(parsed);
+        });
+      })
+      .catch(function () {
+        feedback.className = 'pqrs-status-feedback show error';
+        feedback.textContent = 'No pudimos consultar el estado en este momento. Intenta nuevamente en unos segundos.';
+      });
+  }
+
+  function renderLookupStatusSuccess(data) {
+    var feedback = getEl('pqrs-status-feedback');
+    if (!feedback) return;
+
+    var estado = data.currentStatus || data.estado || 'Recibido';
+    var updatedAt = data.updatedAt || data.ultimaActualizacion || '';
+    var extra = updatedAt ? (' Última actualización: ' + formatStatusDate(updatedAt) + '.') : '';
+
+    feedback.className = 'pqrs-status-feedback show success';
+    feedback.textContent = 'Caso ' + (data.caseId || '') + ': estado actual "' + estado + '".' + extra;
+  }
+
+  function consultPqrsStatusFromSuccess() {
+    var input = getEl('pqrs-status-id');
+    if (input && lastSubmittedCaseId) {
+      input.value = lastSubmittedCaseId;
+    }
+    openSection('pqrs-status-panel');
+    lookupPqrsStatus();
+  }
+
+  function formatStatusDate(value) {
+    var date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleString('es-PA');
+  }
+
+  function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }
 
   function setupPqrsBackdrop() {
@@ -281,7 +409,7 @@
       }
     });
 
-    ['pqrs-resumen', 'pqrs-descripcion', 'pqrs-tipo', 'pqrs-ubicacion', 'pqrs-casa'].forEach(function (id) {
+    ['pqrs-resumen', 'pqrs-descripcion', 'pqrs-tipo', 'pqrs-ubicacion', 'pqrs-casa', 'pqrs-correo'].forEach(function (id) {
       var el = getEl(id);
       if (!el) return;
       var eventName = (el.tagName === 'SELECT') ? 'change' : 'input';
@@ -294,6 +422,16 @@
         }
       });
     });
+
+    var statusInput = getEl('pqrs-status-id');
+    if (statusInput) {
+      statusInput.addEventListener('keydown', function (evt) {
+        if (evt.key === 'Enter') {
+          evt.preventDefault();
+          lookupPqrsStatus();
+        }
+      });
+    }
   }
 
   function retryDashboard() {
@@ -457,14 +595,44 @@
                      'Jul','Ago','Sep','Oct','Nov','Dic'];
   var MONTH_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var MONTH_ALIASES = {
+    'ene': 1, 'enero': 1,
+    'feb': 2, 'febrero': 2,
+    'mar': 3, 'marzo': 3,
+    'abr': 4, 'abril': 4,
+    'may': 5, 'mayo': 5,
+    'jun': 6, 'junio': 6,
+    'jul': 7, 'julio': 7,
+    'ago': 8, 'agosto': 8,
+    'sep': 9, 'sept': 9, 'set': 9, 'septiembre': 9, 'setiembre': 9,
+    'oct': 10, 'octubre': 10,
+    'nov': 11, 'noviembre': 11,
+    'dic': 12, 'diciembre': 12
+  };
   var CAT_ORDER = ['Servicios B\u00e1sicos', 'Gastos de Funcionamiento',
     'Gastos de Personal', 'Mantenimientos Preventivos',
     'Mantenimientos Correctivos', 'Otros Gastos'];
 
+  function normalizeMonthToken(value) {
+    var text = String(value || '').trim().toLowerCase();
+    if (!text) return '';
+    if (typeof text.normalize === 'function') {
+      text = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+    return text.replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   function getLastInformeMonth() {
-    var name = (budgetMeta.ultimoInforme || '').trim();
-    for (var i = 0; i < MONTH_FULL.length; i++) {
-      if (MONTH_FULL[i].toLowerCase() === name.toLowerCase()) return i + 1;
+    var normalized = normalizeMonthToken(budgetMeta.ultimoInforme);
+    if (!normalized) return 0;
+
+    if (MONTH_ALIASES[normalized]) {
+      return MONTH_ALIASES[normalized];
+    }
+
+    var parts = normalized.split(/[^a-z]+/);
+    for (var i = 0; i < parts.length; i++) {
+      if (MONTH_ALIASES[parts[i]]) return MONTH_ALIASES[parts[i]];
     }
     return 0;
   }
@@ -490,6 +658,12 @@
         budgetData = data.budget || [];
         ejecucionData = data.ejecucion || [];
         budgetMeta = data.meta || {};
+        if (selectedMonth > 0) {
+          var lastMonth = getLastInformeMonth();
+          if (lastMonth > 0 && selectedMonth > lastMonth) {
+            selectedMonth = 0;
+          }
+        }
         loading.style.display = 'none';
         error.style.display = 'none';
         content.style.display = '';
@@ -500,7 +674,7 @@
         loading.style.display = 'none';
         content.style.display = 'none';
         error.style.display = 'block';
-        error.innerHTML = '<div>No pudimos cargar el presupuesto ahora mismo. Vuelve a intentarlo en unos segundos.</div>' +
+        error.innerHTML = '<div>No pudimos cargar el presupuesto en este momento. Intenta otra vez en unos segundos.</div>' +
           '<div class="dash-error-actions"><button class="dash-retry-btn" type="button" onclick="window._retryBudget()">Reintentar</button></div>';
       });
   }
@@ -509,24 +683,26 @@
     var bar = getEl('budgetMonthBar');
     if (!bar) return;
     var lastMonth = getLastInformeMonth();
-    var html = '<button class="budget-month-btn active" onclick="window._selectMonth(0)">Todo</button>';
+    var html = '<button class="budget-month-btn' +
+      (selectedMonth === 0 ? ' active' : '') +
+      '" onclick="window._selectMonth(0)">Todo</button>';
     for (var m = 0; m < 12; m++) {
-      var hasData = (m + 1) <= lastMonth;
-      html += '<button class="budget-month-btn' +
-        (hasData ? '' : ' disabled') + '" onclick="window._selectMonth(' +
-        (m + 1) + ')">' + MONTH_NAMES[m] +
-        (hasData ? '' : '') + '</button>';
+      var monthNum = m + 1;
+      var hasData = lastMonth === 0 || monthNum <= lastMonth;
+      var classes = 'budget-month-btn';
+      if (monthNum === selectedMonth) classes += ' active';
+      if (!hasData) classes += ' disabled';
+      html += '<button class="' + classes + '" onclick="window._selectMonth(' +
+        monthNum + ')">' + MONTH_NAMES[m] + '</button>';
     }
     bar.innerHTML = html;
   }
 
   function selectMonth(m) {
-    if (m > 0 && m > getLastInformeMonth()) return;
+    var lastMonth = getLastInformeMonth();
+    if (m > 0 && lastMonth > 0 && m > lastMonth) return;
     selectedMonth = m;
-    var btns = document.querySelectorAll('.budget-month-btn');
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].classList.toggle('active', i === m);
-    }
+    renderMonthBar();
     renderBudget();
   }
 
@@ -536,16 +712,14 @@
   }
 
   function renderBudget() {
-    var filtered = budgetData;
-    if (selectedMonth > 0) {
-      filtered = budgetData.filter(function (r) {
-        return r.mesNum === selectedMonth;
-      });
-    }
-
     var lastMonth = getLastInformeMonth();
     var showActuals = ejecucionData.length > 0 &&
       (selectedMonth === 0 || monthHasActuals(selectedMonth));
+    var filtered = budgetData.filter(function (r) {
+      if (selectedMonth > 0) return r.mesNum === selectedMonth;
+      if (showActuals && lastMonth > 0) return r.mesNum <= lastMonth;
+      return true;
+    });
 
     // Budget totals
     var totalIngresos = 0, totalGastos = 0;
@@ -578,47 +752,48 @@
       }
     }
 
-    // For "Todo" view, compare actuals against budget up to last informe month only
     var compareBudget = totalGastos;
-    if (selectedMonth === 0 && lastMonth > 0) {
-      compareBudget = 0;
-      for (var i = 0; i < budgetData.length; i++) {
-        var r = budgetData[i];
-        if (r.tipo !== 'Ingresos' && r.mesNum <= lastMonth) {
-          compareBudget += r.monto;
-        }
-      }
-    }
 
     var pctGlobal = compareBudget > 0
       ? Math.round((totalEjecGastos / compareBudget) * 100) : 0;
-    var period = selectedMonth > 0 ? MONTH_FULL[selectedMonth - 1] : 'Anual';
+    var period = selectedMonth > 0
+      ? MONTH_FULL[selectedMonth - 1]
+      : ((showActuals && lastMonth > 0) ? 'Hasta ' + MONTH_FULL[lastMonth - 1] : 'Anual');
     var infoLine = budgetMeta.ultimoInforme
-      ? '\u00daltimo informe: ' + budgetMeta.ultimoInforme
+      ? 'Informe: ' + budgetMeta.ultimoInforme
       : '';
+    var executionSub = 'Sin datos reales';
+    if (showActuals) {
+      if (selectedMonth > 0) {
+        executionSub = 'vs presupuesto de ' + MONTH_FULL[selectedMonth - 1];
+      } else if (lastMonth > 0) {
+        executionSub = 'vs presupuesto a ' + MONTH_FULL[lastMonth - 1];
+      } else {
+        executionSub = 'vs presupuesto anual';
+      }
+    }
 
     // KPIs
     var kpis = getEl('budgetKpis');
     kpis.innerHTML =
-      kpiCard('B/. ' + fmtNum(totalIngresos), 'Presupuesto Ingresos', period) +
-      kpiCard('B/. ' + fmtNum(totalGastos), 'Presupuesto Gastos', period) +
+      kpiCard('B/. ' + fmtNum(totalIngresos), 'Presupuesto de ingresos', period) +
+      kpiCard('B/. ' + fmtNum(totalGastos), 'Presupuesto de gastos', period) +
       (showActuals
-        ? kpiCard('B/. ' + fmtNum(totalEjecGastos), 'Ejecutado Real',
+        ? kpiCard('B/. ' + fmtNum(totalEjecGastos),
+            selectedMonth > 0 ? 'Gasto ejecutado' : 'Ejecutado acumulado',
             infoLine, totalEjecGastos > compareBudget ? 'negative' : '')
         : kpiCard('B/. ' + fmtNum(totalIngresos - totalGastos),
             (totalIngresos - totalGastos) >= 0 ? 'Super\u00e1vit Proyectado' : 'D\u00e9ficit Proyectado',
             period, (totalIngresos - totalGastos) >= 0 ? 'positive' : 'negative')) +
       kpiCard(showActuals ? pctGlobal + '%' : '\u2014',
         'Ejecuci\u00f3n',
-        showActuals
-          ? (selectedMonth > 0 ? 'del presupuesto de ' + MONTH_FULL[selectedMonth - 1] : 'acumulado a ' + (budgetMeta.ultimoInforme || ''))
-          : 'sin datos reales para este mes');
+        executionSub);
 
     // Category cards
     var cats = getEl('budgetCategories');
     var maxCat = 0;
     for (var c = 0; c < CAT_ORDER.length; c++) {
-      var v = catBudget[CAT_ORDER[c]] || catEjec[CAT_ORDER[c]] || 0;
+      var v = catBudget[CAT_ORDER[c]] || 0;
       if (v > maxCat) maxCat = v;
     }
 
@@ -629,10 +804,22 @@
       var executed = catEjec[cat] || 0;
       if (!budgeted && !executed) continue;
 
-      var barBase = budgeted || executed;
-      var pctBar = maxCat > 0 ? Math.round((barBase / maxCat) * 100) : 0;
-      var pctExec = budgeted > 0 ? Math.round((executed / budgeted) * 100) : 0;
-      var overBudget = executed > budgeted && budgeted > 0;
+      var pctExec = budgeted > 0 ? Math.round((executed / budgeted) * 100) : null;
+      var overBudget = (budgeted > 0 && executed > budgeted) ||
+        (budgeted === 0 && executed > 0);
+      var pctBar = 0;
+      var barColor = CAT_COLORS[cat] || 'var(--blue)';
+
+      if (showActuals) {
+        if (pctExec === null) {
+          pctBar = executed > 0 ? 100 : 0;
+        } else {
+          pctBar = Math.max(0, Math.min(pctExec, 100));
+        }
+        barColor = overBudget ? 'var(--red)' : 'var(--green)';
+      } else {
+        pctBar = maxCat > 0 ? Math.round((budgeted / maxCat) * 100) : 0;
+      }
 
       catHtml += '<div class="budget-cat-card" onclick="window._toggleCat(\'' +
         cat.replace(/'/g, "\\'") + '\')">' +
@@ -640,12 +827,13 @@
         '<span class="budget-cat-name">' + escapeHtml(cat) + '</span>' +
         '<span class="budget-cat-amount">B/. ' + fmtNum(budgeted) + '</span></div>' +
         '<div class="budget-cat-bar"><div class="budget-cat-fill" style="width:' +
-        pctBar + '%;background:' + (CAT_COLORS[cat] || 'var(--blue)') + '"></div></div>';
+        pctBar + '%;background:' + barColor + '"></div></div>';
 
-      if (showActuals && executed > 0) {
+      if (showActuals) {
+        var pctExecText = pctExec === null ? 'N/A' : (pctExec + '%');
         catHtml += '<div class="budget-cat-pct" style="color:' +
           (overBudget ? 'var(--red)' : 'var(--green)') + '">' +
-          'Ejecutado: B/. ' + fmtNum(executed) + ' (' + pctExec + '%)</div>';
+          'Ejecutado: B/. ' + fmtNum(executed) + ' (' + pctExecText + ')</div>';
       } else {
         catHtml += '<div class="budget-cat-pct">' +
           (totalGastos > 0 ? Math.round((budgeted / totalGastos) * 100) : 0) +
@@ -704,23 +892,32 @@
         '<div class="budget-trend-stack" style="height:140px">';
       for (var c = 0; c < activeCats.length; c++) {
         var val = monthCats[m][activeCats[c]] || 0;
+        if (val <= 0) continue;
         var segH = maxMonth > 0 ? Math.round((val / maxMonth) * 140) : 0;
+        if (segH === 0) segH = 1;
         html += '<div class="budget-trend-seg" style="height:' + segH +
           'px;background:' + (CAT_COLORS[activeCats[c]] || '#ccc') + '"></div>';
       }
       html += '</div><div class="budget-trend-label">' + MONTH_NAMES[m] + '</div></div>';
     }
 
-    var legendHtml = '<div class="budget-trend-legend">';
+    var legendHtml = '';
     for (var c = 0; c < activeCats.length; c++) {
       legendHtml += '<div class="budget-legend-item"><div class="budget-legend-dot" style="background:' +
-        CAT_COLORS[activeCats[c]] + '"></div>' + activeCats[c] + '</div>';
+        (CAT_COLORS[activeCats[c]] || '#ccc') + '"></div>' + escapeHtml(activeCats[c]) + '</div>';
     }
-    legendHtml += '</div>';
 
-    trend.parentElement.innerHTML =
-      '<div class="dash-chart-title">Distribuci\u00f3n mensual por categor\u00eda</div>' +
-      '<div class="budget-trend">' + html + '</div>' + legendHtml;
+    trend.innerHTML = html;
+    var panel = trend.parentElement;
+    var legend = getEl('budgetTrendLegend');
+    if (!legend) {
+      legend = document.createElement('div');
+      legend.id = 'budgetTrendLegend';
+      legend.className = 'budget-trend-legend';
+      panel.appendChild(legend);
+    }
+    legend.className = 'budget-trend-legend';
+    legend.innerHTML = legendHtml;
   }
 
   function toggleCat(cat) {
@@ -736,12 +933,18 @@
 
     var hasActuals = ejecucionData.length > 0 &&
       (selectedMonth === 0 || monthHasActuals(selectedMonth));
+    var lastMonth = getLastInformeMonth();
+    var execField = selectedMonth > 0 ? 'ejecutadoMes' : 'ejecutadoAcumulado';
 
     // Get budget items
     var budgetItems = {};
     var bFiltered = budgetData.filter(function (r) {
       return r.categoria === cat && r.tipo !== 'Ingresos' &&
-        (selectedMonth === 0 || r.mesNum === selectedMonth);
+        (
+          (selectedMonth > 0 && r.mesNum === selectedMonth) ||
+          (selectedMonth === 0 && hasActuals && lastMonth > 0 && r.mesNum <= lastMonth) ||
+          (selectedMonth === 0 && (!hasActuals || lastMonth === 0))
+        );
     });
     for (var i = 0; i < bFiltered.length; i++) {
       budgetItems[bFiltered[i].concepto] =
@@ -766,23 +969,26 @@
 
     var html = '<table class="budget-detail-table"><thead><tr>' +
       '<th>Concepto</th><th>Presupuestado</th>';
-    if (hasActuals) html += '<th>Ejecutado</th><th>%</th>';
+    if (hasActuals) {
+      html += '<th>' + (selectedMonth > 0 ? 'Ejecutado mes' : 'Ejecutado acumulado') + '</th><th>%</th>';
+    }
     html += '</tr></thead><tbody>';
 
     for (var s = 0; s < sorted.length; s++) {
       var name = sorted[s];
       var budg = budgetItems[name] || 0;
-      var exec = execItems[name] ? execItems[name].ejecutadoAcumulado : 0;
+      var exec = execItems[name] ? (execItems[name][execField] || 0) : 0;
       var pct = budg > 0 ? Math.round((exec / budg) * 100) : (exec > 0 ? 'N/A' : 0);
       var overBudget = exec > budg && budg > 0;
 
       html += '<tr><td>' + escapeHtml(name) + '</td>' +
         '<td>B/. ' + fmtNum(budg) + '</td>';
       if (hasActuals) {
+        var pctText = typeof pct === 'number' ? (pct + '%') : pct;
         html += '<td style="color:' + (overBudget ? 'var(--red)' : '') +
           '">B/. ' + fmtNum(exec) + '</td>' +
           '<td style="color:' + (overBudget ? 'var(--red)' : 'var(--green)') +
-          '">' + pct + '%</td>';
+          '">' + pctText + '</td>';
       }
       html += '</tr>';
     }
@@ -805,6 +1011,8 @@
   window._closePqrs = closePqrs;
   window._submitPqrs = submitPqrs;
   window._resetPqrsForm = resetPqrsForm;
+  window._lookupPqrsStatus = lookupPqrsStatus;
+  window._consultPqrsStatusFromSuccess = consultPqrsStatusFromSuccess;
   window._retryDashboard = retryDashboard;
   window._retryBudget = retryBudget;
   window._closeActionNotice = closeActionNotice;
