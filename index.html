@@ -153,6 +153,13 @@
   </style>
   <script>
     function openRoleLogin(roleKey) {
+      // Internal roles (admin / junta) land in the live APROVIVA Operations Suite.
+      // Residentes still uses the configured external destination (aspirational
+      // ROLE_LOGIN_LINKS in js/config.js) until that surface is brought online.
+      if (roleKey === 'administracion' || roleKey === 'junta') {
+        window.location.href = 'aproviva-suite/index.html#/login';
+        return false;
+      }
       var config = (window.APROVIVA_CONFIG || {});
       var roleLinks = config.ROLE_LOGIN_LINKS || {};
       var targetUrl = roleLinks[roleKey];
@@ -160,7 +167,6 @@
         window.location.href = targetUrl;
         return false;
       }
-
       return false;
     }
   </script>
