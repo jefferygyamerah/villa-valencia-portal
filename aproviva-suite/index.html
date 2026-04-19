@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>APROVIVA Operaciones &mdash; Villa Valencia</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='4' fill='%231e3a8a'/%3E%3Ctext x='50%25' y='62%25' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700' font-size='12'%3EAV%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/suite.css" />
+</head>
+<body>
+  <div class="app-shell" id="app-shell">
+    <header class="app-header" id="app-header">
+      <h1>APROVIVA Operaciones <span class="building" id="app-building">Villa Valencia</span></h1>
+      <span class="role-badge" id="app-role-badge" style="display:none;">--</span>
+      <button class="btn-logout" id="app-logout" type="button" style="display:none;">Salir</button>
+    </header>
+    <nav class="app-nav" id="app-nav" style="display:none;"></nav>
+    <main class="app-content" id="app-content">
+      <div class="loading">Cargando suite...</div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/modules/login.js"></script>
+  <script src="js/modules/inicio.js"></script>
+  <script src="js/modules/inventario.js"></script>
+  <script src="js/modules/gemba.js"></script>
+  <script src="js/modules/incidencias.js"></script>
+  <script src="js/modules/proyectos.js"></script>
+  <script src="js/modules/maestros.js"></script>
+  <script src="js/modules/reportes.js"></script>
+  <script src="js/modules/junta.js"></script>
+  <script>
+    document.getElementById('app-building').textContent = window.APROVIVA_SUITE_CONFIG.BUILDING_NAME + ' \u00b7 ' + window.APROVIVA_SUITE_CONFIG.BUILDING_CODE;
+    if (!window.location.hash) {
+      window.location.hash = window.AUTH.readSession() ? '#/inicio' : '#/login';
+    }
+    window.ROUTER.start();
+  </script>
+</body>
+</html>
