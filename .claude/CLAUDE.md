@@ -8,15 +8,17 @@ Transparencia financiera, PQRS, y directorio de proveedores.
 ## Arquitectura
 
 - **Frontend:** Static HTML/CSS/JS hosted on GitHub Pages
-- **Backend:** Google Apps Script web app (deployed v15)
-- **Data:** Google Sheets (PQRS, Proveedores, Budget/Reporting)
+- **Backend (PQRS submit/lookup):** Next.js + Supabase en `https://ph-management.vercel.app`
+- **Backend (dashboard, presupuesto, proveedores):** Google Apps Script web app (deployed v15)
+- **Data:** Supabase (`pqrs_cases`) + Google Sheets (Budget/Reporting/legacy PQRS history)
 - **Live URL:** https://villavalencia.vercel.app/
 
-## Orden ejecutiva
+## Orden ejecutiva (actualizada)
 
 - Este repo representa el portal real de Villa Valencia / APROVIVA para usuarios finales.
-- `ph-management` y `ph-management-hub` son la misma linea de producto PH Management y no deben confundirse con este runtime cliente.
-- No convertir este portal en sitio comercial de PH Management.
+- A partir del cutover de PQRS (abril 2026), el portal **sí depende** de la API en `https://ph-management.vercel.app` para `/api/pqrs/submit` y `/api/pqrs/lookup`. La línea de producto PH Management deja de estar separada del runtime cliente para esos dos endpoints.
+- Lo demás (dashboard de transparencia, presupuesto, proveedores) sigue en Google Apps Script + Sheets — no migrar sin decisión humana explícita.
+- No convertir este portal en sitio comercial de PH Management. La copia y branding siguen siendo APROVIVA / Villa Valencia.
 
 ## Key IDs
 
