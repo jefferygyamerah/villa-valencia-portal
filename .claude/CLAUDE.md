@@ -5,6 +5,16 @@
 Portal público para residentes de Villa Valencia (APROVIVA), barriada de 118 casas.
 Transparencia financiera, PQRS, y directorio de proveedores.
 
+## Strategic role
+
+Anchor on `../../../docs/strategic-positioning.md` for the canonical product framing.
+
+- This repo is the live iteration lab and a customer-specific reference implementation. The human works here — features are designed, built, shipped to residents, and iterated based on real use **here first**. After a feature is live and working, agents extract proven patterns into the `ph-management` platform.
+- This is **not** the flagship product. The flagship is `ph-management`. But this is also **not** legacy or archived — it's the active proving ground that everything else flows from.
+- Investment here is justified when it (a) keeps Villa Valencia operational, or (b) builds a feature that should eventually be extracted upstream into `ph-management`. Most new work serves both at once.
+- Resident-facing surface promise: residents only see `villavalencia.vercel.app`. Cross-origin calls to `ph-management.vercel.app` are an internal implementation detail — never surface that domain to residents.
+- Customer-glue allowance: Google Drive uploads via Apps Script, Apps Script-backed dashboards (presupuesto, proveedores, reporting), and similar customer integrations are valid and stay here. Some will eventually get extracted into `ph-management` as configurable modules; others will stay customer-specific forever — both outcomes are fine.
+
 ## Arquitectura
 
 - **Frontend:** Static HTML/CSS/JS hosted on GitHub Pages
@@ -45,6 +55,12 @@ Accountant uploads monthly XLSX → Drive "Entrega de Informes" → hourly trigg
 - All user-facing text in Spanish
 - Internal code in English
 - Term: "barriada" (not "copropiedad")
+
+## Publishing Default
+
+- For ad-hoc preview/demo/share links, default to `here.now` (skill: `here-now`).
+- Prefer `here.now` for agent-generated static sharing to reduce Vercel costs.
+- Keep existing production endpoints and live runtime URLs unchanged unless explicit migration is requested.
 
 ## Clasp
 
