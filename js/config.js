@@ -3,6 +3,10 @@
  * All external URLs and feature flags in one place.
  */
 window.APROVIVA_CONFIG = {
+  // Next.js + Supabase backend that owns PQRS submit/lookup.
+  // APPS_SCRIPT_URL still owns the dashboard + budget + provider directory.
+  PH_MANAGEMENT_API_BASE: 'https://ph-management.vercel.app',
+
   // Google Apps Script Web App URL (handles PQRS submit + dashboard data)
   // Deploy the script from the PQRS spreadsheet, then paste the URL here.
   APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzwbIHtZgjjI5fbrJlyCjJInwtPCoe8lu5YcNyunvQBmHgmIRCOy2S04QRLo4QfqqWp6g/exec',

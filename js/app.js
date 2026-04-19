@@ -1,5 +1,15 @@
 /**
  * APROVIVA Portal – Main page logic
+ *
+ * Dual-backend split (temporary):
+ *   - PQRS submit + status lookup → config.PH_MANAGEMENT_API_BASE
+ *     (Next.js + Supabase backend at ph-management.vercel.app, returns
+ *     a real caseReference like VV-PQRS-YYYYMMDD-NNNNNN).
+ *   - Transparency dashboard, budget data, provider directory →
+ *     config.APPS_SCRIPT_URL (Google Apps Script, sheet-backed).
+ *
+ * The dashboard does not yet read from ph-management, so a freshly
+ * submitted PQRS won't appear in the dashboard until that cutover.
  */
 (function () {
   'use strict';
@@ -14,11 +24,21 @@
     'pqrs-casa',
     'pqrs-correo'
   ];
+  var STATUS_LABELS = {
+    recibido: 'Recibido',
+    en_progreso: 'En progreso',
+    resuelto: 'Resuelto'
+  };
   var lastSubmittedCaseId = '';
 
   function isScriptConfigured() {
     return config.APPS_SCRIPT_URL &&
       config.APPS_SCRIPT_URL.indexOf('YOUR_') === -1;
+  }
+
+  function isPhManagementConfigured() {
+    return !!(config.PH_MANAGEMENT_API_BASE &&
+      config.PH_MANAGEMENT_API_BASE.indexOf('YOUR_') === -1);
   }
 
   function getEl(id) {
@@ -209,38 +229,74 @@
     setSubmitState(true);
     showPqrsStatus('success', 'Enviando tu reporte...');
 
-    if (!isScriptConfigured()) {
+    if (!isPhManagementConfigured()) {
       setSubmitState(false);
       showPqrsStatus('error', 'El sistema de envío todavía no está configurado.');
       return;
     }
 
-    var payload = {
-      resumen: resumen,
-      descripcion: descripcion,
-      tipo: tipo,
-      ubicacion: ubicacion,
-      urgencia: urgencia,
-      casa: casa,
-      correo: correo
-    };
+    // subject ← resumen if non-empty, else first 80 chars of descripcion.
+    var subject = resumen;
+    if (!subject) {
+      subject = descripcion.slice(0, 80).trim();
+    }
 
-    fetch(config.APPS_SCRIPT_URL, {
+    // Compose description with portal-specific metadata that the new API
+    // doesn't model as columns (tipo / urgencia / casa).
+    var metaParts = [];
+    if (tipo) metaParts.push('Tipo: ' + tipo);
+    if (urgencia) metaParts.push('Urgencia: ' + urgencia);
+    if (casa) metaParts.push('Casa: ' + casa);
+    var composedDescription = metaParts.length
+      ? '[' + metaParts.join(' | ') + ']\n\n' + descripcion
+      : descripcion;
+
+    // location ← "ubicacion — Casa N" if both, else whichever is present.
+    var locationValue = '';
+    if (ubicacion && casa) {
+      locationValue = ubicacion + ' — Casa ' + casa;
+    } else if (ubicacion) {
+      locationValue = ubicacion;
+    } else if (casa) {
+      locationValue = 'Casa ' + casa;
+    }
+
+    var payload = {
+      subject: subject,
+      description: composedDescription
+    };
+    if (locationValue) payload.location = locationValue;
+    if (correo) payload.email = correo;
+
+    fetch(config.PH_MANAGEMENT_API_BASE + '/api/pqrs/submit', {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     }).then(function (response) {
       return response.text().then(function (rawText) {
+        var parsed = parseResponseBody(rawText);
+
         if (!response.ok) {
-          throw new Error('HTTP_' + response.status);
+          var apiMessage = parsed && parsed.message
+            ? parsed.message
+            : 'No pudimos enviar tu reporte. Revisa tu conexión e inténtalo de nuevo.';
+          setSubmitState(false);
+          showPqrsStatus('error', apiMessage);
+          return;
         }
 
-        var parsed = parseResponseBody(rawText);
-        var caseId = getCaseIdFromResponse(parsed, rawText);
-        showPqrsSuccess(caseId);
+        // Prefer the API's caseReference field directly. getCaseIdFromResponse
+        // is kept as a vestigial fallback for any legacy response shapes.
+        var caseRef = (parsed && parsed.caseReference)
+          ? String(parsed.caseReference)
+          : getCaseIdFromResponse(parsed, rawText);
+        showPqrsSuccess(caseRef);
+
+        // Intentionally NOT calling loadDashboard() here: the dashboard still
+        // reads from APPS_SCRIPT_URL (Google Apps Script) and won't see the
+        // submission we just sent to ph-management. Revisit when the
+        // dashboard is also cut over to the ph-management API.
       });
-    }).then(function () {
-      loadDashboard();
     }).catch(function () {
       setSubmitState(false);
       showPqrsStatus('error', 'No pudimos enviar tu reporte. Revisa tu conexión e inténtalo de nuevo.');
@@ -275,8 +331,12 @@
     }
   }
 
+  // Vestigial: the new ph-management API always returns a `caseReference`
+  // field, so submitPqrs reads that directly. This fallback only fires for
+  // unexpected response shapes (e.g. legacy Apps Script responses).
   function getCaseIdFromResponse(parsed, rawText) {
     if (parsed && typeof parsed === 'object') {
+      if (parsed.caseReference) return String(parsed.caseReference);
       if (parsed.caseId) return String(parsed.caseId);
       if (parsed.id) return String(parsed.id);
       if (parsed.case_id) return String(parsed.case_id);
@@ -304,25 +364,33 @@
       return;
     }
 
-    if (!isScriptConfigured()) {
+    if (!isPhManagementConfigured()) {
       feedback.className = 'pqrs-status-feedback show error';
-      feedback.textContent = 'La consulta de estado no está disponible porque el Apps Script no está configurado.';
+      feedback.textContent = 'La consulta de estado no está disponible porque el sistema todavía no está configurado.';
       return;
     }
 
     feedback.className = 'pqrs-status-feedback show';
     feedback.textContent = 'Consultando estado...';
 
-    fetch(config.APPS_SCRIPT_URL + '?action=status&id=' + encodeURIComponent(caseId))
+    var url = config.PH_MANAGEMENT_API_BASE +
+      '/api/pqrs/lookup?caseRef=' + encodeURIComponent(caseId);
+
+    fetch(url)
       .then(function (response) {
         return response.text().then(function (rawText) {
-          if (!response.ok) {
-            throw new Error('HTTP_' + response.status);
+          var parsed = parseResponseBody(rawText);
+
+          if (response.status === 404) {
+            feedback.className = 'pqrs-status-feedback show error';
+            feedback.textContent = 'No encontramos un caso con esa referencia. Verifica el código y vuelve a intentarlo.';
+            return;
           }
 
-          var parsed = parseResponseBody(rawText);
-          if (!parsed || parsed.status !== 'ok') {
-            throw new Error('INVALID_STATUS_RESPONSE');
+          if (!response.ok || !parsed || !parsed.ok) {
+            feedback.className = 'pqrs-status-feedback show error';
+            feedback.textContent = 'No pudimos consultar el estado en este momento. Intenta nuevamente en unos segundos.';
+            return;
           }
 
           renderLookupStatusSuccess(parsed);
@@ -338,12 +406,16 @@
     var feedback = getEl('pqrs-status-feedback');
     if (!feedback) return;
 
-    var estado = data.currentStatus || data.estado || 'Recibido';
-    var updatedAt = data.updatedAt || data.ultimaActualizacion || '';
-    var extra = updatedAt ? (' Última actualización: ' + formatStatusDate(updatedAt) + '.') : '';
+    var caseReference = data.caseReference || '';
+    var status = data.status || '';
+    var statusLabel = STATUS_LABELS[status] || status || 'Recibido';
+    var lastUpdatedAt = data.lastUpdatedAt || '';
+    var updatedText = lastUpdatedAt
+      ? (' Última actualización: ' + formatStatusDate(lastUpdatedAt) + '.')
+      : '';
 
     feedback.className = 'pqrs-status-feedback show success';
-    feedback.textContent = 'Caso ' + (data.caseId || '') + ': estado actual "' + estado + '".' + extra;
+    feedback.textContent = 'Caso ' + caseReference + ': ' + statusLabel + '.' + updatedText;
   }
 
   function consultPqrsStatusFromSuccess() {

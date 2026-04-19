@@ -313,6 +313,20 @@
 
   </div>
 
+  <!-- PQRS STATUS LOOKUP -->
+  <section id="pqrs-status-panel" class="panel pqrs-status-panel" style="margin-top:1.5rem;">
+    <div class="panel-title">&#x1F50D; Consultar estado de un PQRS</div>
+    <p style="font-size:0.82rem;color:var(--text-light);line-height:1.5;margin-bottom:1rem;">
+      Ingresa la referencia que recibiste cuando registraste el reporte (por ejemplo <code>VV-PQRS-...</code>).
+    </p>
+    <div class="form-group">
+      <label class="form-label" for="pqrs-status-id">Referencia del caso</label>
+      <input type="text" class="form-input" id="pqrs-status-id" placeholder="VV-PQRS-..." autocomplete="off"/>
+    </div>
+    <button type="button" class="btn-primary" onclick="window._lookupPqrsStatus()">Consultar estado</button>
+    <div id="pqrs-status-feedback" class="pqrs-status-feedback" role="status" aria-live="polite"></div>
+  </section>
+
   <!-- PQRS DASHBOARD -->
   <h2 class="section-title">&#x1F4CA; Estado de Reportes PQRS</h2>
   <p class="section-helper">
@@ -379,9 +393,9 @@
       <div class="budget-kpis" id="budgetKpis"></div>
       <!-- CATEGORY BARS -->
       <div class="budget-categories" id="budgetCategories"></div>
-      <!-- MONTHLY TREND -->
+      <!-- CXC EVOLUTION -->
       <div class="budget-trend-panel">
-        <div class="dash-chart-title">Distribuci&oacute;n mensual por categor&iacute;a</div>
+        <div class="dash-chart-title">Evoluci&oacute;n CxC desde enero 2026</div>
         <div class="budget-trend" id="budgetTrend"></div>
       </div>
       <!-- LINE ITEMS (expandable) -->
@@ -463,6 +477,12 @@
           <p class="field-message" id="pqrs-casa-error"></p>
         </div>
       </div>
+      <div class="form-group">
+        <label class="form-label" for="pqrs-correo">Correo electr&oacute;nico (opcional)</label>
+        <input type="email" class="form-input" id="pqrs-correo" placeholder="tu@correo.com"/>
+        <p class="field-message" id="pqrs-correo-error"></p>
+        <p style="font-size:0.75rem;color:var(--text-light);margin-top:0.25rem;">Si lo dejas, te contactaremos cuando haya una actualizaci&oacute;n del caso.</p>
+      </div>
       <p style="font-size:0.72rem;color:var(--text-light);margin-bottom:0.5rem;">&#x1F4F7; &iquest;Tienes fotos? Env&iacute;alas al WhatsApp de la administraci&oacute;n junto con tu n&uacute;mero de casa.</p>
       <button class="btn-submit" type="button" onclick="window._submitPqrs()">Enviar reporte &rarr;</button>
       <p class="approval-note">&#x1F512; Tu reporte es confidencial y ser&aacute; atendido por la administraci&oacute;n.</p>
@@ -471,6 +491,8 @@
       <div class="success-icon-wrap">&#x2705;</div>
       <h3>&iexcl;Reporte enviado!</h3>
       <p>Gracias. La administraci&oacute;n de APROVIVA revisar&aacute; tu reporte y te contactar&aacute; si necesita m&aacute;s informaci&oacute;n.</p>
+      <p id="pqrs-case-reference" class="pqrs-success-ref" style="font-weight:600;margin-top:0.75rem;"></p>
+      <p style="font-size:0.875rem;color:var(--text-light);margin-top:0.25rem;">Guarda esta referencia para consultar el estado m&aacute;s adelante.</p>
       <div class="success-actions">
         <button class="btn-secondary" type="button" onclick="window._resetPqrsForm()">Radicar otro reporte</button>
         <button class="btn-submit" type="button" onclick="window._closePqrs()">Cerrar ventana</button>
