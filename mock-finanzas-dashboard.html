@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APROVIVA - Mock Finanzas Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h2 class="section-title" id="finanzas">&#x1F4B0; Presupuesto 2026</h2>
+    <p class="section-helper">
+      Usa este panel para comparar lo presupuestado frente a lo ejecutado, detectar desviaciones a tiempo y entender d&oacute;nde conviene enfocar la gesti&oacute;n administrativa del mes.
+    </p>
+
+    <div id="budget-dashboard" class="budget-dashboard">
+      <div class="dash-loading" id="budgetLoading">Cargando presupuesto...</div>
+      <div id="budgetContent" style="display:none;">
+        <div class="budget-month-bar" id="budgetMonthBar"></div>
+        <div class="budget-kpis" id="budgetKpis"></div>
+        <div class="budget-categories" id="budgetCategories"></div>
+        <div class="budget-trend-panel">
+          <div class="dash-chart-title">Evoluci&oacute;n CxC desde enero 2026</div>
+          <div class="budget-trend" id="budgetTrend"></div>
+        </div>
+        <div class="budget-detail-panel" id="budgetDetail"></div>
+      </div>
+      <div class="dash-error" id="budgetError" style="display:none;">
+        <div>No pudimos cargar el presupuesto en este momento. Intenta otra vez en unos segundos.</div>
+        <div class="dash-error-actions">
+          <button class="dash-retry-btn" type="button" onclick="window._retryBudget()">Reintentar</button>
+        </div>
+      </div>
+      <a class="view-all" href="#" data-drive="finanzas" target="_blank" style="margin-top:1rem;">Ver documentos en Drive &rarr;</a>
+    </div>
+  </main>
+
+  <script>
+    window.APROVIVA_CONFIG = {
+      APPS_SCRIPT_URL: "https://mock.aproviva.local/apps-script/exec",
+      PROVIDER_SUGGEST_FORM_URL: null,
+      DRIVE_LINKS: {
+        finanzas: "#"
+      },
+      ROLE_LOGIN_LINKS: {}
+    };
+
+    (function setupMockApi() {
+      var conceptMap = [
+        { categoria: "Servicios Básicos", tipo: "Gastos", concepto: "Electricidad Áreas Comunes", monthly: [1100, 1120, 1095, 1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210] },
+        { categoria: "Servicios Básicos", tipo: "Gastos", concepto: "Agua y Alcantarillado", monthly: [620, 605, 615, 625, 640, 645, 650, 660, 670, 680, 690, 700] },
+        { categoria: "Gastos de Funcionamiento", tipo: "Gastos", concepto: "Limpieza y Conserjería", monthly: [1450, 1450, 1450, 1450, 1450, 1450, 1450, 1450, 1450, 1450, 1450, 1450] },
+        { categoria: "Gastos de Funcionamiento", tipo: "Gastos", concepto: "Papelería y Administración", monthly: [220, 180, 250, 210, 230, 215, 240, 220, 235, 245, 250, 260] },
+        { categoria: "Gastos de Personal", tipo: "Gastos", concepto: "Planilla Seguridad", monthly: [2800, 2800, 2800, 2800, 2800, 2800, 2800, 2800, 2800, 2800, 2800, 2800] },
+        { categoria: "Mantenimientos Preventivos", tipo: "Gastos", concepto: "Mantenimiento Piscina", monthly: [400, 420, 380, 390, 410, 400, 415, 420, 430, 440, 435, 445] },
+        { categoria: "Mantenimientos Correctivos", tipo: "Gastos", concepto: "Reparaciones Eléctricas", monthly: [180, 220, 340, 510, 260, 290, 200, 190, 260, 280, 310, 300] },
+        { categoria: "Otros Gastos", tipo: "Gastos", concepto: "Eventos Comunitarios", monthly: [140, 90, 120, 310, 200, 160, 145, 210, 180, 150, 230, 270] },
+        { categoria: "Ingresos", tipo: "Ingresos", concepto: "Cuotas HOA", monthly: [11000, 11050, 11100, 11150, 11200, 11250, 11300, 11350, 11400, 11450, 11500, 11550] },
+        { categoria: "Ingresos", tipo: "Ingresos", concepto: "Recargos y Otros", monthly: [300, 250, 280, 260, 270, 265, 275, 290, 300, 310, 295, 305] }
+      ];
+
+      var budget = [];
+      for (var i = 0; i < conceptMap.length; i++) {
+        for (var m = 0; m < 12; m++) {
+          budget.push({
+            tipo: conceptMap[i].tipo,
+            categoria: conceptMap[i].categoria,
+            concepto: conceptMap[i].concepto,
+            mes: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][m],
+            mesNum: m + 1,
+            monto: conceptMap[i].monthly[m]
+          });
+        }
+      }
+
+      var ejecucion = [
+        { categoria: "Servicios Básicos", concepto: "Electricidad Áreas Comunes", presupuestoAnual: 13945, ejecutadoMes: 1178, ejecutadoAcumulado: 4520, pctEjecucion: 32.4, saldoRestante: 9425 },
+        { categoria: "Servicios Básicos", concepto: "Agua y Alcantarillado", presupuestoAnual: 7800, ejecutadoMes: 645, ejecutadoAcumulado: 2465, pctEjecucion: 31.6, saldoRestante: 5335 },
+        { categoria: "Gastos de Funcionamiento", concepto: "Limpieza y Conserjería", presupuestoAnual: 17400, ejecutadoMes: 1450, ejecutadoAcumulado: 5800, pctEjecucion: 33.3, saldoRestante: 11600 },
+        { categoria: "Gastos de Funcionamiento", concepto: "Papelería y Administración", presupuestoAnual: 2755, ejecutadoMes: 248, ejecutadoAcumulado: 860, pctEjecucion: 31.2, saldoRestante: 1895 },
+        { categoria: "Gastos de Personal", concepto: "Planilla Seguridad", presupuestoAnual: 33600, ejecutadoMes: 2800, ejecutadoAcumulado: 11200, pctEjecucion: 33.3, saldoRestante: 22400 },
+        { categoria: "Mantenimientos Preventivos", concepto: "Mantenimiento Piscina", presupuestoAnual: 4985, ejecutadoMes: 405, ejecutadoAcumulado: 1590, pctEjecucion: 31.9, saldoRestante: 3395 },
+        { categoria: "Mantenimientos Correctivos", concepto: "Reparaciones Eléctricas", presupuestoAnual: 3380, ejecutadoMes: 530, ejecutadoAcumulado: 1250, pctEjecucion: 37.0, saldoRestante: 2130 },
+        { categoria: "Otros Gastos", concepto: "Eventos Comunitarios", presupuestoAnual: 2205, ejecutadoMes: 315, ejecutadoAcumulado: 690, pctEjecucion: 31.3, saldoRestante: 1515 }
+      ];
+
+      var budgetResponse = {
+        budget: budget,
+        ejecucion: ejecucion,
+        meta: {
+          ultimoInforme: "Abril",
+          ultimaActualizacion: "2026-04-18T11:00:00.000Z",
+          cxcSeries: [
+            {
+              monthNum: 1,
+              month: "Enero",
+              saldoCxc: 18250,
+              pctMorosidad: 18.2,
+              recaudadoMes: 9320,
+              aging: { "0_30": 8600, "31_60": 5200, "61_90": 2700, "90_plus": 1750 }
+            },
+            {
+              monthNum: 2,
+              month: "Febrero",
+              saldoCxc: 17680,
+              pctMorosidad: 17.3,
+              recaudadoMes: 9780,
+              aging: { "0_30": 7900, "31_60": 5100, "61_90": 2900, "90_plus": 1780 }
+            },
+            {
+              monthNum: 3,
+              month: "Marzo",
+              saldoCxc: 16990,
+              pctMorosidad: 16.1,
+              recaudadoMes: 10240,
+              aging: { "0_30": 7550, "31_60": 4840, "61_90": 2850, "90_plus": 1750 }
+            },
+            {
+              monthNum: 4,
+              month: "Abril",
+              saldoCxc: 16110,
+              pctMorosidad: 14.8,
+              recaudadoMes: 10960,
+              aging: { "0_30": 7020, "31_60": 4300, "61_90": 2920, "90_plus": 1870 }
+            }
+          ]
+        }
+      };
+
+      function jsonResponse(body) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: function () { return Promise.resolve(body); },
+          text: function () { return Promise.resolve(JSON.stringify(body)); }
+        });
+      }
+
+      var originalFetch = window.fetch ? window.fetch.bind(window) : null;
+      window.fetch = function (url) {
+        var target = String(url || "");
+        var base = window.APROVIVA_CONFIG.APPS_SCRIPT_URL;
+        if (target === base + "?action=budget") {
+          return jsonResponse(budgetResponse);
+        }
+        if (target === base) {
+          return jsonResponse({ rows: [] });
+        }
+        if (originalFetch) return originalFetch.apply(null, arguments);
+        return Promise.reject(new Error("No fetch implementation available"));
+      };
+    })();
+  </script>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
