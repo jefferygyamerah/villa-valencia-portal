@@ -19,7 +19,7 @@ scenarios across 5 roles (conserje, admin de planta, supervisor, gerencia, junta
 | `#/mapa` | staff + junta | static `data/villa-valencia-site.geojson` + **`recorrido_map_waypoints`** (waypoints CRUD; junta/supervisor places points) |
 | **`mapa-pqrs.html`** | public (no login) | Same GeoJSON + read-only waypoints from Supabase — linked from **PQRS** on the main portal for residents |
 | `#/incidencias` | staff + junta | `incident_tickets` (+ `escalation_events` on escalate) |
-| `#/proyectos` | junta only | `work_assignments` |
+| `#/proyectos` | junta only | `work_assignments` — plantilla CSV masiva: `data/work-assignments-import-template.csv` (descarga / importación en la página) |
 | `#/maestros` | junta only | `inventory_items`, `inventory_locations`, `buildings`, `admin_users` |
 | `#/reportes` | junta only | reads all of the above; CSV export |
 | `#/junta` | junta only | `escalation_events`, `weekly_reports`, `compliance_cases`, `work_assignments` |

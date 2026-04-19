@@ -1,9 +1,207 @@
 /**
  * Proyectos / Acciones - work assignments (junta only).
  * Scenarios 8, 9 - supervisor intervention via assigned work orders.
+ * Bulk: CSV plantilla + importación masiva (work_assignments).
  */
 (function () {
   var STATE = { rows: [], filter: 'open' };
+
+  var TASK_TYPES = ['corrective', 'preventive', 'inspection', 'project'];
+  var PRIORITIES = ['low', 'normal', 'high', 'critical'];
+  var STATUSES = ['open', 'in_progress', 'blocked', 'completed', 'closed', 'cancelled'];
+
+  function parseCSVLine(line) {
+    var out = [];
+    var cur = '';
+    var i = 0;
+    var q = false;
+    for (; i < line.length; i++) {
+      var c = line[i];
+      if (q) {
+        if (c === '"') {
+          if (line[i + 1] === '"') {
+            cur += '"';
+            i++;
+          } else {
+            q = false;
+          }
+        } else {
+          cur += c;
+        }
+      } else if (c === '"') {
+        q = true;
+      } else if (c === ',') {
+        out.push(cur);
+        cur = '';
+      } else {
+        cur += c;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function parseCSV(text) {
+    var lines = text.split(/\r?\n/).filter(function (l) {
+      return String(l).replace(/\ufeff/g, '').trim() !== '';
+    });
+    if (!lines.length) return { headers: [], rows: [] };
+    var headers = parseCSVLine(lines[0].replace(/^\ufeff/, '')).map(function (h) {
+      return String(h).trim().toLowerCase().replace(/^\ufeff/g, '');
+    });
+    var rows = [];
+    for (var r = 1; r < lines.length; r++) {
+      var cells = parseCSVLine(lines[r]);
+      if (cells.length === 1 && !String(cells[0]).trim()) continue;
+      var obj = {};
+      for (var c = 0; c < headers.length; c++) {
+        obj[headers[c]] = cells[c] != null ? String(cells[c]).trim() : '';
+      }
+      rows.push(obj);
+    }
+    return { headers: headers, rows: rows };
+  }
+
+  function normEnum(val, allowed, fallback) {
+    var v = String(val || '').trim().toLowerCase();
+    if (allowed.indexOf(v) >= 0) return v;
+    return fallback;
+  }
+
+  function rowToBody(raw, session, rowIndex) {
+    var title = String(raw.title || '').trim();
+    var area = String(raw.area || '').trim();
+    var assignee = String(raw.assignee_name || raw.asignado || '').trim();
+    var description = String(raw.description || raw.descripcion || '').trim();
+    if (!title || !area || !assignee || !description) {
+      return { error: 'Fila ' + (rowIndex + 2) + ': faltan title, area, assignee_name o description.' };
+    }
+    var taskType = normEnum(raw.task_type, TASK_TYPES, 'corrective');
+    var priority = normEnum(raw.priority, PRIORITIES, 'normal');
+    var status = normEnum(raw.status, STATUSES, 'open');
+    var dueRaw = String(raw.due_at || raw.vence || '').trim();
+    var dueAt = null;
+    if (dueRaw) {
+      var d = new Date(dueRaw + (dueRaw.length <= 10 ? 'T12:00:00' : ''));
+      if (!isNaN(d.getTime())) dueAt = d.toISOString();
+    }
+    var assignNum = String(raw.assignment_number || raw.numero || '').trim();
+    if (!assignNum) {
+      assignNum = 'WO-' + Math.floor(Math.random() * 900000 + 100000);
+    }
+    return {
+      body: {
+        assignment_number: assignNum,
+        assignee_name: assignee,
+        area: area,
+        task_type: taskType,
+        title: title,
+        description: description,
+        status: status,
+        priority: priority,
+        verification_required: false,
+        due_at: dueAt,
+        metadata: {
+          actorRole: session.role,
+          actorLabel: session.label,
+          source: 'aproviva-suite-csv-import',
+          importRow: rowIndex + 2,
+        },
+      },
+    };
+  }
+
+  async function importCSVRows(parsed, session) {
+    var bodies = [];
+    var errors = [];
+    for (var i = 0; i < parsed.rows.length; i++) {
+      var conv = rowToBody(parsed.rows[i], session, i);
+      if (conv.error) {
+        errors.push(conv.error);
+        continue;
+      }
+      bodies.push(conv.body);
+    }
+    if (errors.length && !bodies.length) {
+      window.UI.toast(errors[0], 'error');
+      return { ok: 0, fail: errors.length, errors: errors };
+    }
+    var chunkSize = 25;
+    var ok = 0;
+    for (var c = 0; c < bodies.length; c += chunkSize) {
+      var chunk = bodies.slice(c, c + chunkSize);
+      try {
+        await window.SB.insert('work_assignments', chunk);
+        ok += chunk.length;
+      } catch (err) {
+        for (var j = 0; j < chunk.length; j++) {
+          try {
+            await window.SB.insert('work_assignments', chunk[j]);
+            ok++;
+          } catch (e2) {
+            errors.push('Lote fila ~' + (c + j + 1) + ': ' + (e2.message || String(e2)));
+          }
+        }
+      }
+    }
+    if (errors.length) {
+      console.warn('Import CSV advertencias', errors);
+    }
+    return { ok: ok, fail: errors.length, errors: errors };
+  }
+
+  function downloadTemplate() {
+    var url = 'data/work-assignments-import-template.csv';
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'work-assignments-import-template.csv';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.UI.toast('Plantilla descargada.', 'success');
+  }
+
+  function wireCsvImport(session) {
+    var fileInput = document.getElementById('proj-csv-input');
+    var btnUp = document.getElementById('proj-csv-upload');
+    var btnTpl = document.getElementById('proj-csv-template');
+    if (!fileInput || !btnUp || !btnTpl) return;
+    btnTpl.addEventListener('click', downloadTemplate);
+    btnUp.addEventListener('click', function () { fileInput.click(); });
+    fileInput.addEventListener('change', async function () {
+      var f = fileInput.files && fileInput.files[0];
+      fileInput.value = '';
+      if (!f) return;
+      var text = await f.text();
+      var parsed;
+      try {
+        parsed = parseCSV(text);
+      } catch (e) {
+        window.UI.toast('CSV inv\u00e1lido: ' + (e.message || e), 'error');
+        return;
+      }
+      var need = ['title', 'area', 'assignee_name', 'description'];
+      var miss = need.filter(function (k) { return parsed.headers.indexOf(k) === -1; });
+      if (miss.length) {
+        window.UI.toast('Faltan columnas obligatorias en la primera fila: ' + miss.join(', '), 'error');
+        return;
+      }
+      if (!parsed.rows.length) {
+        window.UI.toast('El archivo no tiene filas de datos.', 'error');
+        return;
+      }
+      if (!confirm('Importar ' + parsed.rows.length + ' \u00f3rden(es) de trabajo desde CSV?')) return;
+      window.UI.toast('Importando...', 'info');
+      var res = await importCSVRows(parsed, session);
+      if (res.ok) {
+        window.UI.toast('Importadas ' + res.ok + ' orden(es).' + (res.fail ? ' Con ' + res.fail + ' error(es).' : ''), res.fail ? 'warning' : 'success');
+      } else if (res.fail) {
+        window.UI.toast('Importaci\u00f3n fallida. Revisa la consola o el formato.', 'error');
+      }
+      await load();
+    });
+  }
 
   async function render(container, session) {
     container.innerHTML = '' +
@@ -12,6 +210,12 @@
           '<div>' +
             '<h2 class="page-title">Proyectos / Acciones</h2>' +
             '<p class="page-subtitle">\u00d3rdenes de trabajo, intervenciones y seguimiento ejecutivo.</p>' +
+            '<p class="muted mt-1" style="max-width:42rem;line-height:1.45;">' +
+              'Mantenimiento masivo: descarga la plantilla CSV, compl\u00e9tala en Excel o LibreOffice y sube el archivo. ' +
+              'Columnas obligatorias: <code>title</code>, <code>area</code>, <code>assignee_name</code>, <code>description</code>. ' +
+              'Opcionales: <code>task_type</code> (corrective|preventive|inspection|project), <code>priority</code>, <code>due_at</code> (YYYY-MM-DD), ' +
+              '<code>assignment_number</code> (vac\u00edo = se genera), <code>status</code>.' +
+            '</p>' +
           '</div>' +
           '<div class="row wrap" style="gap:0.5rem;">' +
             '<select id="proj-filter" class="btn btn-ghost">' +
@@ -19,6 +223,9 @@
               '<option value="all">Todos</option>' +
               '<option value="closed">Cerrados</option>' +
             '</select>' +
+            '<button class="btn btn-ghost" type="button" id="proj-csv-template">Descargar plantilla CSV</button>' +
+            '<button class="btn btn-ghost" type="button" id="proj-csv-upload">Importar CSV</button>' +
+            '<input type="file" id="proj-csv-input" accept=".csv,text/csv" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;" />' +
             '<button class="btn btn-primary-sm" id="proj-new" type="button">+ Nueva orden</button>' +
           '</div>' +
         '</div>' +
@@ -31,6 +238,7 @@
 
     document.getElementById('proj-filter').addEventListener('change', function (e) { STATE.filter = e.target.value; renderList(); });
     document.getElementById('proj-new').addEventListener('click', openNew);
+    wireCsvImport(session);
     await load();
   }
 
@@ -63,28 +271,28 @@
 
     if (!rows.length) {
       document.getElementById('proj-list').innerHTML = '<p class="empty">Sin \u00f3rdenes.</p>';
-      return;
+    } else {
+      document.getElementById('proj-list').innerHTML = window.UI.table(rows, [
+        { key: 'assignment_number', label: '#' },
+        { key: 'title', label: 'T\u00edtulo' },
+        { key: 'area', label: '\u00c1rea' },
+        { key: 'task_type', label: 'Tipo' },
+        { key: 'assignee_name', label: 'Asignado' },
+        { key: 'priority', label: 'Prioridad', render: function (r) { return window.UI.badge(r.priority || 'normal', priKind(r.priority)); }, html: true },
+        { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusKind(r.status)); }, html: true },
+        { key: 'due_at', label: 'Vence', render: function (r) {
+          if (!r.due_at) return '';
+          var due = new Date(r.due_at);
+          var late = due.getTime() < Date.now() && r.status !== 'completed' && r.status !== 'closed';
+          return (late ? '<span class="badge badge-danger">' : '<span>') + window.UI.fmtDate(r.due_at, { dateOnly: true }) + '</span>';
+        }, html: true },
+        { key: 'actions', label: '', render: function (r) {
+          if (r.status === 'completed' || r.status === 'closed') return '<span class="muted">Cerrada</span>';
+          return '<button class="btn btn-ghost" data-act="advance" data-id="' + window.UI.esc(r.id) + '" data-current="' + window.UI.esc(r.status) + '">Avanzar</button>';
+        }, html: true },
+      ]);
     }
-    document.getElementById('proj-list').innerHTML = window.UI.table(rows, [
-      { key: 'assignment_number', label: '#' },
-      { key: 'title', label: 'T\u00edtulo' },
-      { key: 'area', label: '\u00c1rea' },
-      { key: 'task_type', label: 'Tipo' },
-      { key: 'assignee_name', label: 'Asignado' },
-      { key: 'priority', label: 'Prioridad', render: function (r) { return window.UI.badge(r.priority || 'normal', priKind(r.priority)); }, html: true },
-      { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusKind(r.status)); }, html: true },
-      { key: 'due_at', label: 'Vence', render: function (r) {
-        if (!r.due_at) return '';
-        var due = new Date(r.due_at);
-        var late = due.getTime() < Date.now() && r.status !== 'completed' && r.status !== 'closed';
-        return (late ? '<span class="badge badge-danger">' : '<span>') + window.UI.fmtDate(r.due_at, { dateOnly: true }) + '</span>';
-      }, html: true },
-      { key: 'actions', label: '', render: function (r) {
-        if (r.status === 'completed' || r.status === 'closed') return '<span class="muted">Cerrada</span>';
-        return '<button class="btn btn-ghost" data-act="advance" data-id="' + window.UI.esc(r.id) + '" data-current="' + window.UI.esc(r.status) + '">Avanzar</button>';
-      }, html: true },
-    ]);
-    document.getElementById('proj-list').addEventListener('click', onAction);
+    document.getElementById('proj-list').onclick = function (e) { onAction(e); };
   }
 
   function priKind(p) {
