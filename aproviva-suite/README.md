@@ -7,7 +7,7 @@ scenarios across 5 roles (conserje, admin de planta, supervisor, gerencia, junta
 - **Preview (here.now):** https://whole-crystal-6gt7.here.now/
 - **Stack:** Vanilla HTML / CSS / JS (no build step) over Supabase REST + RLS.
 - **Auth:** PIN-based session (`2026` = staff/conserjeria, `JD26` = junta/administracion). POC-grade — see security note below.
-- **Data:** Live Supabase project `tgoitmwdpdkhlpqpwrvs` (47 already-migrated tables).
+- **Data:** Live Supabase project `tgoitmwdpdkhlpqpwrvs` (47 already-migrated tables). **PQRS** cases table: `supabase/migrations/20260422120000_pqrs_cases.sql` (portal toggles via `js/config.js` `PQRS_USE_VV_SUPABASE`). See `../docs/PQRS-MIGRATION-PH-TO-VV.md`. Map/recorrido: `20260420120000_recorrido_map_waypoints.sql`, `20260421120000_site_place_geo_pqrs_map.sql`, optional `20260421130000_drop_duplicate_pqrs_map_objects.sql`.
 
 ## Modules
 
@@ -16,6 +16,8 @@ scenarios across 5 roles (conserje, admin de planta, supervisor, gerencia, junta
 | `#/inicio` | all | cross-table KPIs |
 | `#/inventario` | staff + junta | `inventory_items`, `inventory_locations`, `inventory_movements` |
 | `#/gemba` | staff + junta | `inspection_rounds`, `inspection_findings` |
+| `#/mapa` | staff + junta | static `data/villa-valencia-site.geojson` + **`recorrido_map_waypoints`** (waypoints CRUD; junta/supervisor places points) |
+| **`mapa-pqrs.html`** | public (no login) | Same GeoJSON + read-only waypoints from Supabase — linked from **PQRS** on the main portal for residents |
 | `#/incidencias` | staff + junta | `incident_tickets` (+ `escalation_events` on escalate) |
 | `#/proyectos` | junta only | `work_assignments` |
 | `#/maestros` | junta only | `inventory_items`, `inventory_locations`, `buildings`, `admin_users` |
@@ -39,6 +41,7 @@ aproviva-suite/
 ├── index.html                    # SPA shell + script load order
 ├── css/suite.css                 # mobile-first stylesheet
 ├── README.md                     # this file
+├── supabase/migrations/          # DDL for map + PQRS/hallazgos layers (run in Supabase)
 └── js/
     ├── config.js                 # Supabase URL + publishable key + PIN map + building ID
     ├── supabase.js               # thin REST wrapper (select / insert / update / remove / rpc)
@@ -50,6 +53,7 @@ aproviva-suite/
         ├── inicio.js             # role-aware home + KPIs
         ├── inventario.js         # Scenarios 1, 2 (count, alerts, novedad)
         ├── gemba.js              # Scenarios 4-10 (recorridos + hallazgos)
+        ├── mapa.js               # Site map: GeoJSON perimeter/route + Supabase waypoints
         ├── incidencias.js        # Scenarios 3, 7 (triage + advance + escalate)
         ├── proyectos.js          # Scenarios 8, 9 (work assignments, junta-only)
         ├── maestros.js           # Scenario 11 (master data, junta-only)

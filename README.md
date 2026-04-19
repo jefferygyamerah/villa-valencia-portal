@@ -8,12 +8,7 @@ Digital portal for Villa Valencia HOA (APROVIVA), Costa Sur, Don Bosco, Panama.
 - This portal is the end-user runtime, not the PH Management vanilla product site.
 - Keep this repo client-specific and operational.
 
-**PQRS backend (April 2026 cutover):** PQRS submit + status lookup now call the
-ph-management Next.js + Supabase API at `https://ph-management.vercel.app/api/pqrs/{submit,lookup}`.
-The transparency dashboard, budget, and provider directory remain on Google Apps
-Script + Sheets. See `apps/ph-management/ops/MIGRATION_PLAN.md` (in the
-ph-management repo) for the historical-data migration plan and the dashboard
-cutover decision.
+**PQRS backend:** Submit + lookup currently call **ph-management** (`https://ph-management.vercel.app/api/pqrs/{submit,lookup}`) as a temporary cutover. **Target:** bring PQRS storage and APIs **into the Villa Valencia stack** (this repo + VV Supabase) so production identity stays **`villavalencia.vercel.app`** without depending on the ph-management deployment for VV cases. **Canon:** Villa Valencia (`here`) is the live HOA deployment; **ph-management** is the reusable product — migrating PQRS home clarifies that boundary; see `docs/PQRS-MIGRATION-PH-TO-VV.md`. The transparency dashboard, budget, and provider directory remain on Google Apps Script + Sheets until those are unified separately.
 
 ## Overview
 

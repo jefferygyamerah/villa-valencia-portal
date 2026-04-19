@@ -11,7 +11,8 @@ Anchor on `../../docs/ml-collaborator-brief.md` (canonical) and `../../docs/stra
 ## Cutover Reality
 
 - Live at `villavalencia.vercel.app`, serving residents and admin for ~118 families.
-- PQRS submit and lookup consume `ph-management.vercel.app` APIs (`/api/pqrs/submit`, `/api/pqrs/lookup`). That cutover was an exception to the canonical extraction direction — it happened because a schema and admin UI already existed in ph-management when residents needed PQRS trust fast.
+- **PQRS (today):** submit and lookup still call `ph-management.vercel.app` (`/api/pqrs/submit`, `/api/pqrs/lookup`). That was a **speed exception** — schema and admin UI already existed there when residents needed trust fast.
+- **PQRS (direction):** migrate **operational ownership** of Villa Valencia PQRS **here** — this repo + the **Villa Valencia Supabase project** + portal/suite — so residents and staff are not tied to the ph-management app for VV’s cases. **`ph-management` remains the white-label product**; **`here` remains the Villa Valencia deployment** (`docs/PQRS-MIGRATION-PH-TO-VV.md`). Extraction upstream to ph-management is still allowed after patterns prove out.
 - Other surfaces (dashboard, budget, providers) still run on Apps Script.
 
 ## UI and Content Guardrail

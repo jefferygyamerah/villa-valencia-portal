@@ -312,6 +312,10 @@
         Env&iacute;a tu petici&oacute;n, queja, reclamo o sugerencia a trav&eacute;s del formulario oficial de APROVIVA.
         Tu solicitud ser&aacute; atendida por la administraci&oacute;n.
       </p>
+      <p style="font-size:0.78rem;margin-bottom:0.85rem;">
+        <a href="aproviva-suite/mapa-pqrs.html" target="_blank" rel="noopener noreferrer">Ver mapa del conjunto y puntos de recorrido</a>
+        (referencia visual, mismo mapa que usa el m&oacute;dulo de recorridos).
+      </p>
       <button class="btn-primary" type="button" data-action="open-pqrs">
         Radicar PQRS &rarr;
       </button>
@@ -456,14 +460,29 @@
           <label class="form-label">Ubicaci&oacute;n <span class="req">*</span></label>
           <select class="form-select" id="pqrs-ubicacion">
             <option value="">Seleccionar...</option>
-            <option>Garita</option>
-            <option>Piscina</option>
-            <option>&Aacute;rea Social</option>
-            <option>Calles</option>
-            <option>Otro</option>
-            <option>No Aplica</option>
+            <optgroup label="Edificios y espacios cubiertos">
+              <option value="banos_area_social">Ba&ntilde;os &aacute;rea social</option>
+              <option value="gimnasio">Gimnasio</option>
+              <option value="salon_fiesta">Sal&oacute;n de Fiesta</option>
+              <option value="cuarto_electrico">Cuarto El&eacute;ctrico</option>
+              <option value="garita">Garita</option>
+              <option value="cuarto_conserjes">Cuarto de Conserjes</option>
+              <option value="oficina_admin">Oficina de Administraci&oacute;n</option>
+              <option value="comedor_conserjes">Comedor de conserjes</option>
+            </optgroup>
+            <optgroup label="&Aacute;reas exteriores / amenidades">
+              <option value="piscina">Piscina</option>
+            </optgroup>
+            <optgroup label="Circulaci&oacute;n y otros">
+              <option value="calles_circulacion">Calles / circulaci&oacute;n</option>
+              <option value="otro">Otro</option>
+              <option value="no_aplica">No aplica</option>
+            </optgroup>
           </select>
           <p class="field-message" id="pqrs-ubicacion-error"></p>
+          <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.35rem;">
+            <a href="aproviva-suite/mapa-pqrs.html" target="_blank" rel="noopener noreferrer">Abrir mapa de referencia</a> (l&iacute;mite del conjunto, ruta y puntos de recorrido).
+          </p>
         </div>
       </div>
       <div class="form-row">

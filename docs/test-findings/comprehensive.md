@@ -70,8 +70,19 @@
 
 ## Regressions checked
 
-- **PQRS submit / lookup** — already validated in `apps/ph-management/ops/STATUS.md` Session 16 (real case `VV-PQRS-20260419-855099`). Not re-verified here; no portal-side files touched in this milestone affect that flow.
-- **Existing portal landing pages** (`index.html`, `aproviva-portal.html`) — only the `openRoleLogin` and `lane.url` strings changed; rest of portal copy and Apps-Script-backed dashboards untouched.
+- **PQRS submit / lookup (ph-management path)** — still the default while `PQRS_USE_VV_SUPABASE` is `false` in [js/config.js](../../js/config.js). Historical validation: `apps/ph-management/ops/STATUS.md` Session 16 (case `VV-PQRS-20260419-855099`).
+- **PQRS submit / lookup (Villa Valencia Supabase path)** — implemented 2026-04-19: table `pqrs_cases` + RPC `lookup_pqrs_case` ([migration](../../aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql)). **Apply SQL in Supabase, then set `PQRS_USE_VV_SUPABASE: true`** and smoke-test; details in [2026-04-19-pqrs-vv-supabase-migration.md](2026-04-19-pqrs-vv-supabase-migration.md).
+- **19 scenarios (suite)** — matrix above unchanged; no full browser re-run in this session after PQRS work. Re-execute PIN flows + module smoke when convenient.
+
+## Portal PQRS — VV Supabase checklist
+
+| Step | State |
+|------|--------|
+| Run `20260422120000_pqrs_cases.sql` in Supabase SQL Editor | Pending human |
+| Set `PQRS_USE_VV_SUPABASE: true` in portal `js/config.js` | Off until SQL applied |
+| Submit test case + lookup by reference | Pending |
+
+- **Existing portal landing pages** (`index.html`, `aproviva-portal.html`) — PQRS modal gained ubicación `option value` slugs for `site_place_id`; rest of portal copy and Apps-Script-backed dashboards unchanged unless otherwise noted.
 
 ## Stop condition
 

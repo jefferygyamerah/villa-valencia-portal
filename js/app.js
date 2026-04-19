@@ -1,15 +1,11 @@
 /**
  * APROVIVA Portal – Main page logic
  *
- * Dual-backend split (temporary):
- *   - PQRS submit + status lookup → config.PH_MANAGEMENT_API_BASE
- *     (Next.js + Supabase backend at ph-management.vercel.app, returns
- *     a real caseReference like VV-PQRS-YYYYMMDD-NNNNNN).
- *   - Transparency dashboard, budget data, provider directory →
- *     config.APPS_SCRIPT_URL (Google Apps Script, sheet-backed).
- *
- * The dashboard does not yet read from ph-management, so a freshly
- * submitted PQRS won't appear in the dashboard until that cutover.
+ * PQRS submit + lookup:
+ *   - If config.PQRS_USE_VV_SUPABASE → Villa Valencia Supabase (pqrs_cases + RPC
+ *     lookup_pqrs_case). See docs/PQRS-MIGRATION-PH-TO-VV.md.
+ *   - Else → config.PH_MANAGEMENT_API_BASE (ph-management product deployment).
+ * Transparency dashboard, budget, proveedores → config.APPS_SCRIPT_URL.
  */
 (function () {
   'use strict';
@@ -27,7 +23,8 @@
   var STATUS_LABELS = {
     recibido: 'Recibido',
     en_progreso: 'En progreso',
-    resuelto: 'Resuelto'
+    resuelto: 'Resuelto',
+    cerrado: 'Cerrado'
   };
   var lastSubmittedCaseId = '';
 
@@ -54,6 +51,21 @@
   function isPhManagementConfigured() {
     return !!(config.PH_MANAGEMENT_API_BASE &&
       config.PH_MANAGEMENT_API_BASE.indexOf('YOUR_') === -1);
+  }
+
+  function isVvPqrsConfigured() {
+    return !!(
+      config.PQRS_USE_VV_SUPABASE &&
+      config.SUPABASE_URL &&
+      config.SUPABASE_URL.indexOf('YOUR_') === -1 &&
+      config.SUPABASE_ANON_KEY &&
+      config.SUPABASE_ANON_KEY.indexOf('YOUR_') === -1 &&
+      config.BUILDING_ID
+    );
+  }
+
+  function isPqrsSubmitConfigured() {
+    return isVvPqrsConfigured() || isPhManagementConfigured();
   }
 
   function getEl(id) {
@@ -330,6 +342,56 @@
     resetPqrsForm();
   }
 
+  function submitPqrsToVvSupabase(payload, meta, uploaded) {
+    var row = {
+      building_id: config.BUILDING_ID,
+      subject: payload.subject,
+      description: payload.description,
+      location: payload.location || null,
+      email: meta.correo || null,
+      site_place_id: meta.site_place_id || null,
+      zona_label: meta.zona_label || null,
+      tipo: meta.tipo || null,
+      urgencia: meta.urgencia || null,
+      casa: meta.casa || null,
+      status: 'recibido',
+      metadata: { source: 'villavalencia-portal', backend: 'vv-supabase' }
+    };
+
+    return fetch(config.SUPABASE_URL + '/rest/v1/pqrs_cases', {
+      method: 'POST',
+      headers: {
+        apikey: config.SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + config.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      },
+      body: JSON.stringify(row)
+    }).then(function (response) {
+      return response.text().then(function (rawText) {
+        var parsed = parseResponseBody(rawText);
+        if (!response.ok) {
+          setSubmitState(false);
+          var msg =
+            parsed && (parsed.message || parsed.hint || parsed.details || parsed.error)
+              ? String(parsed.message || parsed.hint || parsed.details || parsed.error)
+              : 'No pudimos enviar tu reporte. Revisa tu conexión e inténtalo de nuevo.';
+          showPqrsStatus('error', msg);
+          return;
+        }
+        var arr = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
+        var caseRef = '';
+        if (arr[0] && arr[0].case_reference) {
+          caseRef = String(arr[0].case_reference);
+        }
+        if (!caseRef) {
+          caseRef = getCaseIdFromResponse(parsed, rawText);
+        }
+        showPqrsSuccess(caseRef, uploaded);
+      });
+    });
+  }
+
   function submitPqrs() {
     var resumenEl = getEl('pqrs-resumen');
     var descripcionEl = getEl('pqrs-descripcion');
@@ -355,7 +417,9 @@
     var resumen = resumenEl ? resumenEl.value.trim() : '';
     var descripcion = descripcionEl ? descripcionEl.value.trim() : '';
     var tipo = tipoEl ? tipoEl.value : '';
-    var ubicacion = ubicacionEl ? ubicacionEl.value : '';
+    var uSel = ubicacionEl ? ubicacionEl.options[ubicacionEl.selectedIndex] : null;
+    var sitePlaceId = uSel && uSel.value ? uSel.value : '';
+    var ubicacion = uSel ? String(uSel.textContent || '').replace(/\s+/g, ' ').trim() : '';
     var urgencia = urgenciaEl ? urgenciaEl.value : '';
     var casa = casaEl ? casaEl.value.trim() : '';
     var correo = correoEl ? correoEl.value.trim() : '';
@@ -427,6 +491,17 @@
       };
       if (locationValue) payload.location = locationValue;
       if (correo) payload.email = correo;
+
+      if (isVvPqrsConfigured()) {
+        return submitPqrsToVvSupabase(payload, {
+          tipo: tipo,
+          urgencia: urgencia,
+          casa: casa,
+          correo: correo,
+          site_place_id: sitePlaceId,
+          zona_label: ubicacion
+        }, uploaded);
+      }
 
       return fetch(config.PH_MANAGEMENT_API_BASE + '/api/pqrs/submit', {
         method: 'POST',
@@ -552,7 +627,7 @@
       return;
     }
 
-    if (!isPhManagementConfigured()) {
+    if (!isVvPqrsConfigured() && !isPhManagementConfigured()) {
       feedback.className = 'pqrs-status-feedback show error';
       feedback.textContent = 'La consulta de estado no está disponible porque el sistema todavía no está configurado.';
       return;
@@ -560,6 +635,49 @@
 
     feedback.className = 'pqrs-status-feedback show';
     feedback.textContent = 'Consultando estado...';
+
+    if (isVvPqrsConfigured()) {
+      fetch(config.SUPABASE_URL + '/rest/v1/rpc/lookup_pqrs_case', {
+        method: 'POST',
+        headers: {
+          apikey: config.SUPABASE_ANON_KEY,
+          Authorization: 'Bearer ' + config.SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        },
+        body: JSON.stringify({ case_ref: caseId })
+      })
+        .then(function (response) {
+          return response.text().then(function (rawText) {
+            var parsed = parseResponseBody(rawText);
+            if (!response.ok) {
+              feedback.className = 'pqrs-status-feedback show error';
+              feedback.textContent =
+                'No pudimos consultar el estado en este momento. Intenta nuevamente en unos segundos.';
+              return;
+            }
+            var rows = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
+            if (!rows.length) {
+              feedback.className = 'pqrs-status-feedback show error';
+              feedback.textContent =
+                'No encontramos un caso con esa referencia. Verifica el código y vuelve a intentarlo.';
+              return;
+            }
+            var row = rows[0];
+            renderLookupStatusSuccess({
+              caseReference: row.case_reference || caseId,
+              status: row.status || 'recibido',
+              lastUpdatedAt: row.updated_at || row.created_at || ''
+            });
+          });
+        })
+        .catch(function () {
+          feedback.className = 'pqrs-status-feedback show error';
+          feedback.textContent =
+            'No pudimos consultar el estado en este momento. Intenta nuevamente en unos segundos.';
+        });
+      return;
+    }
 
     var url = config.PH_MANAGEMENT_API_BASE +
       '/api/pqrs/lookup?caseRef=' + encodeURIComponent(caseId);
