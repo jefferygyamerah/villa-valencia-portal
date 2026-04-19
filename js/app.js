@@ -31,6 +31,21 @@
   };
   var lastSubmittedCaseId = '';
 
+  // Photo upload limits (must mirror Apps Script PQRS_PHOTO_MAX_BYTES /
+  // PQRS_PHOTO_ALLOWED_MIME). Keeping a client-side gate avoids round-tripping
+  // a 50 MB file just to have the server reject it.
+  var MAX_PHOTOS = 5;
+  var MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+  var ALLOWED_PHOTO_MIME = {
+    'image/jpeg': true,
+    'image/jpg': true,
+    'image/png': true,
+    'image/webp': true,
+    'image/heic': true,
+    'image/heif': true,
+    'application/pdf': true
+  };
+
   function isScriptConfigured() {
     return config.APPS_SCRIPT_URL &&
       config.APPS_SCRIPT_URL.indexOf('YOUR_') === -1;
@@ -102,7 +117,117 @@
       var el = getEl(pqrsFields[i]);
       if (el) el.value = '';
     }
+    var photoInput = getEl('pqrs-photos');
+    if (photoInput) photoInput.value = '';
+    var preview = getEl('pqrs-photos-preview');
+    if (preview) preview.innerHTML = '';
+    setFieldError('pqrs-photos', '');
     showPqrsForm();
+  }
+
+  // ── PQRS photo upload helpers ──
+  function formatBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function validateSelectedPhotos(files) {
+    if (!files || files.length === 0) return { ok: true, files: [] };
+    if (files.length > MAX_PHOTOS) {
+      return { ok: false, error: 'Solo puedes adjuntar hasta ' + MAX_PHOTOS + ' archivos.' };
+    }
+    var accepted = [];
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      var mime = (f.type || '').toLowerCase();
+      // HEIC/HEIF often arrive with empty f.type in older browsers; allow
+      // by extension as a fallback.
+      if (!ALLOWED_PHOTO_MIME[mime]) {
+        var nameLc = (f.name || '').toLowerCase();
+        if (/\.(heic|heif)$/.test(nameLc)) {
+          mime = 'image/heic';
+        } else if (/\.(jpe?g)$/.test(nameLc)) {
+          mime = 'image/jpeg';
+        } else if (/\.png$/.test(nameLc)) {
+          mime = 'image/png';
+        } else if (/\.webp$/.test(nameLc)) {
+          mime = 'image/webp';
+        } else if (/\.pdf$/.test(nameLc)) {
+          mime = 'application/pdf';
+        } else {
+          return { ok: false, error: 'Formato no soportado: ' + (f.name || 'archivo') + '. Usa JPG, PNG, WEBP, HEIC o PDF.' };
+        }
+      }
+      if (f.size > MAX_PHOTO_BYTES) {
+        return { ok: false, error: f.name + ' pesa ' + formatBytes(f.size) + '. El máximo es 5 MB por archivo.' };
+      }
+      accepted.push({ file: f, mime: mime });
+    }
+    return { ok: true, files: accepted };
+  }
+
+  function renderPhotoPreview(accepted) {
+    var preview = getEl('pqrs-photos-preview');
+    if (!preview) return;
+    preview.innerHTML = '';
+    accepted.forEach(function (item) {
+      var li = document.createElement('li');
+      li.style.cssText = 'font-size:0.75rem;color:var(--text-light);padding:0.25rem 0;border-bottom:1px solid var(--border-light);';
+      li.textContent = '📎 ' + item.file.name + ' (' + formatBytes(item.file.size) + ')';
+      preview.appendChild(li);
+    });
+  }
+
+  function readFileAsBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var result = reader.result || '';
+        var comma = String(result).indexOf(',');
+        resolve(comma >= 0 ? String(result).slice(comma + 1) : String(result));
+      };
+      reader.onerror = function () {
+        reject(new Error('No pudimos leer el archivo ' + file.name + '.'));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Uploads one file to Apps Script. Uses Content-Type: text/plain to dodge
+  // the CORS preflight (Apps Script web apps don't honor OPTIONS), while
+  // keeping the response readable cross-origin (default fetch mode is 'cors',
+  // and Apps Script returns Access-Control-Allow-Origin: *).
+  function uploadOnePhoto(item, casa) {
+    return readFileAsBase64(item.file).then(function (base64) {
+      return fetch(config.APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          _type: 'pqrs_photo',
+          fileName: item.file.name,
+          mimeType: item.mime,
+          base64: base64,
+          casa: casa || ''
+        })
+      });
+    }).then(function (response) {
+      return response.text().then(function (raw) {
+        var parsed;
+        try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
+        if (!parsed || !parsed.ok) {
+          var detail = (parsed && (parsed.message || parsed.error)) || 'Error desconocido';
+          throw new Error('No se pudo subir ' + item.file.name + ' (' + detail + ').');
+        }
+        return { name: parsed.name || item.file.name, url: parsed.url };
+      });
+    });
+  }
+
+  function uploadAllPhotos(accepted, casa) {
+    if (!accepted || accepted.length === 0) return Promise.resolve([]);
+    var uploads = accepted.map(function (item) { return uploadOnePhoto(item, casa); });
+    return Promise.all(uploads);
   }
 
   function validatePqrs() {
@@ -213,8 +338,17 @@
     var urgenciaEl = getEl('pqrs-urgencia');
     var casaEl = getEl('pqrs-casa');
     var correoEl = getEl('pqrs-correo');
+    var photosEl = getEl('pqrs-photos');
 
     if (!validatePqrs()) {
+      return;
+    }
+
+    setFieldError('pqrs-photos', '');
+    var photoCheck = validateSelectedPhotos(photosEl ? photosEl.files : []);
+    if (!photoCheck.ok) {
+      setFieldError('pqrs-photos', photoCheck.error);
+      showPqrsStatus('error', photoCheck.error);
       return;
     }
 
@@ -227,7 +361,6 @@
     var correo = correoEl ? correoEl.value.trim() : '';
 
     setSubmitState(true);
-    showPqrsStatus('success', 'Enviando tu reporte...');
 
     if (!isPhManagementConfigured()) {
       setSubmitState(false);
@@ -235,75 +368,97 @@
       return;
     }
 
-    // subject ← resumen if non-empty, else first 80 chars of descripcion.
-    var subject = resumen;
-    if (!subject) {
-      subject = descripcion.slice(0, 80).trim();
+    // Step 1 — upload photos first (if any). Photos must be uploaded BEFORE
+    // the case is created so we can embed clickable Drive URLs in the case
+    // description, which is what admins see in the ph-management panel.
+    // If uploads fail, we abort the case submission entirely so the resident
+    // can retry rather than ending up with a case that's missing the
+    // evidence they explicitly attached.
+    var uploadStep;
+    if (photoCheck.files.length > 0) {
+      if (!isScriptConfigured()) {
+        setSubmitState(false);
+        showPqrsStatus('error', 'La carga de fotos no está disponible en este momento. Intenta enviar sin fotos.');
+        return;
+      }
+      showPqrsStatus('success', 'Subiendo ' + photoCheck.files.length + ' archivo(s)...');
+      uploadStep = uploadAllPhotos(photoCheck.files, casa);
+    } else {
+      uploadStep = Promise.resolve([]);
     }
 
-    // Compose description with portal-specific metadata that the new API
-    // doesn't model as columns (tipo / urgencia / casa).
-    var metaParts = [];
-    if (tipo) metaParts.push('Tipo: ' + tipo);
-    if (urgencia) metaParts.push('Urgencia: ' + urgencia);
-    if (casa) metaParts.push('Casa: ' + casa);
-    var composedDescription = metaParts.length
-      ? '[' + metaParts.join(' | ') + ']\n\n' + descripcion
-      : descripcion;
+    uploadStep.then(function (uploaded) {
+      showPqrsStatus('success', 'Enviando tu reporte...');
 
-    // location ← "ubicacion — Casa N" if both, else whichever is present.
-    var locationValue = '';
-    if (ubicacion && casa) {
-      locationValue = ubicacion + ' — Casa ' + casa;
-    } else if (ubicacion) {
-      locationValue = ubicacion;
-    } else if (casa) {
-      locationValue = 'Casa ' + casa;
-    }
+      // subject ← resumen if non-empty, else first 80 chars of descripcion.
+      var subject = resumen;
+      if (!subject) {
+        subject = descripcion.slice(0, 80).trim();
+      }
 
-    var payload = {
-      subject: subject,
-      description: composedDescription
-    };
-    if (locationValue) payload.location = locationValue;
-    if (correo) payload.email = correo;
+      var metaParts = [];
+      if (tipo) metaParts.push('Tipo: ' + tipo);
+      if (urgencia) metaParts.push('Urgencia: ' + urgencia);
+      if (casa) metaParts.push('Casa: ' + casa);
 
-    fetch(config.PH_MANAGEMENT_API_BASE + '/api/pqrs/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).then(function (response) {
-      return response.text().then(function (rawText) {
-        var parsed = parseResponseBody(rawText);
+      var composedDescription = metaParts.length
+        ? '[' + metaParts.join(' | ') + ']\n\n' + descripcion
+        : descripcion;
 
-        if (!response.ok) {
-          var apiMessage = parsed && parsed.message
-            ? parsed.message
-            : 'No pudimos enviar tu reporte. Revisa tu conexión e inténtalo de nuevo.';
-          setSubmitState(false);
-          showPqrsStatus('error', apiMessage);
-          return;
-        }
+      if (uploaded && uploaded.length > 0) {
+        var photoLines = uploaded.map(function (u) {
+          return '- ' + (u.name || 'foto') + ': ' + u.url;
+        }).join('\n');
+        composedDescription += '\n\n📷 Fotos adjuntas:\n' + photoLines;
+      }
 
-        // Prefer the API's caseReference field directly. getCaseIdFromResponse
-        // is kept as a vestigial fallback for any legacy response shapes.
-        var caseRef = (parsed && parsed.caseReference)
-          ? String(parsed.caseReference)
-          : getCaseIdFromResponse(parsed, rawText);
-        showPqrsSuccess(caseRef);
+      var locationValue = '';
+      if (ubicacion && casa) {
+        locationValue = ubicacion + ' — Casa ' + casa;
+      } else if (ubicacion) {
+        locationValue = ubicacion;
+      } else if (casa) {
+        locationValue = 'Casa ' + casa;
+      }
 
-        // Intentionally NOT calling loadDashboard() here: the dashboard still
-        // reads from APPS_SCRIPT_URL (Google Apps Script) and won't see the
-        // submission we just sent to ph-management. Revisit when the
-        // dashboard is also cut over to the ph-management API.
+      var payload = {
+        subject: subject,
+        description: composedDescription
+      };
+      if (locationValue) payload.location = locationValue;
+      if (correo) payload.email = correo;
+
+      return fetch(config.PH_MANAGEMENT_API_BASE + '/api/pqrs/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (response) {
+        return response.text().then(function (rawText) {
+          var parsed = parseResponseBody(rawText);
+
+          if (!response.ok) {
+            var apiMessage = parsed && parsed.message
+              ? parsed.message
+              : 'No pudimos enviar tu reporte. Revisa tu conexión e inténtalo de nuevo.';
+            setSubmitState(false);
+            showPqrsStatus('error', apiMessage);
+            return;
+          }
+
+          var caseRef = (parsed && parsed.caseReference)
+            ? String(parsed.caseReference)
+            : getCaseIdFromResponse(parsed, rawText);
+          showPqrsSuccess(caseRef, uploaded);
+        });
       });
-    }).catch(function () {
+    }).catch(function (err) {
       setSubmitState(false);
-      showPqrsStatus('error', 'No pudimos enviar tu reporte. Revisa tu conexión e inténtalo de nuevo.');
+      var msg = (err && err.message) || 'No pudimos enviar tu reporte. Revisa tu conexión e inténtalo de nuevo.';
+      showPqrsStatus('error', msg);
     });
   }
 
-  function showPqrsSuccess(caseId) {
+  function showPqrsSuccess(caseId, uploaded) {
     var form = getEl('pqrsForm');
     var success = getEl('pqrsSuccess');
     var reference = getEl('pqrs-case-reference');
@@ -317,6 +472,39 @@
         ? ('Referencia del caso: ' + lastSubmittedCaseId)
         : 'Referencia del caso: generada, pero no disponible en la respuesta.';
     }
+
+    var existing = getEl('pqrs-success-photos');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    if (uploaded && uploaded.length > 0 && success) {
+      var box = document.createElement('div');
+      box.id = 'pqrs-success-photos';
+      box.style.cssText = 'margin-top:0.75rem;text-align:left;font-size:0.85rem;';
+      var head = document.createElement('p');
+      head.style.cssText = 'font-weight:600;margin:0 0 0.25rem 0;';
+      head.textContent = '📷 ' + uploaded.length + ' archivo(s) adjuntado(s):';
+      box.appendChild(head);
+      var ul = document.createElement('ul');
+      ul.style.cssText = 'list-style:none;padding:0;margin:0;';
+      uploaded.forEach(function (u) {
+        var li = document.createElement('li');
+        li.style.cssText = 'padding:0.15rem 0;';
+        var a = document.createElement('a');
+        a.href = u.url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = u.name || 'Ver archivo';
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+      box.appendChild(ul);
+      var anchor = reference || success.firstChild;
+      if (anchor && anchor.parentNode === success && anchor.nextSibling) {
+        success.insertBefore(box, anchor.nextSibling);
+      } else {
+        success.appendChild(box);
+      }
+    }
+
     setSubmitState(false);
     clearPqrsErrors();
   }
@@ -502,6 +690,20 @@
           evt.preventDefault();
           lookupPqrsStatus();
         }
+      });
+    }
+
+    var photoInput = getEl('pqrs-photos');
+    if (photoInput) {
+      photoInput.addEventListener('change', function () {
+        setFieldError('pqrs-photos', '');
+        var check = validateSelectedPhotos(photoInput.files);
+        if (!check.ok) {
+          setFieldError('pqrs-photos', check.error);
+          renderPhotoPreview([]);
+          return;
+        }
+        renderPhotoPreview(check.files);
       });
     }
   }

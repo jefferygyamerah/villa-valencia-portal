@@ -7,6 +7,22 @@
 var PQRS_SHEET = 'Portal';
 var PROVIDERS_SHEET = 'Proveedores';
 
+// Drive folder where resident-uploaded PQRS photos land. The Apps Script's
+// owning account must have Editor access to this folder.
+var PQRS_PHOTOS_FOLDER_ID = '1cNlw5VwQ4ZPcvyRm7I68aMruFjn8IhjK';
+
+// Hard limits enforced server-side to prevent abuse. Mirror the client checks.
+var PQRS_PHOTO_MAX_BYTES = 5 * 1024 * 1024; // 5 MB per file
+var PQRS_PHOTO_ALLOWED_MIME = {
+  'image/jpeg': true,
+  'image/jpg': true,
+  'image/png': true,
+  'image/webp': true,
+  'image/heic': true,
+  'image/heif': true,
+  'application/pdf': true
+};
+
 function getPqrsSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(PQRS_SHEET);
@@ -41,7 +57,83 @@ function doPost(e) {
   if (type === 'provider') {
     return saveProvider(data);
   }
+  if (type === 'pqrs_photo') {
+    return savePqrsPhoto(data);
+  }
   return savePqrs(data);
+}
+
+// Resident PQRS photo upload. Drops the file in the configured Drive folder,
+// makes it readable by anyone with the link (so the URL embedded in the case
+// description actually opens for admins), and returns the shareable URL.
+function savePqrsPhoto(data) {
+  try {
+    var base64 = String(data.base64 || '');
+    var fileName = String(data.fileName || 'foto.jpg').replace(/[\\/:*?"<>|]/g, '_').slice(0, 120);
+    var mimeType = String(data.mimeType || 'application/octet-stream').toLowerCase();
+    var caseRef = String(data.caseRef || '').replace(/[\\/:*?"<>|]/g, '_').slice(0, 60);
+    var casa = String(data.casa || '').replace(/[\\/:*?"<>|]/g, '_').slice(0, 20);
+
+    if (!base64) {
+      return jsonOut({ ok: false, error: 'missing_base64' });
+    }
+    if (!PQRS_PHOTO_ALLOWED_MIME[mimeType]) {
+      return jsonOut({ ok: false, error: 'unsupported_mime', mimeType: mimeType });
+    }
+
+    var bytes = Utilities.base64Decode(base64);
+    if (bytes.length > PQRS_PHOTO_MAX_BYTES) {
+      return jsonOut({ ok: false, error: 'too_large', bytes: bytes.length });
+    }
+
+    var stamp = Utilities.formatDate(new Date(), 'America/Bogota', 'yyyyMMdd-HHmmss');
+    var prefix = caseRef ? caseRef : ('Casa-' + (casa || 'NA') + '__' + stamp);
+    var finalName = prefix + '__' + fileName;
+
+    var folder;
+    try {
+      folder = DriveApp.getFolderById(PQRS_PHOTOS_FOLDER_ID);
+    } catch (folderErr) {
+      return jsonOut({
+        ok: false,
+        error: 'folder_inaccessible',
+        message: 'La cuenta del Apps Script no puede ver la carpeta de fotos en Drive.',
+        detail: String(folderErr && folderErr.message || folderErr)
+      });
+    }
+
+    var blob = Utilities.newBlob(bytes, mimeType, finalName);
+    var file = folder.createFile(blob);
+
+    // Anyone-with-link viewer access: required so the URL embedded in the
+    // ph-management case description is clickable for the admin without them
+    // needing to be added as a Drive collaborator.
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (shareErr) {
+      // Non-fatal; file still uploaded. Admin may need to open Drive directly.
+    }
+
+    return jsonOut({
+      ok: true,
+      url: file.getUrl(),
+      fileId: file.getId(),
+      name: file.getName(),
+      mimeType: mimeType,
+      bytes: bytes.length
+    });
+  } catch (err) {
+    return jsonOut({
+      ok: false,
+      error: 'upload_failed',
+      message: String(err && err.message || err)
+    });
+  }
+}
+
+function jsonOut(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function savePqrs(data) {
@@ -104,6 +196,10 @@ function doGet(e) {
     return serveBudgetData();
   }
 
+  if (action === 'executive-summary') {
+    return serveExecutiveSummary();
+  }
+
   var sheet = getPqrsSheet();
   var data = sheet.getDataRange().getValues();
   var rows = [];
@@ -124,6 +220,32 @@ function doGet(e) {
 
   return ContentService.createTextOutput(
     JSON.stringify({ rows: rows })
+  ).setMimeType(ContentService.MimeType.JSON);
+}
+
+function serveExecutiveSummary() {
+  var REPORTING_ID = '1MI6BHRy7Y5abCb1jI1YQcEq19-bAuTDvddznDNfwcaA';
+  var ss = SpreadsheetApp.openById(REPORTING_ID);
+  var summarySheet = ss.getSheetByName('Resumen');
+  if (!summarySheet) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ status: 'error', error: 'Resumen sheet not found. Run refreshBudgetData first.' })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  var values = summarySheet.getDataRange().getValues();
+  var rows = [];
+  for (var i = 1; i < values.length; i++) {
+    if (!values[i][0]) continue;
+    rows.push({
+      indicador: values[i][0],
+      valor: values[i][1],
+      detalle: values[i][2] || ''
+    });
+  }
+
+  return ContentService.createTextOutput(
+    JSON.stringify({ status: 'ok', rows: rows })
   ).setMimeType(ContentService.MimeType.JSON);
 }
 

@@ -483,7 +483,13 @@
         <p class="field-message" id="pqrs-correo-error"></p>
         <p style="font-size:0.75rem;color:var(--text-light);margin-top:0.25rem;">Si lo dejas, te contactaremos cuando haya una actualizaci&oacute;n del caso.</p>
       </div>
-      <p style="font-size:0.72rem;color:var(--text-light);margin-bottom:0.5rem;">&#x1F4F7; &iquest;Tienes fotos? Env&iacute;alas al WhatsApp de la administraci&oacute;n junto con tu n&uacute;mero de casa.</p>
+      <div class="form-group" id="pqrs-photos-group">
+        <label class="form-label" for="pqrs-photos">&#x1F4F7; Fotos del reporte (opcional)</label>
+        <input type="file" class="form-input" id="pqrs-photos" accept="image/*,application/pdf" multiple/>
+        <p style="font-size:0.72rem;color:var(--text-light);margin-top:0.25rem;">Hasta 5 archivos, m&aacute;ximo 5&nbsp;MB cada uno. Las fotos se enlazan al caso para que la administraci&oacute;n las revise.</p>
+        <ul id="pqrs-photos-preview" class="pqrs-photos-preview" style="list-style:none;padding:0;margin:0.5rem 0 0 0;"></ul>
+        <p class="field-message" id="pqrs-photos-error"></p>
+      </div>
       <button class="btn-submit" type="button" onclick="window._submitPqrs()">Enviar reporte &rarr;</button>
       <p class="approval-note">&#x1F512; Tu reporte es confidencial y ser&aacute; atendido por la administraci&oacute;n.</p>
     </div>
