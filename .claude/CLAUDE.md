@@ -7,11 +7,11 @@ Transparencia financiera, PQRS, y directorio de proveedores.
 
 ## Strategic role
 
-Anchor on `../../../docs/strategic-positioning.md` for the canonical product framing.
+Anchor on `../../../docs/ml-collaborator-brief.md` (canonical) and `../../../docs/strategic-positioning.md` (deeper companion). The brief wins when they disagree.
 
-- This repo is the live iteration lab and a customer-specific reference implementation. The human works here — features are designed, built, shipped to residents, and iterated based on real use **here first**. After a feature is live and working, agents extract proven patterns into the `ph-management` platform.
-- This is **not** the flagship product. The flagship is `ph-management`. But this is also **not** legacy or archived — it's the active proving ground that everything else flows from.
-- Investment here is justified when it (a) keeps Villa Valencia operational, or (b) builds a feature that should eventually be extracted upstream into `ph-management`. Most new work serves both at once.
+- This repo is **both an active live deployment AND a proving ground for `ph-management`**. It serves 118 APROVIVA families daily and is also where new product features should ideally face real residents before being extracted upstream.
+- This is **not** the main white-label product direction (that role belongs to `ph-management`). It is also **not** legacy, archived, or merely historical — it is an ongoing live implementation that continues to inform the evolution of the platform.
+- Investment here should ideally create value in two directions (per the brief's important constraint): (a) support the live operational needs of Villa Valencia, and (b) extract and upstream validated product capabilities into `ph-management`. Most new product work can serve both at once.
 - Resident-facing surface promise: residents only see `villavalencia.vercel.app`. Cross-origin calls to `ph-management.vercel.app` are an internal implementation detail — never surface that domain to residents.
 - Customer-glue allowance: Google Drive uploads via Apps Script, Apps Script-backed dashboards (presupuesto, proveedores, reporting), and similar customer integrations are valid and stay here. Some will eventually get extracted into `ph-management` as configurable modules; others will stay customer-specific forever — both outcomes are fine.
 

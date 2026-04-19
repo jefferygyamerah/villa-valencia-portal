@@ -51,12 +51,20 @@ function refreshBudgetData(ss) {
 
   // Read the latest informe to get actuals
   var actuals = readLatestInforme();
+  if (!actuals || !actuals.rows || !actuals.rows.length) {
+    Logger.log('No se encontró informe XLSX válido en la carpeta Entrega de Informes.');
+    return;
+  }
 
   // Read the annual budget for baseline
   var budget = readAnnualBudget();
 
   // Build flat table combining budget + actuals
-  writeFlatTable(ss, budget, actuals);
+  writeFlatTable(ss, budget, actuals, {
+    note: 'No editar — se regenera automáticamente',
+  });
+
+  writeExecutiveSummary(ss, budget, actuals);
 }
 
 function getReportingSpreadsheet() {
@@ -90,7 +98,7 @@ function readLatestInforme() {
     }
   }
 
-  if (!latestXlsx) return { rows: [], month: '', fileDate: null };
+  if (!latestXlsx) return { rows: [], month: '', fileDate: null, fileId: '', fileName: '' };
 
   // Convert XLSX to Google Sheets temporarily
   var blob = latestXlsx.getBlob();
@@ -101,7 +109,13 @@ function readLatestInforme() {
 
   var tempSs = SpreadsheetApp.openById(converted.id);
   var presSheet = tempSs.getSheetByName('Estado de Presupuesto');
-  var result = { rows: [], month: '', fileDate: latestDate };
+  var result = {
+    rows: [],
+    month: '',
+    fileDate: latestDate,
+    fileId: latestXlsx.getId(),
+    fileName: latestXlsx.getName()
+  };
 
   if (presSheet) {
     var data = presSheet.getDataRange().getValues();
@@ -171,6 +185,120 @@ function readLatestInforme() {
   return result;
 }
 
+function writeExecutiveSummary(ss, budget, actuals) {
+  var monthNum = monthToNumber(actuals.month);
+  var metrics = computeExecutiveMetrics(budget, actuals, monthNum);
+  var summarySheet = ss.getSheetByName('Resumen') || ss.insertSheet('Resumen');
+  summarySheet.clear();
+
+  var rows = [
+    ['Indicador', 'Valor', 'Detalle'],
+    ['Último informe', actuals.month || 'N/A', actuals.fileName || ''],
+    ['Fecha archivo', actuals.fileDate || 'N/A', 'Último archivo detectado en Drive'],
+    ['Ingresos ejecutados acumulados', metrics.ingresosActual, 'B/.'],
+    ['Gastos ejecutados acumulados', metrics.gastosActual, 'B/.'],
+    ['Resultado neto acumulado', metrics.resultadoNeto, 'B/.'],
+    ['Presupuesto gastos YTD', metrics.gastosBudgetYtd, 'Hasta mes de informe'],
+    ['Desviación gastos YTD', metrics.desviacionGastosYtd, 'Actual vs presupuesto'],
+    ['Ejecución gastos YTD', metrics.ejecucionGastosPct, '%'],
+    ['Saldo restante anual (gastos)', metrics.saldoRestanteAnual, 'B/.']
+  ];
+
+  summarySheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+  summarySheet.getRange(1, 1, 1, 3)
+    .setFontWeight('bold')
+    .setBackground('#1A6BB8')
+    .setFontColor('#ffffff');
+  summarySheet.getRange(2, 2, rows.length - 1, 1).setNumberFormat('#,##0.00');
+  summarySheet.autoResizeColumns(1, 3);
+
+  var topRows = buildTopExecutionRows(actuals.rows, 5);
+  if (topRows.length) {
+    summarySheet.getRange(rows.length + 2, 1).setValue('Top conceptos por ejecución');
+    summarySheet.getRange(rows.length + 3, 1, 1, 5).setValues([[
+      'Categoría', 'Concepto', 'Presupuesto Anual', 'Ejecutado Acumulado', '% Ejecución'
+    ]]);
+    summarySheet.getRange(rows.length + 3, 1, 1, 5)
+      .setFontWeight('bold')
+      .setBackground('#E8F2FC');
+    summarySheet.getRange(rows.length + 4, 1, topRows.length, 5).setValues(topRows);
+    summarySheet.getRange(rows.length + 4, 3, topRows.length, 2).setNumberFormat('#,##0.00');
+    summarySheet.getRange(rows.length + 4, 5, topRows.length, 1).setNumberFormat('0.00%');
+  }
+}
+
+function computeExecutiveMetrics(budget, actuals, monthNum) {
+  var gastosBudgetYtd = 0;
+  for (var i = 0; i < budget.rows.length; i++) {
+    var row = budget.rows[i];
+    if (row.categoria === 'Ingresos') continue;
+    var end = monthNum > 0 ? monthNum : 12;
+    for (var m = 0; m < end; m++) {
+      gastosBudgetYtd += Number(row.monthly[m]) || 0;
+    }
+  }
+
+  var ingresosActual = 0;
+  var gastosActual = 0;
+  var saldoRestanteAnual = 0;
+  for (var j = 0; j < actuals.rows.length; j++) {
+    var a = actuals.rows[j];
+    if (a.categoria === 'Ingresos') {
+      ingresosActual += Number(a.realAcumulado) || 0;
+    } else {
+      gastosActual += Number(a.realAcumulado) || 0;
+      saldoRestanteAnual += Number(a.saldoRestante) || 0;
+    }
+  }
+
+  var desviacion = gastosActual - gastosBudgetYtd;
+  var ejecPct = gastosBudgetYtd > 0 ? (gastosActual / gastosBudgetYtd) * 100 : 0;
+
+  return {
+    ingresosActual: ingresosActual,
+    gastosActual: gastosActual,
+    resultadoNeto: ingresosActual - gastosActual,
+    gastosBudgetYtd: gastosBudgetYtd,
+    desviacionGastosYtd: desviacion,
+    ejecucionGastosPct: ejecPct,
+    saldoRestanteAnual: saldoRestanteAnual
+  };
+}
+
+function buildTopExecutionRows(actualRows, limit) {
+  var rows = [];
+  for (var i = 0; i < actualRows.length; i++) {
+    var r = actualRows[i];
+    if (r.categoria === 'Ingresos') continue;
+    var annual = Number(r.presupuestoAnual) || 0;
+    var acum = Number(r.realAcumulado) || 0;
+    var pct = annual > 0 ? (acum / annual) : 0;
+    rows.push([r.categoria, r.concepto, annual, acum, pct]);
+  }
+  rows.sort(function (a, b) { return b[4] - a[4]; });
+  return rows.slice(0, limit || 5);
+}
+
+function monthToNumber(monthName) {
+  var name = String(monthName || '').toLowerCase();
+  var map = {
+    'enero': 1,
+    'febrero': 2,
+    'marzo': 3,
+    'abril': 4,
+    'mayo': 5,
+    'junio': 6,
+    'julio': 7,
+    'agosto': 8,
+    'septiembre': 9,
+    'setiembre': 9,
+    'octubre': 10,
+    'noviembre': 11,
+    'diciembre': 12
+  };
+  return map[name] || 0;
+}
+
 /**
  * Read the annual budget spreadsheet for monthly planned amounts.
  */
@@ -230,7 +358,8 @@ function readAnnualBudget() {
 /**
  * Write combined budget + actuals to the reporting spreadsheet.
  */
-function writeFlatTable(ss, budget, actuals) {
+function writeFlatTable(ss, budget, actuals, options) {
+  options = options || {};
   var months = budget.months;
 
   // Sheet 1: Budget (monthly planned)
@@ -266,7 +395,7 @@ function writeFlatTable(ss, budget, actuals) {
   metaSheet.getRange(3, 1).setValue('Fecha archivo');
   metaSheet.getRange(3, 2).setValue(actuals.fileDate || 'N/A');
   metaSheet.getRange(4, 1).setValue('Nota');
-  metaSheet.getRange(4, 2).setValue('No editar — se regenera automáticamente');
+  metaSheet.getRange(4, 2).setValue(options.note || 'No editar — se regenera automáticamente');
 
   // Clean up extra sheets
   var sheets = ss.getSheets();
@@ -308,13 +437,14 @@ function writeSheet(ss, name, rows, currencyCol) {
 function installTriggers() {
   removeTriggers();
 
-  // Hourly trigger — picks up new informe uploads
+  // Daily trigger — executive reporting refresh from latest available informe
   ScriptApp.newTrigger('triggerRefresh')
     .timeBased()
-    .everyHours(1)
+    .everyDays(1)
+    .atHour(6)
     .create();
 
-  Logger.log('Hourly trigger installed');
+  Logger.log('Daily 06:00 trigger installed');
 }
 
 function removeTriggers() {

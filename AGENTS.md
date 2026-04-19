@@ -1,17 +1,17 @@
 # Villa Valencia Portal Guardrails
 
-Anchor on `../../docs/strategic-positioning.md` — that file is canonical for the relationship between `villa-valencia-portal` and `ph-management`. This file restates only what is operationally relevant for work in this repo.
+Anchor on `../../docs/ml-collaborator-brief.md` (canonical) and `../../docs/strategic-positioning.md` (deeper companion). The brief wins when they disagree. This file restates only what is operationally relevant for work in this repo.
 
 ## What This Repo Is
 
-- This repo is the **live iteration lab**. The human works here. New features are designed, built, shipped to residents, and iterated based on real use here FIRST. After a feature is live and working, agents extract reusable patterns into `ph-management`.
-- It is also a customer-specific reference implementation and customer-specific runtime for the APROVIVA / Villa Valencia community (118 houses).
-- It is **not** the flagship product. The flagship is `ph-management`. It is also **not** legacy — it is where every new feature originates.
+- This repo is **both an active live deployment AND a proving ground for `ph-management`**. It serves the APROVIVA / Villa Valencia community (118 houses) every day and is also where new product features should ideally face real residents before being extracted upstream.
+- It is **not** the main white-label product direction. The flagship platform is `ph-management`. It is also **not** legacy or merely historical — it continues to inform the evolution of the white-label platform.
+- Per the brief's important constraint, investment here should ideally create value in two directions: (1) support the live operational needs of Villa Valencia, and (2) extract and upstream validated product capabilities into `ph-management`.
 
 ## Cutover Reality
 
 - Live at `villavalencia.vercel.app`, serving residents and admin for ~118 families.
-- PQRS submit and lookup consume `ph-management.vercel.app` APIs (`/api/pqrs/submit`, `/api/pqrs/lookup`). That cutover was an exception, not the canonical pattern — it happened because a schema and admin UI already existed in ph-management when residents needed PQRS trust fast.
+- PQRS submit and lookup consume `ph-management.vercel.app` APIs (`/api/pqrs/submit`, `/api/pqrs/lookup`). That cutover was an exception to the canonical extraction direction — it happened because a schema and admin UI already existed in ph-management when residents needed PQRS trust fast.
 - Other surfaces (dashboard, budget, providers) still run on Apps Script.
 
 ## UI and Content Guardrail
