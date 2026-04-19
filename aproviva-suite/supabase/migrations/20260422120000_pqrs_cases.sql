@@ -22,6 +22,47 @@ CREATE TABLE IF NOT EXISTS public.pqrs_cases (
   CONSTRAINT pqrs_cases_case_reference_key UNIQUE (case_reference)
 );
 
+-- If pqrs_cases already existed (e.g. ph-management) without VV columns, add them before indexes/policies reference building_id.
+ALTER TABLE public.pqrs_cases ADD COLUMN IF NOT EXISTS case_reference text;
+ALTER TABLE public.pqrs_cases ADD COLUMN IF NOT EXISTS building_id uuid;
+ALTER TABLE public.pqrs_cases ADD COLUMN IF NOT EXISTS site_place_id text;
+ALTER TABLE public.pqrs_cases ADD COLUMN IF NOT EXISTS zona_label text;
+ALTER TABLE public.pqrs_cases ADD COLUMN IF NOT EXISTS tipo text;
+ALTER TABLE public.pqrs_cases ADD COLUMN IF NOT EXISTS urgencia text;
+ALTER TABLE public.pqrs_cases ADD COLUMN IF NOT EXISTS casa text;
+ALTER TABLE public.pqrs_cases ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'pqrs_cases' AND column_name = 'status'
+  ) THEN
+    ALTER TABLE public.pqrs_cases ADD COLUMN status text NOT NULL DEFAULT 'recibido';
+  END IF;
+END $$;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pqrs_cases' AND column_name = 'reference') THEN
+    UPDATE public.pqrs_cases SET case_reference = trim(reference::text)
+    WHERE (case_reference IS NULL OR trim(case_reference) = '') AND reference IS NOT NULL AND trim(reference::text) <> '';
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pqrs_cases' AND column_name = 'case_ref') THEN
+    UPDATE public.pqrs_cases SET case_reference = trim(case_ref::text)
+    WHERE (case_reference IS NULL OR trim(case_reference) = '') AND case_ref IS NOT NULL AND trim(case_ref::text) <> '';
+  END IF;
+END $$;
+UPDATE public.pqrs_cases SET case_reference = 'VV-MIG-' || replace(id::text, '-', '')
+WHERE case_reference IS NULL OR trim(case_reference) = '';
+ALTER TABLE public.pqrs_cases ALTER COLUMN case_reference SET NOT NULL;
+DO $$
+BEGIN
+  ALTER TABLE public.pqrs_cases ADD CONSTRAINT pqrs_cases_case_reference_key UNIQUE (case_reference);
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+UPDATE public.pqrs_cases SET building_id = '88e6c11e-4a8c-4f39-a571-5f97e7f2b774'::uuid
+WHERE building_id IS NULL;
+
 CREATE INDEX IF NOT EXISTS pqrs_cases_building_id_idx ON public.pqrs_cases (building_id);
 CREATE INDEX IF NOT EXISTS pqrs_cases_created_at_idx ON public.pqrs_cases (created_at DESC);
 CREATE INDEX IF NOT EXISTS pqrs_cases_site_place_id_idx ON public.pqrs_cases (building_id, site_place_id);

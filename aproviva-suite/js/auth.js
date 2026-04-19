@@ -53,11 +53,18 @@
     window.location.hash = '#/login';
   }
 
+  /** True when logged in as conserjería / personal (minimal typing UI). */
+  function isStaff() {
+    var s = readSession();
+    return !!(s && s.role === 'staff');
+  }
+
   window.AUTH = {
     loginWithPin: loginWithPin,
     readSession: readSession,
     requireSession: requireSession,
     canAccess: canAccess,
+    isStaff: isStaff,
     logout: logout,
   };
 })();

@@ -31,9 +31,57 @@
             }).join('') +
           '</div>' +
         '</div>' +
+        '<div class="page-section install-section" id="install-section" style="display:none">' +
+          '<h3 class="section-title">App en tu pantalla</h3>' +
+          '<div class="install-card" id="install-ios" style="display:none">' +
+            '<p class="muted" style="margin:0 0 0.5rem;">En <strong>iPhone / iPad</strong> (Safari): toca <strong>Compartir</strong> y luego <strong>A\u00f1adir a inicio</strong>.</p>' +
+          '</div>' +
+          '<div class="install-card" id="install-android" style="display:none">' +
+            '<p class="muted" style="margin:0 0 0.75rem;">Instala la app para abrirla a pantalla completa.</p>' +
+            '<button type="button" class="btn btn-primary-sm" id="install-pwa-btn">Instalar app</button>' +
+          '</div>' +
+        '</div>' +
       '</section>';
 
     loadKpis();
+    setupInstallHints();
+  }
+
+  function setupInstallHints() {
+    var sec = document.getElementById('install-section');
+    if (!sec) return;
+    var standalone = false;
+    try {
+      standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    } catch (e) {}
+    if (standalone) return;
+
+    var ua = navigator.userAgent || '';
+    var isIos = /iPhone|iPad|iPod/i.test(ua);
+    if (isIos) {
+      sec.style.display = '';
+      var ios = document.getElementById('install-ios');
+      if (ios) ios.style.display = '';
+      return;
+    }
+
+    function showAndroid() {
+      sec.style.display = '';
+      var ad = document.getElementById('install-android');
+      if (ad) ad.style.display = '';
+      var btn = document.getElementById('install-pwa-btn');
+      if (btn && window.APROVIVA_INSTALL) {
+        btn.addEventListener('click', function () {
+          window.APROVIVA_INSTALL.prompt();
+        });
+      }
+    }
+
+    if (window.APROVIVA_INSTALL && window.APROVIVA_INSTALL.canPrompt && window.APROVIVA_INSTALL.canPrompt()) {
+      showAndroid();
+    } else {
+      window.addEventListener('aproviva-install-available', showAndroid);
+    }
   }
 
   async function loadKpis() {

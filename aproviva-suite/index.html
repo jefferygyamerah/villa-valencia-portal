@@ -2,10 +2,16 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1e3a8a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="robots" content="noindex" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>APROVIVA Operaciones &mdash; Villa Valencia</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='4' fill='%231e3a8a'/%3E%3Ctext x='50%25' y='62%25' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700' font-size='12'%3EAV%3C/text%3E%3C/svg%3E" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/app-icon.svg" />
   <link rel="stylesheet" href="css/suite.css" />
 </head>
 <body>
@@ -19,17 +25,20 @@
     <main class="app-content" id="app-content">
       <div class="loading">Cargando suite...</div>
     </main>
+    <div id="suite-modal-host" class="suite-modal-host" aria-live="polite"></div>
   </div>
 
   <script src="js/config.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/pwa.js"></script>
   <script src="js/router.js"></script>
   <script src="js/modules/login.js"></script>
   <script src="js/modules/inicio.js"></script>
   <script src="js/modules/inventario.js"></script>
   <script src="js/modules/gemba.js"></script>
+  <script src="js/modules/mapa.js"></script>
   <script src="js/modules/incidencias.js"></script>
   <script src="js/modules/proyectos.js"></script>
   <script src="js/modules/maestros.js"></script>

@@ -1,0 +1,2 @@
+﻿ls: cannot access '/home/jeffery/.supabase': No such file or directory
+ls: cannot access '/home/jeffery/company-portfolio/apps/villa-valencia-portal/.env': No such file or directory

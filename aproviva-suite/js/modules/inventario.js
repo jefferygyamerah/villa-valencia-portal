@@ -34,8 +34,8 @@
       '</section>' +
       '<div id="inv-modal-host"></div>';
 
-    document.getElementById('inv-count-btn').addEventListener('click', function () { openCountModal(); });
-    document.getElementById('inv-issue-btn').addEventListener('click', function () { openIssueModal(); });
+    document.getElementById('inv-count-btn').addEventListener('click', function () { openCountModal(session); });
+    document.getElementById('inv-issue-btn').addEventListener('click', function () { openIssueModal(session); });
 
     await loadAll();
   }
@@ -171,19 +171,56 @@
     ]);
   }
 
-  function openCountModal() {
+  function mergedUbicacionLabels() {
+    var seen = {};
+    var out = [];
+    var fixed = window.APROVIVA_SUITE_CONFIG.STAFF_QUICK_PICKS.UBICACIONES_FIJAS;
+    fixed.forEach(function (u) {
+      if (!seen[u]) { seen[u] = 1; out.push(u); }
+    });
+    STATE.locations.forEach(function (l) {
+      var n = l.name || '';
+      if (n && !seen[n]) { seen[n] = 1; out.push(n); }
+    });
+    return out;
+  }
+
+  function motivoIncidenteById(id) {
+    var list = window.APROVIVA_SUITE_CONFIG.STAFF_QUICK_PICKS.MOTIVOS_INCIDENTE;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) return list[i];
+    }
+    return null;
+  }
+
+  function openCountModal(session) {
     var host = document.getElementById('inv-modal-host');
-    host.innerHTML = renderCountForm();
+    host.innerHTML = renderCountForm(session);
     bindCountForm();
   }
 
-  function openIssueModal() {
+  function openIssueModal(session) {
     var host = document.getElementById('inv-modal-host');
-    host.innerHTML = renderIssueForm();
+    host.innerHTML = renderIssueForm(session);
     bindIssueForm();
   }
 
-  function renderCountForm() {
+  function renderCountForm(session) {
+    var staff = session && session.role === 'staff';
+    var notesBlock;
+    if (staff) {
+      var opts = window.APROVIVA_SUITE_CONFIG.STAFF_QUICK_PICKS.CONTEO_NOTAS.map(function (o) {
+        return '<option value="' + window.UI.esc(o.value) + '">' + window.UI.esc(o.label) + '</option>';
+      }).join('');
+      notesBlock =
+        '<div class="form-field" style="grid-column:1/-1;"><label>Observaci\u00f3n r\u00e1pida</label>' +
+          '<select name="notes">' + opts + '</select>' +
+          '<div class="hint">Conserjer\u00eda: solo opciones predefinidas (sin texto libre).</div></div>';
+    } else {
+      notesBlock =
+        '<div class="form-field" style="grid-column:1/-1;"><label>Observaciones</label>' +
+          '<textarea name="notes" rows="2" placeholder="Opcional"></textarea></div>';
+    }
     return '' +
       '<section class="page" data-testid="inv-count-form">' +
         '<h3 class="section-title">Registrar conteo</h3>' +
@@ -199,12 +236,11 @@
               STATE.locations.map(function (l) { return '<option value="' + l.id + '">' + window.UI.esc(l.name) + '</option>'; }).join('') +
             '</select></div>' +
           '<div class="form-field"><label>Cantidad contada</label>' +
-            '<input type="number" name="qty" min="0" step="0.01" required></div>' +
+            '<input type="number" name="qty" min="0" step="0.01" required inputmode="decimal"></div>' +
           '<div class="form-field"><label>Saldo despu\u00e9s del conteo</label>' +
-            '<input type="number" name="balance" min="0" step="0.01" required>' +
+            '<input type="number" name="balance" min="0" step="0.01" required inputmode="decimal">' +
             '<div class="hint">Por defecto igual a la cantidad contada si no hay m\u00e1s ubicaciones.</div></div>' +
-          '<div class="form-field" style="grid-column:1/-1;"><label>Observaciones</label>' +
-            '<textarea name="notes" rows="2" placeholder="Opcional"></textarea></div>' +
+          notesBlock +
           '<div class="btn-row" style="grid-column:1/-1;">' +
             '<button class="btn btn-primary-sm" type="submit">Guardar</button>' +
             '<button class="btn btn-ghost" type="button" id="count-cancel">Cancelar</button>' +
@@ -246,7 +282,43 @@
     });
   }
 
-  function renderIssueForm() {
+  function renderIssueForm(session) {
+    var staff = session && session.role === 'staff';
+    if (staff) {
+      var motivoOpts = window.APROVIVA_SUITE_CONFIG.STAFF_QUICK_PICKS.MOTIVOS_INCIDENTE.map(function (m) {
+        return '<option value="' + window.UI.esc(m.id) + '">' + window.UI.esc(m.title) + '</option>';
+      }).join('');
+      var ubicOpts = mergedUbicacionLabels().map(function (u) {
+        return '<option value="' + window.UI.esc(u) + '">' + window.UI.esc(u) + '</option>';
+      }).join('');
+      return '' +
+        '<section class="page" data-testid="inv-issue-form">' +
+          '<h3 class="section-title">Reportar novedad</h3>' +
+          '<p class="muted">Conserjer\u00eda: elige motivo y ubicaci\u00f3n (sin texto libre).</p>' +
+          '<form id="issue-form" class="form-grid cols-2" data-staff="1">' +
+            '<div class="form-field"><label>Motivo</label>' +
+              '<select name="motivo_id" required>' + motivoOpts + '</select></div>' +
+            '<div class="form-field"><label>Ubicaci\u00f3n</label>' +
+              '<select name="location" required>' + ubicOpts + '</select></div>' +
+            '<div class="form-field"><label>Severidad</label>' +
+              '<select name="severity" required>' +
+                '<option value="low">Baja</option>' +
+                '<option value="medium" selected>Media</option>' +
+                '<option value="high">Alta</option>' +
+                '<option value="critical">Cr\u00edtica</option>' +
+              '</select></div>' +
+            '<div class="form-field"><label>Art\u00edculo (si aplica)</label>' +
+              '<select name="item">' +
+                '<option value="">N/A</option>' +
+                STATE.items.map(function (i) { return '<option value="' + i.id + '">' + window.UI.esc(i.name) + '</option>'; }).join('') +
+              '</select></div>' +
+            '<div class="btn-row" style="grid-column:1/-1;">' +
+              '<button class="btn btn-primary-sm" type="submit">Reportar</button>' +
+              '<button class="btn btn-ghost" type="button" id="issue-cancel">Cancelar</button>' +
+            '</div>' +
+          '</form>' +
+        '</section>';
+    }
     return '' +
       '<section class="page" data-testid="inv-issue-form">' +
         '<h3 class="section-title">Reportar novedad de inventario</h3>' +
@@ -293,24 +365,54 @@
       var session = window.AUTH.readSession();
       var fd = new FormData(this);
       var ticketNum = 'INC-' + Math.floor(Math.random() * 900000 + 100000);
-      var body = {
-        building_id: window.APROVIVA_SUITE_CONFIG.BUILDING_ID,
-        ticket_number: ticketNum,
-        source: 'internal',
-        category: fd.get('category'),
-        location_label: fd.get('location'),
-        severity: fd.get('severity'),
-        status: 'received',
-        title: fd.get('title'),
-        description: fd.get('description'),
-        resident_visible_status: 'Received',
-        metadata: {
-          actorRole: session.role,
-          actorLabel: session.label,
-          source: 'aproviva-suite',
-          inventory_item_id: fd.get('item') || null,
-        },
-      };
+      var body;
+      if (this.getAttribute('data-staff') === '1') {
+        var mid = fd.get('motivo_id');
+        var mot = motivoIncidenteById(mid);
+        if (!mot) {
+          window.UI.toast('Motivo no v\u00e1lido.', 'error');
+          return;
+        }
+        var ubicLabel = fd.get('location');
+        body = {
+          building_id: window.APROVIVA_SUITE_CONFIG.BUILDING_ID,
+          ticket_number: ticketNum,
+          source: 'internal',
+          category: mot.category,
+          location_label: ubicLabel,
+          severity: fd.get('severity'),
+          status: 'received',
+          title: mot.title,
+          description: mot.description + ' Ubicaci\u00f3n: ' + ubicLabel + '.',
+          resident_visible_status: 'Received',
+          metadata: {
+            actorRole: session.role,
+            actorLabel: session.label,
+            source: 'aproviva-suite',
+            staff_motivo_id: mid,
+            inventory_item_id: fd.get('item') || null,
+          },
+        };
+      } else {
+        body = {
+          building_id: window.APROVIVA_SUITE_CONFIG.BUILDING_ID,
+          ticket_number: ticketNum,
+          source: 'internal',
+          category: fd.get('category'),
+          location_label: fd.get('location'),
+          severity: fd.get('severity'),
+          status: 'received',
+          title: fd.get('title'),
+          description: fd.get('description'),
+          resident_visible_status: 'Received',
+          metadata: {
+            actorRole: session.role,
+            actorLabel: session.label,
+            source: 'aproviva-suite',
+            inventory_item_id: fd.get('item') || null,
+          },
+        };
+      }
       try {
         await window.SB.insert('incident_tickets', body);
         window.UI.toast('Novedad reportada como ' + ticketNum + '.', 'success');

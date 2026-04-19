@@ -1,0 +1,20 @@
+{
+  "name": "APROVIVA Operaciones — Villa Valencia",
+  "short_name": "APROVIVA Ops",
+  "description": "Suite operativa: inventario, recorridos e incidencias.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f6f7fb",
+  "theme_color": "#1e3a8a",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+﻿SHELL=/bin/bash
+WSL2_GUI_APPS_ENABLED=1
+WSL_DISTRO_NAME=Ubuntu
+NAME=PCJeff
+PWD=/home/jeffery/company-portfolio/apps/villa-valencia-portal
+LOGNAME=jeffery
+HOME=/home/jeffery
+LANG=C.UTF-8
+WSL_INTEROP=/run/WSL/1936860_interop
+WAYLAND_DISPLAY=wayland-0
+TERM=xterm-256color
+USER=jeffery
+DISPLAY=:0
+SHLVL=0
+XDG_RUNTIME_DIR=/run/user/1000/
+WSLENV=
+XDG_DATA_DIRS=/usr/local/share:/usr/share:/var/lib/snapd/desktop
+PATH=/home/jeffery/.bun/bin:/home/jeffery/.npm-global/bin:/home/jeffery/.local/bin:/home/jeffery/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Users/jeffe/AppData/Local/Programs/cursor/resources/app/resources/helpers:/mnt/c/windows/system32:/mnt/c/windows:/mnt/c/windows/System32/Wbem:/mnt/c/windows/System32/WindowsPowerShell/v1.0/:/mnt/c/windows/System32/OpenSSH/:/mnt/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/mnt/c/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR:/mnt/c/Users/Administrator/AppData/Local/Microsoft/WindowsApps:/mnt/c/Program Files/HP/OMEN-Broadcast/Common:/mnt/c/Program Files/dotnet/:/mnt/c/Program Files/Git/cmd:/mnt/c/Program Files/nodejs/:/mnt/c/ProgramData/chocolatey/bin:/mnt/c/Program Files/Tailscale/:/mnt/c/Users/jeffe/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/jeffe/AppData/Roaming/npm:/mnt/c/Users/jeffe/AppData/Local/Programs/Microsoft VS Code/bin:/mnt/c/Users/jeffe/AppData/Local/GitHubDesktop/bin:/mnt/c/Users/jeffe/AppData/Local/Programs/cursor/resources/app/bin:/snap/bin
+DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+HOSTTYPE=x86_64
+PULSE_SERVER=unix:/mnt/wslg/PulseServer
+_=/usr/bin/env

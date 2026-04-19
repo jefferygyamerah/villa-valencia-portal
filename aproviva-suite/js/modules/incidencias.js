@@ -149,62 +149,150 @@
     }
   }
 
-  function openNewModal() {
+  function mergedUbicacionLabels(locRows) {
+    var seen = {};
+    var out = [];
+    window.APROVIVA_SUITE_CONFIG.STAFF_QUICK_PICKS.UBICACIONES_FIJAS.forEach(function (u) {
+      if (!seen[u]) { seen[u] = 1; out.push(u); }
+    });
+    (locRows || []).forEach(function (l) {
+      var n = (l && l.name) ? l.name : '';
+      if (n && !seen[n]) { seen[n] = 1; out.push(n); }
+    });
+    return out;
+  }
+
+  function motivoIncidenteById(id) {
+    var list = window.APROVIVA_SUITE_CONFIG.STAFF_QUICK_PICKS.MOTIVOS_INCIDENTE;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) return list[i];
+    }
+    return null;
+  }
+
+  async function openNewModal() {
+    var session = window.AUTH.readSession();
+    var staff = session && session.role === 'staff';
     var host = document.getElementById('inc-modal-host');
-    host.innerHTML = '' +
-      '<section class="page" data-testid="inc-new-form">' +
-        '<h3 class="section-title">Nueva incidencia</h3>' +
-        '<form id="inc-form" class="form-grid cols-2">' +
-          '<div class="form-field"><label>Categor\u00eda</label>' +
-            '<select name="category" required>' +
-              '<option value="Maintenance">Mantenimiento</option>' +
-              '<option value="Security">Seguridad</option>' +
-              '<option value="Inventory">Inventario</option>' +
-              '<option value="Cleanliness">Limpieza</option>' +
-              '<option value="Other">Otro</option>' +
-            '</select></div>' +
-          '<div class="form-field"><label>Severidad</label>' +
-            '<select name="severity" required>' +
-              '<option value="low">Baja</option>' +
-              '<option value="medium" selected>Media</option>' +
-              '<option value="high">Alta</option>' +
-              '<option value="critical">Cr\u00edtica</option>' +
-            '</select></div>' +
-          '<div class="form-field"><label>Ubicaci\u00f3n</label>' +
-            '<input type="text" name="location" placeholder="Ej: Garita, Cuarto t\u00e9cnico" required></div>' +
-          '<div class="form-field"><label>Visible al residente</label>' +
-            '<select name="visible">' +
-              '<option value="false">No</option>' +
-              '<option value="true">S\u00ed</option>' +
-            '</select></div>' +
-          '<div class="form-field" style="grid-column:1/-1;"><label>T\u00edtulo</label>' +
-            '<input type="text" name="title" required></div>' +
-          '<div class="form-field" style="grid-column:1/-1;"><label>Descripci\u00f3n</label>' +
-            '<textarea name="description" rows="3" required></textarea></div>' +
-          '<div class="btn-row" style="grid-column:1/-1;">' +
-            '<button class="btn btn-primary-sm" type="submit">Crear</button>' +
-            '<button class="btn btn-ghost" type="button" id="inc-cancel">Cancelar</button>' +
-          '</div>' +
-        '</form>' +
-      '</section>';
+    var locRows = [];
+    try {
+      locRows = await window.SB.select('inventory_locations', { select: 'name', is_active: 'eq.true', order: 'name.asc' }) || [];
+    } catch (e) {}
+
+    if (staff) {
+      var motivoOpts = window.APROVIVA_SUITE_CONFIG.STAFF_QUICK_PICKS.MOTIVOS_INCIDENTE.map(function (m) {
+        return '<option value="' + window.UI.esc(m.id) + '">' + window.UI.esc(m.title) + '</option>';
+      }).join('');
+      var ubicOpts = mergedUbicacionLabels(locRows).map(function (u) {
+        return '<option value="' + window.UI.esc(u) + '">' + window.UI.esc(u) + '</option>';
+      }).join('');
+      host.innerHTML = '' +
+        '<section class="page" data-testid="inc-new-form">' +
+          '<h3 class="section-title">Nueva incidencia</h3>' +
+          '<p class="muted">Conserjer\u00eda: motivo y ubicaci\u00f3n (sin texto libre).</p>' +
+          '<form id="inc-form" class="form-grid cols-2" data-staff="1">' +
+            '<div class="form-field"><label>Motivo</label>' +
+              '<select name="motivo_id" required>' + motivoOpts + '</select></div>' +
+            '<div class="form-field"><label>Ubicaci\u00f3n</label>' +
+              '<select name="location" required>' + ubicOpts + '</select></div>' +
+            '<div class="form-field"><label>Severidad</label>' +
+              '<select name="severity" required>' +
+                '<option value="low">Baja</option>' +
+                '<option value="medium" selected>Media</option>' +
+                '<option value="high">Alta</option>' +
+                '<option value="critical">Cr\u00edtica</option>' +
+              '</select></div>' +
+            '<div class="form-field"><label>Visible al residente</label>' +
+              '<select name="visible">' +
+                '<option value="false" selected>No</option>' +
+                '<option value="true">S\u00ed</option>' +
+              '</select></div>' +
+            '<div class="btn-row" style="grid-column:1/-1;">' +
+              '<button class="btn btn-primary-sm" type="submit">Crear</button>' +
+              '<button class="btn btn-ghost" type="button" id="inc-cancel">Cancelar</button>' +
+            '</div>' +
+          '</form>' +
+        '</section>';
+    } else {
+      host.innerHTML = '' +
+        '<section class="page" data-testid="inc-new-form">' +
+          '<h3 class="section-title">Nueva incidencia</h3>' +
+          '<form id="inc-form" class="form-grid cols-2">' +
+            '<div class="form-field"><label>Categor\u00eda</label>' +
+              '<select name="category" required>' +
+                '<option value="Maintenance">Mantenimiento</option>' +
+                '<option value="Security">Seguridad</option>' +
+                '<option value="Inventory">Inventario</option>' +
+                '<option value="Cleanliness">Limpieza</option>' +
+                '<option value="Other">Otro</option>' +
+              '</select></div>' +
+            '<div class="form-field"><label>Severidad</label>' +
+              '<select name="severity" required>' +
+                '<option value="low">Baja</option>' +
+                '<option value="medium" selected>Media</option>' +
+                '<option value="high">Alta</option>' +
+                '<option value="critical">Cr\u00edtica</option>' +
+              '</select></div>' +
+            '<div class="form-field"><label>Ubicaci\u00f3n</label>' +
+              '<input type="text" name="location" placeholder="Ej: Garita, Cuarto t\u00e9cnico" required></div>' +
+            '<div class="form-field"><label>Visible al residente</label>' +
+              '<select name="visible">' +
+                '<option value="false">No</option>' +
+                '<option value="true">S\u00ed</option>' +
+              '</select></div>' +
+            '<div class="form-field" style="grid-column:1/-1;"><label>T\u00edtulo</label>' +
+              '<input type="text" name="title" required></div>' +
+            '<div class="form-field" style="grid-column:1/-1;"><label>Descripci\u00f3n</label>' +
+              '<textarea name="description" rows="3" required></textarea></div>' +
+            '<div class="btn-row" style="grid-column:1/-1;">' +
+              '<button class="btn btn-primary-sm" type="submit">Crear</button>' +
+              '<button class="btn btn-ghost" type="button" id="inc-cancel">Cancelar</button>' +
+            '</div>' +
+          '</form>' +
+        '</section>';
+    }
     document.getElementById('inc-cancel').addEventListener('click', function () { host.innerHTML = ''; });
     document.getElementById('inc-form').addEventListener('submit', async function (e) {
       e.preventDefault();
-      var session = window.AUTH.readSession();
+      var sess = window.AUTH.readSession();
       var fd = new FormData(this);
-      var body = {
-        building_id: window.APROVIVA_SUITE_CONFIG.BUILDING_ID,
-        ticket_number: 'INC-' + Math.floor(Math.random() * 900000 + 100000),
-        source: 'internal',
-        category: fd.get('category'),
-        location_label: fd.get('location'),
-        severity: fd.get('severity'),
-        status: 'received',
-        title: fd.get('title'),
-        description: fd.get('description'),
-        resident_visible_status: fd.get('visible') === 'true' ? 'Received' : null,
-        metadata: { actorRole: session.role, actorLabel: session.label, source: 'aproviva-suite' },
-      };
+      var ticketNum = 'INC-' + Math.floor(Math.random() * 900000 + 100000);
+      var body;
+      if (this.getAttribute('data-staff') === '1') {
+        var mot = motivoIncidenteById(fd.get('motivo_id'));
+        if (!mot) {
+          window.UI.toast('Motivo no v\u00e1lido.', 'error');
+          return;
+        }
+        var ubicLabel = fd.get('location');
+        body = {
+          building_id: window.APROVIVA_SUITE_CONFIG.BUILDING_ID,
+          ticket_number: ticketNum,
+          source: 'internal',
+          category: mot.category,
+          location_label: ubicLabel,
+          severity: fd.get('severity'),
+          status: 'received',
+          title: mot.title,
+          description: mot.description + ' Ubicaci\u00f3n: ' + ubicLabel + '.',
+          resident_visible_status: fd.get('visible') === 'true' ? 'Received' : null,
+          metadata: { actorRole: sess.role, actorLabel: sess.label, source: 'aproviva-suite', staff_motivo_id: fd.get('motivo_id') },
+        };
+      } else {
+        body = {
+          building_id: window.APROVIVA_SUITE_CONFIG.BUILDING_ID,
+          ticket_number: ticketNum,
+          source: 'internal',
+          category: fd.get('category'),
+          location_label: fd.get('location'),
+          severity: fd.get('severity'),
+          status: 'received',
+          title: fd.get('title'),
+          description: fd.get('description'),
+          resident_visible_status: fd.get('visible') === 'true' ? 'Received' : null,
+          metadata: { actorRole: sess.role, actorLabel: sess.label, source: 'aproviva-suite' },
+        };
+      }
       try {
         await window.SB.insert('incident_tickets', body);
         window.UI.toast('Incidencia creada.', 'success');
