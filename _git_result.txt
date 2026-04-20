@@ -1,0 +1,29 @@
+ M aproviva-portal.html
+ M aproviva-proveedores.html
+M  aproviva-suite/index.html
+M  aproviva-suite/js/modules/inventario.js
+ M aproviva-suite/js/modules/junta.js
+ M aproviva-suite/js/modules/login.js
+ M aproviva-suite/js/modules/maestros.js
+M  aproviva-suite/js/modules/reportes.js
+M  aproviva-suite/js/router.js
+ M aproviva-suite/js/supabase.js
+ M css/styles.css
+M  docs/test-findings/comprehensive.md
+M  e2e/tests/portal-home.spec.ts
+M  index.html
+M  js/app.js
+ M mock-finanzas-dashboard.html
+?? _git_do_commit.sh
+?? _git_result.txt
+?? _run_git_commit_push.sh
+[master 835a363] fix: PQRS VV submit gate, suite hash routing, KPI tooltips
+ 8 files changed, 796 insertions(+), 776 deletions(-)
+remote: Bypassed rule violations for refs/heads/master:        
+remote: 
+remote: - Changes must be made through a pull request.        
+remote: 
+To https://github.com/jefferygyamerah/villa-valencia-portal.git
+   e16ff85..835a363  master -> master
+835a363 fix: PQRS VV submit gate, suite hash routing, KPI tooltips
+DONE
