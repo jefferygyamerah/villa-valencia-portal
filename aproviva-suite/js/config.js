@@ -33,16 +33,36 @@
     /** Cat\u00e1logo de puntos del conjunto con clasificaci\u00f3n edificio / \u00e1rea. */
     SITE_PLACES: SITE_PLACES,
 
+    /**
+     * Four operational roles (session.role). Legacy PIN aliases:
+     * - 2026 \u2192 conserjer\u00eda (same as CONS26)
+     * - JD26 \u2192 junta directiva (governance + backlog intake; not day-to-day ops)
+     */
     PINS: {
       '2026': {
-        role: 'staff',
+        role: 'conserje',
         label: 'Personal / Conserjer\u00eda',
         modules: ['inventario', 'gemba', 'incidencias'],
       },
-      'JD26': {
+      CONS26: {
+        role: 'conserje',
+        label: 'Personal / Conserjer\u00eda',
+        modules: ['inventario', 'gemba', 'incidencias'],
+      },
+      SUP26: {
+        role: 'supervisor',
+        label: 'Supervisi\u00f3n operativa',
+        modules: ['inventario', 'gemba', 'incidencias', 'reportes', 'proyectos'],
+      },
+      GER26: {
+        role: 'gerencia',
+        label: 'Gerencia / Administraci\u00f3n',
+        modules: ['inventario', 'gemba', 'incidencias', 'proyectos', 'maestros', 'reportes'],
+      },
+      JD26: {
         role: 'junta',
-        label: 'Junta / Administraci\u00f3n',
-        modules: ['inventario', 'gemba', 'incidencias', 'proyectos', 'maestros', 'reportes', 'junta'],
+        label: 'Junta directiva',
+        modules: ['reportes', 'junta', 'proyectos'],
       },
     },
 
@@ -51,8 +71,8 @@
     PORTAL_HOME_URL: '../index.html',
 
     /**
-     * Conserjería: prefer selects / plantillas over free text (teléfono en ruta).
-     * Junta/admin sigue usando formularios completos en los mismos módulos.
+     * Conserjería / supervisión: prefer selects / plantillas over free text (teléfono en ruta).
+     * Gerencia y junta usan formularios completos en los módulos a los que tienen acceso.
      */
     STAFF_QUICK_PICKS: {
       CONTEO_NOTAS: [

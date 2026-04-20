@@ -172,7 +172,7 @@
 
   async function openNewModal() {
     var session = window.AUTH.readSession();
-    var staff = session && session.role === 'staff';
+    var staff = window.AUTH.isStaff();
     var host = document.getElementById('inc-modal-host');
     var locRows = [];
     try {
@@ -190,7 +190,7 @@
         '<section class="page" data-testid="inc-new-form">' +
           '<h3 class="section-title">Nueva incidencia</h3>' +
           '<p class="muted">Conserjer\u00eda: motivo y ubicaci\u00f3n (sin texto libre).</p>' +
-          '<form id="inc-form" class="form-grid cols-2" data-staff="1">' +
+          '<form id="inc-form" class="form-grid cols-2" data-staff="1" novalidate>' +
             '<div class="form-field"><label>Motivo</label>' +
               '<select name="motivo_id" required>' + motivoOpts + '</select></div>' +
             '<div class="form-field"><label>Ubicaci\u00f3n</label>' +
@@ -217,7 +217,7 @@
       host.innerHTML = '' +
         '<section class="page" data-testid="inc-new-form">' +
           '<h3 class="section-title">Nueva incidencia</h3>' +
-          '<form id="inc-form" class="form-grid cols-2">' +
+          '<form id="inc-form" class="form-grid cols-2" novalidate>' +
             '<div class="form-field"><label>Categor\u00eda</label>' +
               '<select name="category" required>' +
                 '<option value="Maintenance">Mantenimiento</option>' +
@@ -254,6 +254,7 @@
     document.getElementById('inc-cancel').addEventListener('click', function () { host.innerHTML = ''; });
     document.getElementById('inc-form').addEventListener('submit', async function (e) {
       e.preventDefault();
+      window.UI.toast('Creando incidencia...', 'info');
       var sess = window.AUTH.readSession();
       var fd = new FormData(this);
       var ticketNum = 'INC-' + Math.floor(Math.random() * 900000 + 100000);

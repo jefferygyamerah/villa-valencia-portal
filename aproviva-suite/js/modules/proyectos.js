@@ -1,10 +1,32 @@
 /**
- * Proyectos / Acciones - work assignments (junta only).
- * Scenarios 8, 9 - supervisor intervention via assigned work orders.
- * Bulk: CSV plantilla + importación masiva (work_assignments).
+ * Proyectos / Acciones - work_assignments.
+ * Gerencia: CSV import + full lifecycle. Supervisor: list + advance + crear.
+ * Junta: backlog intake (metadata requested_by_role) + read-only list of items they requested.
  */
 (function () {
   var STATE = { rows: [], filter: 'open' };
+
+  function parseMeta(m) {
+    if (!m) return {};
+    if (typeof m === 'object') return m;
+    try {
+      return JSON.parse(m);
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function canAdvanceWork(session) {
+    return !!(session && (session.role === 'supervisor' || session.role === 'gerencia'));
+  }
+
+  function canImportCsv(session) {
+    return !!(session && session.role === 'gerencia');
+  }
+
+  function isJunta(session) {
+    return !!(session && session.role === 'junta');
+  }
 
   var TASK_TYPES = ['corrective', 'preventive', 'inspection', 'project'];
   var PRIORITIES = ['low', 'normal', 'high', 'critical'];
@@ -163,6 +185,7 @@
   }
 
   function wireCsvImport(session) {
+    if (!canImportCsv(session)) return;
     var fileInput = document.getElementById('proj-csv-input');
     var btnUp = document.getElementById('proj-csv-upload');
     var btnTpl = document.getElementById('proj-csv-template');
@@ -199,23 +222,43 @@
       } else if (res.fail) {
         window.UI.toast('Importaci\u00f3n fallida. Revisa la consola o el formato.', 'error');
       }
-      await load();
+      await load(session);
     });
   }
 
   async function render(container, session) {
+    var junta = isJunta(session);
+    var csvBlock = canImportCsv(session)
+      ? '<button class="btn btn-ghost" type="button" id="proj-csv-template">Descargar plantilla CSV</button>' +
+        '<button class="btn btn-ghost" type="button" id="proj-csv-upload">Importar CSV</button>' +
+        '<input type="file" id="proj-csv-input" accept=".csv,text/csv" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;" />'
+      : '';
+
+    var intro = junta
+      ? '<p class="page-subtitle">Solicitudes al equipo operativo (backlog). La supervisi\u00f3n y gerencia ejecutan y avanzan el estado.</p>' +
+        '<p class="muted mt-1" style="max-width:42rem;line-height:1.45;">' +
+          'Registra una tarea con t\u00edtulo, \u00e1rea y descripci\u00f3n. Las solicitudes quedan en cola (<code>open</code>) para asignaci\u00f3n en campo. ' +
+          'Aqu\u00ed solo ves las solicitudes que cre\u00f3 la junta desde este m\u00f3dulo.' +
+        '</p>'
+      : '<p class="page-subtitle">\u00d3rdenes de trabajo, intervenciones y seguimiento.</p>' +
+        '<p class="muted mt-1" style="max-width:42rem;line-height:1.45;">' +
+          (canImportCsv(session)
+            ? 'Mantenimiento masivo: descarga la plantilla CSV, compl\u00e9tala en Excel o LibreOffice y sube el archivo. ' +
+              'Columnas obligatorias: <code>title</code>, <code>area</code>, <code>assignee_name</code>, <code>description</code>. ' +
+              'Opcionales: <code>task_type</code> (corrective|preventive|inspection|project), <code>priority</code>, <code>due_at</code> (YYYY-MM-DD), ' +
+              '<code>assignment_number</code> (vac\u00edo = se genera), <code>status</code>.'
+            : 'Cre\u00e1 ordenes manualmente o avanz\u00e1 el estado de las existentes. La importaci\u00f3n CSV est\u00e1 reservada a gerencia.') +
+        '</p>';
+
+    var title = junta ? 'Backlog operativo' : 'Proyectos / Acciones';
+    var newBtnLabel = junta ? '+ Nueva tarea (backlog)' : '+ Nueva orden';
+
     container.innerHTML = '' +
       '<section class="page" data-testid="proyectos-page">' +
         '<div class="row between wrap">' +
           '<div>' +
-            '<h2 class="page-title">Proyectos / Acciones</h2>' +
-            '<p class="page-subtitle">\u00d3rdenes de trabajo, intervenciones y seguimiento ejecutivo.</p>' +
-            '<p class="muted mt-1" style="max-width:42rem;line-height:1.45;">' +
-              'Mantenimiento masivo: descarga la plantilla CSV, compl\u00e9tala en Excel o LibreOffice y sube el archivo. ' +
-              'Columnas obligatorias: <code>title</code>, <code>area</code>, <code>assignee_name</code>, <code>description</code>. ' +
-              'Opcionales: <code>task_type</code> (corrective|preventive|inspection|project), <code>priority</code>, <code>due_at</code> (YYYY-MM-DD), ' +
-              '<code>assignment_number</code> (vac\u00edo = se genera), <code>status</code>.' +
-            '</p>' +
+            '<h2 class="page-title">' + title + '</h2>' +
+            intro +
           '</div>' +
           '<div class="row wrap" style="gap:0.5rem;">' +
             '<select id="proj-filter" class="btn btn-ghost">' +
@@ -223,10 +266,8 @@
               '<option value="all">Todos</option>' +
               '<option value="closed">Cerrados</option>' +
             '</select>' +
-            '<button class="btn btn-ghost" type="button" id="proj-csv-template">Descargar plantilla CSV</button>' +
-            '<button class="btn btn-ghost" type="button" id="proj-csv-upload">Importar CSV</button>' +
-            '<input type="file" id="proj-csv-input" accept=".csv,text/csv" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;" />' +
-            '<button class="btn btn-primary-sm" id="proj-new" type="button">+ Nueva orden</button>' +
+            csvBlock +
+            '<button class="btn btn-primary-sm" id="proj-new" type="button" data-testid="' + (junta ? 'proj-backlog-form' : 'proj-new-order') + '">' + newBtnLabel + '</button>' +
           '</div>' +
         '</div>' +
         '<div class="kpi-grid" id="proj-kpis"><div class="loading">...</div></div>' +
@@ -236,18 +277,24 @@
       '</section>' +
       '<div id="proj-modal-host"></div>';
 
-    document.getElementById('proj-filter').addEventListener('change', function (e) { STATE.filter = e.target.value; renderList(); });
-    document.getElementById('proj-new').addEventListener('click', openNew);
+    document.getElementById('proj-filter').addEventListener('change', function (e) { STATE.filter = e.target.value; renderList(session); });
+    document.getElementById('proj-new').addEventListener('click', function () { openNew(session); });
     wireCsvImport(session);
-    await load();
+    await load(session);
   }
 
-  async function load() {
+  async function load(session) {
     try {
       var rows = await window.SB.select('work_assignments', { select: '*', order: 'due_at.asc.nullslast', limit: '200' });
-      STATE.rows = rows || [];
+      rows = rows || [];
+      if (session && session.role === 'junta') {
+        rows = rows.filter(function (r) {
+          return parseMeta(r.metadata).requested_by_role === 'junta';
+        });
+      }
+      STATE.rows = rows;
       renderKpis();
-      renderList();
+      renderList(session);
     } catch (e) {
       window.UI.errorBox('proj-list', e);
     }
@@ -264,10 +311,13 @@
       kpi('Alta prioridad', highPriority.length);
   }
 
-  function renderList() {
+  function renderList(session) {
     var rows = STATE.rows;
     if (STATE.filter === 'open') rows = rows.filter(function (r) { return r.status !== 'completed' && r.status !== 'closed' && r.status !== 'cancelled'; });
     if (STATE.filter === 'closed') rows = rows.filter(function (r) { return r.status === 'completed' || r.status === 'closed'; });
+
+    var sess = session || window.AUTH.readSession();
+    var showAdvance = canAdvanceWork(sess);
 
     if (!rows.length) {
       document.getElementById('proj-list').innerHTML = '<p class="empty">Sin \u00f3rdenes.</p>';
@@ -288,6 +338,7 @@
         }, html: true },
         { key: 'actions', label: '', render: function (r) {
           if (r.status === 'completed' || r.status === 'closed') return '<span class="muted">Cerrada</span>';
+          if (!showAdvance) return '<span class="muted">\u2014</span>';
           return '<button class="btn btn-ghost" data-act="advance" data-id="' + window.UI.esc(r.id) + '" data-current="' + window.UI.esc(r.status) + '">Avanzar</button>';
         }, html: true },
       ]);
@@ -326,19 +377,88 @@
         if (next === 'completed') patch.verified_at = new Date().toISOString();
         await window.SB.update('work_assignments', { id: 'eq.' + id }, patch);
         window.UI.toast('Orden avanzada a ' + next + '.', 'success');
-        await load();
+        await load(window.AUTH.readSession());
       } catch (err) {
         window.UI.toast('Error: ' + err.message, 'error');
       }
     }
   }
 
-  function openNew() {
+  function openJuntaBacklog(session) {
+    var host = document.getElementById('proj-modal-host');
+    host.innerHTML = '' +
+      '<section class="page" data-testid="proj-junta-backlog-modal">' +
+        '<h3 class="section-title">Nueva tarea para operaciones</h3>' +
+        '<form id="proj-form" class="form-grid cols-2" novalidate>' +
+          '<div class="form-field"><label>T\u00edtulo</label>' +
+            '<input type="text" name="title" required></div>' +
+          '<div class="form-field"><label>\u00c1rea</label>' +
+            '<input type="text" name="area" required></div>' +
+          '<div class="form-field"><label>Prioridad</label>' +
+            '<select name="priority">' +
+              '<option value="low">Baja</option>' +
+              '<option value="normal" selected>Normal</option>' +
+              '<option value="high">Alta</option>' +
+              '<option value="critical">Cr\u00edtica</option>' +
+            '</select></div>' +
+          '<div class="form-field"><label>Vence (opcional)</label>' +
+            '<input type="date" name="due_at"></div>' +
+          '<div class="form-field" style="grid-column:1/-1;"><label>Descripci\u00f3n</label>' +
+            '<textarea name="description" rows="4" required></textarea></div>' +
+          '<div class="btn-row" style="grid-column:1/-1;">' +
+            '<button class="btn btn-primary-sm" type="submit">Enviar al backlog</button>' +
+            '<button class="btn btn-ghost" type="button" id="proj-cancel">Cancelar</button>' +
+          '</div>' +
+        '</form>' +
+      '</section>';
+    document.getElementById('proj-cancel').addEventListener('click', function () { host.innerHTML = ''; });
+    document.getElementById('proj-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var body = {
+        assignment_number: 'WO-' + Math.floor(Math.random() * 900000 + 100000),
+        assignee_name: 'Por asignar (Junta)',
+        area: fd.get('area'),
+        task_type: 'corrective',
+        title: fd.get('title'),
+        description: fd.get('description'),
+        status: 'open',
+        priority: fd.get('priority'),
+        verification_required: false,
+        due_at: fd.get('due_at') ? new Date(fd.get('due_at')).toISOString() : null,
+        metadata: {
+          requested_by_role: 'junta',
+          requested_by: session.label,
+          actorRole: session.role,
+          actorLabel: session.label,
+          source: 'aproviva-suite-junta-backlog',
+        },
+      };
+      try {
+        await window.SB.insert('work_assignments', body);
+        window.UI.toast('Solicitud enviada al backlog.', 'success');
+        host.innerHTML = '';
+        await load(session);
+      } catch (err) {
+        window.UI.toast('Error: ' + err.message, 'error');
+      }
+    });
+  }
+
+  function openNew(session) {
+    if (session && session.role === 'junta') {
+      openJuntaBacklog(session);
+      return;
+    }
+    openNewFull(session);
+  }
+
+  function openNewFull(session) {
     var host = document.getElementById('proj-modal-host');
     host.innerHTML = '' +
       '<section class="page" data-testid="proj-new-form">' +
         '<h3 class="section-title">Nueva orden de trabajo</h3>' +
-        '<form id="proj-form" class="form-grid cols-2">' +
+        '<form id="proj-form" class="form-grid cols-2" novalidate>' +
           '<div class="form-field"><label>T\u00edtulo</label>' +
             '<input type="text" name="title" required></div>' +
           '<div class="form-field"><label>\u00c1rea</label>' +
@@ -372,7 +492,7 @@
     document.getElementById('proj-cancel').addEventListener('click', function () { host.innerHTML = ''; });
     document.getElementById('proj-form').addEventListener('submit', async function (e) {
       e.preventDefault();
-      var session = window.AUTH.readSession();
+      var sess = session || window.AUTH.readSession();
       var fd = new FormData(this);
       var body = {
         assignment_number: 'WO-' + Math.floor(Math.random() * 900000 + 100000),
@@ -385,13 +505,13 @@
         priority: fd.get('priority'),
         verification_required: false,
         due_at: fd.get('due_at') ? new Date(fd.get('due_at')).toISOString() : null,
-        metadata: { actorRole: session.role, actorLabel: session.label, source: 'aproviva-suite' },
+        metadata: { actorRole: sess.role, actorLabel: sess.label, source: 'aproviva-suite' },
       };
       try {
         await window.SB.insert('work_assignments', body);
         window.UI.toast('Orden creada.', 'success');
         host.innerHTML = '';
-        await load();
+        await load(sess);
       } catch (err) {
         window.UI.toast('Error: ' + err.message, 'error');
       }

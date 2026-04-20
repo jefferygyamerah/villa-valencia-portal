@@ -210,7 +210,7 @@
   }
 
   function renderCountForm(session) {
-    var staff = session && session.role === 'staff';
+    var staff = window.AUTH.isStaff();
     var notesBlock;
     if (staff) {
       var opts = window.APROVIVA_SUITE_CONFIG.STAFF_QUICK_PICKS.CONTEO_NOTAS.map(function (o) {
@@ -263,6 +263,7 @@
     });
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
+      window.UI.toast('Guardando conteo...', 'info');
       var session = window.AUTH.readSession();
       var fd = new FormData(form);
       var body = {
@@ -287,7 +288,7 @@
   }
 
   function renderIssueForm(session) {
-    var staff = session && session.role === 'staff';
+    var staff = window.AUTH.isStaff();
     if (staff) {
       var motivoOpts = window.APROVIVA_SUITE_CONFIG.STAFF_QUICK_PICKS.MOTIVOS_INCIDENTE.map(function (m) {
         return '<option value="' + window.UI.esc(m.id) + '">' + window.UI.esc(m.title) + '</option>';
@@ -366,6 +367,7 @@
     });
     document.getElementById('issue-form').addEventListener('submit', async function (e) {
       e.preventDefault();
+      window.UI.toast('Enviando reporte...', 'info');
       var session = window.AUTH.readSession();
       var fd = new FormData(this);
       var ticketNum = 'INC-' + Math.floor(Math.random() * 900000 + 100000);

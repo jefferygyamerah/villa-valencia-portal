@@ -4,7 +4,7 @@
 (function () {
   function render(container) {
     container.innerHTML = '' +
-      '<div class="login-screen">' +
+      '<div class="login-screen" data-testid="suite-login-screen">' +
         '<div class="login-card">' +
           '<h1>APROVIVA Operaciones</h1>' +
           '<p class="login-sub">Ingresa tu PIN para entrar al sistema operativo de Villa Valencia.</p>' +
@@ -13,8 +13,10 @@
           '<button class="btn-primary" id="pin-submit" type="button">Entrar</button>' +
           '<a class="login-back" href="../index.html">&larr; Volver al portal</a>' +
           '<div class="login-hints">' +
-            'PIN <strong>2026</strong> &mdash; Personal / Conserjer\u00eda<br>' +
-            'PIN <strong>JD26</strong> &mdash; Junta / Administraci\u00f3n' +
+            '<strong>Conserjer\u00eda</strong> &mdash; PIN <strong>2026</strong> o <strong>CONS26</strong><br>' +
+            '<strong>Supervisi\u00f3n</strong> &mdash; PIN <strong>SUP26</strong><br>' +
+            '<strong>Gerencia</strong> &mdash; PIN <strong>GER26</strong><br>' +
+            '<strong>Junta</strong> &mdash; PIN <strong>JD26</strong> (gobernanza, reportes, backlog para operaciones)' +
           '</div>' +
         '</div>' +
       '</div>';

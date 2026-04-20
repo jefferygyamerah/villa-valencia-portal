@@ -6,7 +6,7 @@ scenarios across 5 roles (conserje, admin de planta, supervisor, gerencia, junta
 - **Live (production):** https://villavalencia.vercel.app/aproviva-suite/
 - **Preview (here.now):** https://whole-crystal-6gt7.here.now/
 - **Stack:** Vanilla HTML / CSS / JS (no build step) over Supabase REST + RLS.
-- **Auth:** PIN-based session (`2026` = staff/conserjeria, `JD26` = junta/administracion). POC-grade — see security note below.
+- **Auth:** PIN-based session — four operational roles: **2026** / **CONS26** (conserjería), **SUP26** (supervisión), **GER26** (gerencia), **JD26** (junta: gobernanza + backlog hacia operaciones). POC-grade — see security note below.
 - **Data:** Live Supabase project `tgoitmwdpdkhlpqpwrvs` (47 already-migrated tables). **PQRS** cases table: `supabase/migrations/20260422120000_pqrs_cases.sql` (portal toggles via `js/config.js` `PQRS_USE_VV_SUPABASE`). See `../docs/PQRS-MIGRATION-PH-TO-VV.md`. Map/recorrido: `20260420120000_recorrido_map_waypoints.sql`, `20260421120000_site_place_geo_pqrs_map.sql`, optional `20260421130000_drop_duplicate_pqrs_map_objects.sql`.
 
 ## Modules
@@ -14,25 +14,25 @@ scenarios across 5 roles (conserje, admin de planta, supervisor, gerencia, junta
 | Route | Role | Tables |
 |---|---|---|
 | `#/inicio` | all | cross-table KPIs |
-| `#/inventario` | staff + junta | `inventory_items`, `inventory_locations`, `inventory_movements` |
-| `#/gemba` | staff + junta | `inspection_rounds`, `inspection_findings` |
-| `#/mapa` | staff + junta | static `data/villa-valencia-site.geojson` + **`recorrido_map_waypoints`** (waypoints CRUD; junta/supervisor places points) |
+| `#/inventario` | conserje, supervisor, gerencia | `inventory_items`, `inventory_locations`, `inventory_movements` |
+| `#/gemba` | conserje, supervisor, gerencia | `inspection_rounds`, `inspection_findings` |
+| `#/mapa` | conserje, supervisor, gerencia (requires `gemba`) | static `data/villa-valencia-site.geojson` + **`recorrido_map_waypoints`** |
 | **`mapa-pqrs.html`** | public (no login) | Same GeoJSON + read-only waypoints from Supabase — linked from **PQRS** on the main portal for residents |
-| `#/incidencias` | staff + junta | `incident_tickets` (+ `escalation_events` on escalate) |
-| `#/proyectos` | junta only | `work_assignments` — plantilla CSV masiva: `data/work-assignments-import-template.csv` (descarga / importación en la página) |
-| `#/maestros` | junta only | `inventory_items`, `inventory_locations`, `buildings`, `admin_users` |
-| `#/reportes` | junta only | reads all of the above; CSV export |
-| `#/junta` | junta only | `escalation_events`, `weekly_reports`, `compliance_cases`, `work_assignments` |
+| `#/incidencias` | conserje, supervisor, gerencia | `incident_tickets` (+ `escalation_events` on escalate) |
+| `#/proyectos` | supervisor, gerencia, junta | `work_assignments` — **gerencia:** CSV import; **junta:** backlog intake (`metadata.requested_by_role`); **supervisor:** list + advance |
+| `#/maestros` | gerencia | `inventory_items`, `inventory_locations`, `buildings`, `admin_users` |
+| `#/reportes` | supervisor, gerencia, junta | reads operational data; CSV export |
+| `#/junta` | junta | `escalation_events`, `weekly_reports`, `compliance_cases`, `work_assignments` |
 
 ## Scenario coverage
 
-All 19 scenarios from the master scenario list are implemented; 14 are LIVE end-to-end (write + read against Supabase), 5 are PARTIAL (function exists, gap noted in `../docs/test-findings/comprehensive.md`).
+All 19 scenarios from the master scenario list are implemented; the matrix in `../docs/test-findings/comprehensive.md` tracks LIVE vs follow-up data-model gaps (e.g. multi-building FKs).
 
 ## Security note (POC)
 
 This is a POC. The publishable Supabase key in `js/config.js` allows anonymous reads and writes against the operational tables. RLS policies on those tables are permissive today — the assumption is internal-only access via the PIN gate. Before opening this surface to residents at scale, RLS policies must scope writes to authenticated `admin_users`.
 
-The PIN gate (`2026` / `JD26`) is UI-level only. It does not authenticate against Supabase. Both the keys and the gate are visible in the page source. Treat this app as open to anyone who has the URL and a valid PIN.
+The PIN gate (e.g. `2026`, `SUP26`, `GER26`, `JD26`) is UI-level only. It does not authenticate against Supabase. Both the keys and the gate are visible in the page source. Treat this app as open to anyone who has the URL and a valid PIN.
 
 ## Files
 
@@ -55,7 +55,7 @@ aproviva-suite/
         ├── gemba.js              # Scenarios 4-10 (recorridos + hallazgos)
         ├── mapa.js               # Site map: GeoJSON perimeter/route + Supabase waypoints
         ├── incidencias.js        # Scenarios 3, 7 (triage + advance + escalate)
-        ├── proyectos.js          # Scenarios 8, 9 (work assignments, junta-only)
+        ├── proyectos.js          # Scenarios 8, 9 (work assignments; role-based: gerencia CSV, junta backlog, supervisor execution)
         ├── maestros.js           # Scenario 11 (master data, junta-only)
         ├── reportes.js           # Scenarios 12-15 (daily, weekly, escalations, KPI CSV)
         └── junta.js              # Scenarios 16-19 (governance dashboard)

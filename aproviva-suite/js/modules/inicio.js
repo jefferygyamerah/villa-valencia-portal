@@ -6,7 +6,7 @@
     { id: 'inventario', eyebrow: 'OPERACI\u00d3N',  title: 'Inventario',     desc: 'Conteo c\u00edclico, alertas de stock m\u00ednimo y registro de novedades.' },
     { id: 'gemba',      eyebrow: 'OPERACI\u00d3N',  title: 'Recorridos',     desc: 'Ejecuci\u00f3n y seguimiento de recorridos asignados (Gemba).' },
     { id: 'incidencias',eyebrow: 'OPERACI\u00d3N',  title: 'Incidencias',    desc: 'Registro y triage de incidentes operativos del edificio.' },
-    { id: 'proyectos',  eyebrow: 'COORDINACI\u00d3N',title: 'Proyectos',     desc: 'Acciones, \u00f3rdenes de trabajo y seguimiento (Junta).' },
+    { id: 'proyectos',  eyebrow: 'COORDINACI\u00d3N',title: 'Proyectos',     desc: '\u00d3rdenes de trabajo, backlog (junta) y ejecuci\u00f3n (supervisi\u00f3n/gerencia).' },
     { id: 'maestros',   eyebrow: 'CONTROL',         title: 'Datos maestros',  desc: 'Cat\u00e1logos: art\u00edculos, ubicaciones, edificios.' },
     { id: 'reportes',   eyebrow: 'REPORTING',       title: 'Reportes',        desc: 'Resumen diario, semanal, escalaciones, KPI export.' },
     { id: 'junta',      eyebrow: 'GOBERNANZA',      title: 'Junta',           desc: 'Visi\u00f3n ejecutiva: KPIs, escalaciones cr\u00f3nicas, accountability.' },

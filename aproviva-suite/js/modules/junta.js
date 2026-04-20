@@ -64,7 +64,22 @@
       var openWO = wo.filter(function (r) { return r.status !== 'completed' && r.status !== 'closed' && r.status !== 'cancelled'; });
       var lateWO = openWO.filter(function (r) { return r.due_at && new Date(r.due_at).getTime() < Date.now(); });
 
+      var singleBuildingNote = buildings.length <= 1
+        ? '<div class="page-section" style="padding:0.75rem 1rem;background:var(--surface-2,#f1f5f9);border-radius:var(--radius,12px);border:1px solid var(--border,#e2e8f0);margin-bottom:1rem;">' +
+          '<strong>Multi-edificio (Sc. 16):</strong> en datos maestros hay <strong>' + buildings.length + '</strong> edificio(s). ' +
+          'Cuando existan m\u00e1s filas en <code>buildings</code>, la tabla inferior mostrar\u00e1 comparaci\u00f3n real multi-sitio.</div>'
+        : '';
+
+      var complianceRows = compliance.slice(0, 25).map(function (c) {
+        return {
+          status: c.status || '\u2014',
+          summary: c.title || c.summary || c.case_type || c.id || '\u2014',
+          opened: c.created_at || c.opened_at || '',
+        };
+      });
+
       box.innerHTML = '' +
+        singleBuildingNote +
         '<div class="kpi-grid">' +
           kpi('Edificios', buildings.length) +
           kpi('Escalaciones abiertas', openEsc.length) +
@@ -98,6 +113,17 @@
             { key: 'pattern', label: 'Patr\u00f3n (ubicaci\u00f3n | categor\u00eda)' },
             { key: 'count', label: 'Repeticiones', render: function (r) { return window.UI.badge(r.count + '\u00d7', 'warning'); }, html: true },
           ]) : '<p class="empty">Sin patrones cr\u00f3nicos detectados (umbral: 3+ repeticiones).</p>') +
+        '</div>' +
+
+        '<div class="page-section"><h3 class="section-title">Compliance (lectura)</h3>' +
+          '<p class="muted" style="margin:0 0 0.75rem;font-size:0.88rem;">Listado de filas en <code>compliance_cases</code>. Alta y cierre formal depender\u00e1n del flujo definido con gobierno.</p>' +
+          (complianceRows.length
+            ? window.UI.table(complianceRows, [
+              { key: 'status', label: 'Estado' },
+              { key: 'summary', label: 'Resumen / tipo' },
+              { key: 'opened', label: 'Fecha', render: function (r) { return r.opened ? window.UI.fmtDate(r.opened) : ''; } },
+            ])
+            : '<p class="empty">Sin casos de compliance registrados.</p>') +
         '</div>' +
 
         '<div class="page-section"><h3 class="section-title">Reportes semanales</h3>' +

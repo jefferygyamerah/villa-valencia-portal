@@ -53,10 +53,13 @@
     window.location.hash = '#/login';
   }
 
-  /** True when logged in as conserjería / personal (minimal typing UI). */
+  /**
+   * Quick-pick / minimal-typing UI in inventario, gemba, incidencias.
+   * Conserjería and supervisión use plantillas; gerencia and junta use formularios completos where they have access.
+   */
   function isStaff() {
     var s = readSession();
-    return !!(s && s.role === 'staff');
+    return !!(s && (s.role === 'conserje' || s.role === 'supervisor'));
   }
 
   window.AUTH = {

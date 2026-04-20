@@ -61,7 +61,7 @@
     }
 
     if (route.requiredModule && !window.AUTH.canAccess(route.requiredModule)) {
-      container.innerHTML = '<section class="page"><h2>Acceso restringido</h2><p>Esta secci\u00f3n requiere acceso de Junta / Administraci\u00f3n.</p></section>';
+      container.innerHTML = '<section class="page"><h2>Acceso restringido</h2><p>Esta secci\u00f3n no est\u00e1 habilitada para tu PIN / rol.</p></section>';
       updateNav(session);
       return;
     }

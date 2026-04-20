@@ -4,6 +4,30 @@
  */
 (function () {
   var STATE = { rounds: [], findings: [], locations: [] };
+  /** Browser-local presets for "Iniciar recorrido" (Sc. 4). */
+  var TEMPLATES_KEY = 'vv_gemba_round_templates_v1';
+
+  function loadTemplates() {
+    try {
+      var raw = localStorage.getItem(TEMPLATES_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveTemplates(arr) {
+    try {
+      localStorage.setItem(TEMPLATES_KEY, JSON.stringify(arr));
+    } catch (e) {
+      window.UI.toast('No se pudo guardar la plantilla en este navegador.', 'error');
+    }
+  }
+
+  function newTemplateId() {
+    return 'tpl-' + String(Math.floor(Math.random() * 1e9));
+  }
 
   function getModalHost() {
     return document.getElementById('suite-modal-host');
@@ -69,8 +93,108 @@
     await loadAll();
   }
 
+  function tplListHtml() {
+    var tpls = loadTemplates();
+    if (!tpls.length) return '<p class="empty">Sin plantillas a\u00fan. Crea una abajo.</p>';
+    return tpls.map(function (t) {
+      return '<div class="row between" style="padding:0.45rem 0;border-bottom:1px solid var(--border);align-items:center;gap:0.5rem;">' +
+        '<div><strong>' + window.UI.esc(t.name) + '</strong><br><span class="muted" style="font-size:0.82rem">' +
+        window.UI.esc(t.title) + ' \u00b7 ' + window.UI.esc(t.area) + ' \u00b7 ' + window.UI.esc(t.round_type || 'ad_hoc') + '</span></div>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-del-tpl="' + window.UI.esc(t.id) + '">Eliminar</button></div>';
+    }).join('');
+  }
+
   function openTemplateModal() {
-    window.UI.toast('Las plantillas de recorrido configurables llegar\u00e1n en una siguiente versi\u00f3n. Por ahora usa Iniciar recorrido.', 'info');
+    var host = getModalHost();
+    if (!host) {
+      window.UI.toast('Modal no disponible.', 'error');
+      return;
+    }
+    host.innerHTML = '' +
+      '<section class="page" data-testid="gemba-templates-panel">' +
+        '<h3 class="section-title">Plantillas de recorrido</h3>' +
+        '<p class="muted">Guarda combinaciones de t\u00edtulo, zona y tipo para reutilizarlas al iniciar un recorrido. Los datos viven solo en este navegador.</p>' +
+        '<p class="muted" style="font-size:0.82rem">Conserjer\u00eda: los textos deben coincidir exactamente con las opciones de t\u00edtulo y zona del formulario.</p>' +
+        '<div id="tpl-list">' + tplListHtml() + '</div>' +
+        '<hr style="margin:1rem 0;border:none;border-top:1px solid var(--border);"/>' +
+        '<h4 class="section-title" style="font-size:1rem;">Nueva plantilla</h4>' +
+        '<form id="tpl-form" class="form-grid cols-2" novalidate>' +
+          '<div class="form-field"><label>Nombre corto</label>' +
+            '<input name="name" required placeholder="Ej. Matutina piscina"></div>' +
+          '<div class="form-field"><label>T\u00edtulo del recorrido</label>' +
+            '<input name="title" required placeholder="Igual que en el desplegable de t\u00edtulos"></div>' +
+          '<div class="form-field"><label>Zona / \u00e1rea</label>' +
+            '<input name="area" required placeholder="Igual que en el desplegable de zonas"></div>' +
+          '<div class="form-field"><label>Tipo de ronda</label>' +
+            '<select name="round_type">' +
+              '<option value="daily">Diario</option>' +
+              '<option value="weekly">Semanal</option>' +
+              '<option value="monthly">Mensual</option>' +
+              '<option value="ad_hoc" selected>Ad-hoc / puntual</option>' +
+            '</select></div>' +
+          '<div class="btn-row" style="grid-column:1/-1;">' +
+            '<button type="submit" class="btn btn-primary-sm">Guardar plantilla</button>' +
+            '<button type="button" class="btn btn-ghost" id="tpl-modal-close">Cerrar</button>' +
+          '</div>' +
+        '</form>' +
+      '</section>';
+    document.getElementById('tpl-modal-close').addEventListener('click', closeSuiteModal);
+    document.getElementById('tpl-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var tpls = loadTemplates();
+      tpls.push({
+        id: newTemplateId(),
+        name: String(fd.get('name') || '').trim(),
+        title: String(fd.get('title') || '').trim(),
+        area: String(fd.get('area') || '').trim(),
+        round_type: fd.get('round_type') || 'ad_hoc',
+      });
+      saveTemplates(tpls);
+      window.UI.toast('Plantilla guardada.', 'success');
+      document.getElementById('tpl-list').innerHTML = tplListHtml();
+      this.reset();
+    });
+    document.getElementById('tpl-list').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-del-tpl]');
+      if (!btn) return;
+      var id = btn.getAttribute('data-del-tpl');
+      saveTemplates(loadTemplates().filter(function (t) { return t.id !== id; }));
+      window.UI.toast('Plantilla eliminada.', 'info');
+      document.getElementById('tpl-list').innerHTML = tplListHtml();
+    });
+  }
+
+  function attachTemplatePicker(host, staff) {
+    var tpls = loadTemplates();
+    if (!tpls.length || !host) return;
+    var form = host.querySelector('#round-form');
+    if (!form) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'form-field';
+    wrap.style.gridColumn = '1/-1';
+    wrap.setAttribute('data-testid', 'gemba-template-picker');
+    wrap.innerHTML = '<label>Plantilla guardada</label>' +
+      '<select id="gemba-tpl-pick">' +
+        '<option value="">\u2014 Manual \u2014</option>' +
+        tpls.map(function (t) {
+          return '<option value="' + window.UI.esc(t.id) + '">' + window.UI.esc(t.name) + '</option>';
+        }).join('') +
+      '</select>' +
+      '<div class="hint">Rellena t\u00edtulo, zona y tipo seg\u00fan la plantilla (texto exacto en modo conserjer\u00eda).</div>';
+    form.insertBefore(wrap, form.firstChild);
+    host.querySelector('#gemba-tpl-pick').addEventListener('change', function () {
+      var id = this.value;
+      if (!id) return;
+      var t = tpls.filter(function (x) { return x.id === id; })[0];
+      if (!t) return;
+      var titleEl = form.querySelector('[name=title]');
+      var areaEl = form.querySelector('[name=area]');
+      if (titleEl) titleEl.value = t.title;
+      if (areaEl) areaEl.value = t.area;
+      var rt = form.querySelector('[name=round_type]');
+      if (rt && t.round_type) rt.value = t.round_type;
+    });
   }
 
   async function loadAll() {
@@ -138,6 +262,45 @@
     ]);
   }
 
+  function findingToIncidentCategory(ft) {
+    var map = { defect: 'Maintenance', missing: 'Inventory', damage: 'Maintenance', safety: 'Security', cleanliness: 'Cleanliness' };
+    return map[ft] || 'Maintenance';
+  }
+
+  async function deriveFindingToIncident(f) {
+    var sess = window.AUTH.readSession();
+    if (!sess) return;
+    var ticketNum = 'INC-' + Math.floor(Math.random() * 900000 + 100000);
+    var zona = f.zona_label || (f.metadata && f.metadata.zona_label) || '\u2014';
+    var desc = (f.description || '') + '\n\n[Derivado desde hallazgo Gemba id=' + f.id + ', recorrido=' + f.inspection_round_id + ']';
+    var body = {
+      building_id: window.APROVIVA_SUITE_CONFIG.BUILDING_ID,
+      ticket_number: ticketNum,
+      source: 'gemba_finding',
+      category: findingToIncidentCategory(f.finding_type),
+      location_label: String(zona),
+      severity: f.severity || 'medium',
+      status: 'received',
+      title: 'Seguimiento hallazgo Gemba (' + (f.finding_type || '') + ')',
+      description: desc,
+      resident_visible_status: null,
+      metadata: {
+        actorRole: sess.role,
+        actorLabel: sess.label,
+        source: 'aproviva-suite',
+        inspection_finding_id: f.id,
+        inspection_round_id: f.inspection_round_id,
+      },
+    };
+    try {
+      window.UI.toast('Creando incidencia...', 'info');
+      await window.SB.insert('incident_tickets', body);
+      window.UI.toast('Incidencia creada desde el hallazgo. Revisa Incidencias.', 'success');
+    } catch (err) {
+      window.UI.toast('Error: ' + insertErrorMessage(err), 'error');
+    }
+  }
+
   function renderFindings() {
     var byRound = {};
     STATE.rounds.forEach(function (r) { byRound[r.id] = r; });
@@ -153,7 +316,21 @@
       { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status || 'open', statusBadgeKind(r.status)); }, html: true },
       { key: 'round', label: 'Recorrido', render: function (r) { return byRound[r.inspection_round_id] ? byRound[r.inspection_round_id].round_number : '?'; } },
       { key: 'created_at', label: 'Creado', render: function (r) { return window.UI.fmtDate(r.created_at); } },
+      { key: 'actions', label: '', render: function (r) {
+        return '<button type="button" class="btn btn-ghost btn-sm" data-derive-finding="' + window.UI.esc(r.id) + '">Derivar a incidencia</button>';
+      }, html: true },
     ]);
+    var box = document.getElementById('gemba-findings');
+    if (box && !box._gembaDeriveBound) {
+      box._gembaDeriveBound = true;
+      box.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-derive-finding]');
+        if (!btn) return;
+        var fid = btn.getAttribute('data-derive-finding');
+        var f = STATE.findings.filter(function (x) { return x.id === fid; })[0];
+        if (f) deriveFindingToIncident(f);
+      });
+    }
   }
 
   function statusBadgeKind(s) {
@@ -199,7 +376,7 @@
 
   function openStartModal() {
     var session = window.AUTH.readSession();
-    var staff = session && session.role === 'staff';
+    var staff = window.AUTH.isStaff();
     var host = getModalHost();
     if (!host) {
       window.UI.toast('Modal no disponible.', 'error');
@@ -265,6 +442,7 @@
         '</section>';
     }
     host.innerHTML = inner;
+    attachTemplatePicker(host, staff);
     document.getElementById('round-cancel').addEventListener('click', closeSuiteModal);
     document.getElementById('round-form').addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -273,6 +451,7 @@
         formEl.reportValidity();
         return;
       }
+      window.UI.toast('Iniciando recorrido...', 'info');
       var sess = window.AUTH.readSession();
       var fd = new FormData(formEl);
       var body = {
@@ -325,7 +504,7 @@
     opts = opts || {};
     var findingOpts = opts;
     var session = window.AUTH.readSession();
-    var staff = session && session.role === 'staff';
+    var staff = window.AUTH.isStaff();
     var host = getModalHost();
     if (!host) {
       window.UI.toast('Modal no disponible.', 'error');
@@ -395,7 +574,7 @@
         '<section class="page" data-testid="gemba-finding-form">' +
           '<h3 class="section-title">Registrar hallazgo</h3>' +
           '<p class="muted">Conserjer\u00eda: tipo, punto y seguimiento (sin texto libre).</p>' +
-          '<form id="finding-form" class="form-grid cols-2" data-staff-finding="1">' +
+          '<form id="finding-form" class="form-grid cols-2" data-staff-finding="1" novalidate>' +
             roundField +
             '<div class="form-field"><label>Tipo</label>' +
               '<select name="finding_type" required>' +
@@ -519,6 +698,8 @@
           var caseRef = 'GEMBA-' + (roundRow && roundRow.round_number ? roundRow.round_number : 'FIND') + '-' + String(Date.now()).slice(-10);
           var up = await window.UI.uploadPhotoToDrive(file, { caseRef: caseRef });
           photoUrl = up.url;
+        } else {
+          window.UI.toast('Guardando hallazgo...', 'info');
         }
       } catch (upErr) {
         if (submitBtn) submitBtn.disabled = false;
