@@ -19,6 +19,9 @@
 
   function currentRoute() {
     var hash = window.location.hash || '#/';
+    if (hash === '#' || hash === '#/') {
+      return window.AUTH.readSession() ? 'inicio' : 'login';
+    }
     var name = hash.replace(/^#\//, '');
     if (!name) name = 'inicio';
     return name.split('?')[0];

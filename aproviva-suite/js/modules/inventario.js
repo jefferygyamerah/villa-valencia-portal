@@ -75,7 +75,11 @@
       kpi('Ubicaciones', STATE.locations.length) +
       kpi('Alertas cr\u00edticas', alerts.filter(function (a) { return a.level === 'critical'; }).length) +
       kpi('Alertas reorden', alerts.filter(function (a) { return a.level === 'reorder'; }).length) +
-      kpi('Conteos (\u00faltimos 50)', STATE.movements.filter(function (m) { return m.movement_type === 'counted'; }).length);
+      kpi(
+        'Conteos (\u00faltimos 50)',
+        STATE.movements.filter(function (m) { return m.movement_type === 'counted'; }).length,
+        'Cuenta solo movimientos de tipo conteo (counted) en los \u00faltimos 50 registros. Abastecimientos u otros tipos no suman aqu\u00ed.'
+      );
   }
 
   function computeAlerts() {
@@ -424,8 +428,9 @@
     });
   }
 
-  function kpi(label, value) {
-    return '<div class="kpi-card"><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
+  function kpi(label, value, title) {
+    var tip = title ? ' title="' + window.UI.esc(title) + '"' : '';
+    return '<div class="kpi-card"' + tip + '><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
            '<div class="kpi-value">' + window.UI.esc(value) + '</div></div>';
   }
 

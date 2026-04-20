@@ -426,7 +426,7 @@
 
     setSubmitState(true);
 
-    if (!isPhManagementConfigured()) {
+    if (!isPqrsSubmitConfigured()) {
       setSubmitState(false);
       showPqrsStatus('error', 'El sistema de envío todavía no está configurado.');
       return;

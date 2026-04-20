@@ -13,7 +13,7 @@ test.describe('Portal residentes (index.html)', () => {
   test('opens PQRS modal from Radicar button', async ({ page }) => {
     await page.goto('/index.html');
     await page.locator('[data-action="open-pqrs"]').click();
-    await expect(page.locator('#pqrsModal')).toBeVisible();
+    await expect(page.getByTestId('portal-pqrs-modal')).toBeVisible();
     await expect(page.locator('#pqrs-resumen')).toBeVisible();
   });
 

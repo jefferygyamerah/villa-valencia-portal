@@ -65,7 +65,11 @@
           kpi('Recorridos atrasados', roundsMissed.length) +
           kpi('Incidentes nuevos (24h)', newIncidents.length) +
           kpi('Cr\u00edticos / altos abiertos', openCritical.length) +
-          kpi('Conteos (24h)', countsToday.length) +
+          kpi(
+            'Conteos (24h)',
+            countsToday.length,
+            'Solo movimientos inventory con tipo conteo (counted) en las \u00faltimas 24 horas.'
+          ) +
           kpi('Escalaciones nuevas', newEsc.length) +
         '</div>' +
         '<div class="page-section"><h4>Incidentes cr\u00edticos abiertos</h4>' + window.UI.table(openCritical.slice(0, 10), [
@@ -197,8 +201,9 @@
     } catch (e) { window.UI.errorBox(box, e); }
   }
 
-  function kpi(label, value) {
-    return '<div class="kpi-card"><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
+  function kpi(label, value, title) {
+    var tip = title ? ' title="' + window.UI.esc(title) + '"' : '';
+    return '<div class="kpi-card"' + tip + '><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
            '<div class="kpi-value">' + window.UI.esc(value) + '</div></div>';
   }
 

@@ -50,8 +50,8 @@
 
 ### P2 — UX nits
 
-- **F1 — Hash-router default route on cold load:** if user lands on `/aproviva-suite/` with no hash, the redirect to `#/login` happens after the initial empty `#/inicio` render attempt. Cosmetic, no functional impact.
-- **F2 — KPI "Conteos (últimos 50)" filters by `movement_type='counted'`** but seeded data uses `replenished`. Initially shows 0 until at least one `counted` movement exists. Working as designed; could add a tooltip.
+- **F1 — Hash-router default route on cold load:** **Addressed** — `aproviva-suite/index.html` now normalizes empty/`#`/`#/` before `ROUTER.start()`, and `router.js` `currentRoute()` maps bare `#/` to `login` or `inicio` by session so the suite does not briefly resolve to `inicio` without a session.
+- **F2 — KPI "Conteos (últimos 50)" filters by `movement_type='counted'`** but seeded data uses `replenished`. Initially shows 0 until at least one `counted` movement exists. **Addressed** — tooltips on Inventario and Reportes daily KPI cards explain that only `counted` movements are included.
 - **F3 — Save-after-Enter behaviour:** pressing Enter in an inline `<input>` inside the form sometimes triggers an unintended hash navigation in the inicio context. Browser MCP-only artifact, not reproducible from human keyboard. Not a real-user bug.
 
 ### P3 — Future polish
@@ -73,6 +73,10 @@
 - **PQRS submit / lookup (ph-management path)** — still the default while `PQRS_USE_VV_SUPABASE` is `false` in [js/config.js](../../js/config.js). Historical validation: `apps/ph-management/ops/STATUS.md` Session 16 (case `VV-PQRS-20260419-855099`).
 - **PQRS submit / lookup (Villa Valencia Supabase path)** — implemented 2026-04-19: table `pqrs_cases` + RPC `lookup_pqrs_case` ([migration](../../aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql)). **Apply SQL in Supabase, then set `PQRS_USE_VV_SUPABASE: true`** and smoke-test; details in [2026-04-19-pqrs-vv-supabase-migration.md](2026-04-19-pqrs-vv-supabase-migration.md).
 - **19 scenarios (suite)** — matrix above unchanged; no full browser re-run in this session after PQRS work. Re-execute PIN flows + module smoke when convenient.
+
+## Portal PQRS — submit path
+
+- **VV-only submit:** `js/app.js` now gates submit with `isPqrsSubmitConfigured()` (VV Supabase **or** PH Management), not PH Management alone — required when `PQRS_USE_VV_SUPABASE` is true without relying on `PH_MANAGEMENT_API_BASE`.
 
 ## Portal PQRS — VV Supabase checklist
 

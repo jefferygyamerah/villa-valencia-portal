@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="css/suite.css" />
 </head>
 <body>
-  <div class="app-shell" id="app-shell">
+  <div class="app-shell" id="app-shell" data-testid="suite-shell">
     <header class="app-header" id="app-header">
       <h1>APROVIVA Operaciones <span class="building" id="app-building">Villa Valencia</span></h1>
       <span class="role-badge" id="app-role-badge" style="display:none;">--</span>
@@ -46,9 +46,12 @@
   <script src="js/modules/junta.js"></script>
   <script>
     document.getElementById('app-building').textContent = window.APROVIVA_SUITE_CONFIG.BUILDING_NAME + ' \u00b7 ' + window.APROVIVA_SUITE_CONFIG.BUILDING_CODE;
-    if (!window.location.hash) {
-      window.location.hash = window.AUTH.readSession() ? '#/inicio' : '#/login';
-    }
+    (function () {
+      var h = window.location.hash;
+      if (!h || h === '#' || h === '#/') {
+        window.location.hash = window.AUTH.readSession() ? '#/inicio' : '#/login';
+      }
+    })();
     window.ROUTER.start();
   </script>
 </body>
