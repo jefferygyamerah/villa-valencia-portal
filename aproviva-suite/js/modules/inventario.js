@@ -1,9 +1,32 @@
 /**
  * Inventario - cycle count, alerts, master view.
  * Scenarios 1 (routine count), 2 (low/missing/damaged), 3 (admin review).
+ * UX aligned with common APICS/CPIM practice: variance on count, reorder signals, exception path.
  */
 (function () {
   var STATE = { items: [], locations: [], movements: [] };
+
+  function latestMovementForItemLocation(itemId, locId) {
+    var best = null;
+    STATE.movements.forEach(function (m) {
+      if (m.inventory_item_id !== itemId || m.inventory_location_id !== locId) return;
+      if (!best || String(m.movement_at) > String(best.movement_at)) best = m;
+    });
+    return best;
+  }
+
+  function apicsHelpPanel() {
+    return '' +
+      '<details class="inv-apics-help" data-testid="inv-apics-help" id="inv-apics-help">' +
+        '<summary>Conteo c\u00edclico y pol\u00edtica de inventario (referencia operativa)</summary>' +
+        '<div class="inv-apics-body muted">' +
+          '<p style="margin:0 0 0.5rem;"><strong>Conteo:</strong> registra la cantidad f\u00edsica y el saldo despu\u00e9s del conteo. ' +
+          'Si ya hab\u00eda un movimiento previo en la misma ubicaci\u00f3n, el sistema calcula la <strong>varianza</strong> respecto al saldo anterior.</p>' +
+          '<p style="margin:0 0 0.5rem;"><strong>Reorden:</strong> el punto de reorden (maestro) se compara con el \u00faltimo saldo; las alertas destacan riesgo de quiebre.</p>' +
+          '<p style="margin:0;"><strong>Novedades:</strong> faltantes o da\u00f1os van por <strong>Reportar novedad</strong> (incidente), no por conteo c\u00edclico.</p>' +
+        '</div>' +
+      '</details>';
+  }
 
   async function render(container, session) {
     container.innerHTML = '' +
@@ -12,6 +35,7 @@
           '<div>' +
             '<h2 class="page-title">Inventario</h2>' +
             '<p class="page-subtitle">Conteo c\u00edclico, alertas y registro de novedades.</p>' +
+            apicsHelpPanel() +
           '</div>' +
           '<div class="row wrap" style="gap:0.5rem;">' +
             '<button class="btn btn-primary-sm" id="inv-count-btn" type="button">Registrar conteo</button>' +
@@ -45,7 +69,7 @@
       var results = await Promise.all([
         window.SB.select('inventory_items', { select: '*', is_active: 'eq.true', order: 'name.asc' }),
         window.SB.select('inventory_locations', { select: '*', is_active: 'eq.true', order: 'name.asc' }),
-        window.SB.select('inventory_movements', { select: '*', order: 'movement_at.desc', limit: '50' }),
+        window.SB.select('inventory_movements', { select: '*', order: 'movement_at.desc', limit: '100' }),
       ]);
       STATE.items = results[0] || [];
       STATE.locations = results[1] || [];
@@ -76,9 +100,19 @@
       kpi('Alertas cr\u00edticas', alerts.filter(function (a) { return a.level === 'critical'; }).length) +
       kpi('Alertas reorden', alerts.filter(function (a) { return a.level === 'reorder'; }).length) +
       kpi(
-        'Conteos (\u00faltimos 50)',
+        'Conteos (ventana reciente)',
         STATE.movements.filter(function (m) { return m.movement_type === 'counted'; }).length,
-        'Cuenta solo movimientos de tipo conteo (counted) en los \u00faltimos 50 registros. Abastecimientos u otros tipos no suman aqu\u00ed.'
+        'Movimientos tipo counted en los \u00faltimos 100 registros (no incluye replenished u otros).'
+      ) +
+      kpi(
+        'SKUs con saldo en ventana',
+        (function () {
+          var latest = latestPerItem();
+          var n = 0;
+          STATE.items.forEach(function (it) { if (latest[it.id]) n++; });
+          return n + ' / ' + STATE.items.length;
+        })(),
+        'Proporci\u00f3n de art\u00edculos con al menos un movimiento reciente en la ventana cargada (\u00faltimos 100). Multi-ubicaci\u00f3n: ver tabla de movimientos.'
       );
   }
 
@@ -127,13 +161,17 @@
     var latest = latestPerItem();
     var rows = STATE.items.map(function (it) {
       var l = latest[it.id];
+      var lastQty = l ? Number(l.balance_after) : null;
+      var reorder = Number(it.default_reorder_point) || 0;
+      var delta = lastQty !== null ? lastQty - reorder : null;
       return {
         name: it.name,
         sku: it.sku,
         category: it.category || '',
         unit: it.unit || '',
         reorder: it.default_reorder_point,
-        last_qty: l ? Number(l.balance_after) : null,
+        last_qty: lastQty,
+        delta_reorder: delta,
         last_at: l ? l.movement_at : null,
       };
     });
@@ -142,8 +180,13 @@
       { key: 'sku', label: 'SKU' },
       { key: 'category', label: 'Categor\u00eda' },
       { key: 'unit', label: 'Unidad' },
-      { key: 'reorder', label: 'Reorden' },
-      { key: 'last_qty', label: '\u00daltimo saldo', render: function (r) { return r.last_qty === null ? '<span class="muted">s/d</span>' : window.UI.esc(r.last_qty); }, html: true },
+      { key: 'reorder', label: 'Punto reorden' },
+      { key: 'last_qty', label: '\u00faltimo saldo', render: function (r) { return r.last_qty === null ? '<span class="muted">s/d</span>' : window.UI.esc(r.last_qty); }, html: true },
+      { key: 'delta_reorder', label: 'vs reorden', render: function (r) {
+        if (r.delta_reorder === null) return '<span class="muted">s/d</span>';
+        var cls = r.delta_reorder < 0 ? 'inv-delta-neg' : (r.delta_reorder === 0 ? 'inv-delta-zero' : 'inv-delta-ok');
+        return '<span class="' + cls + '">' + (r.delta_reorder > 0 ? '+' : '') + window.UI.esc(r.delta_reorder) + '</span>';
+      }, html: true },
       { key: 'last_at', label: 'Fecha', render: function (r) { return r.last_at ? window.UI.fmtDate(r.last_at) : ''; } },
     ]);
   }
@@ -228,7 +271,7 @@
     return '' +
       '<section class="page" data-testid="inv-count-form">' +
         '<h3 class="section-title">Registrar conteo</h3>' +
-        '<form id="count-form" class="form-grid cols-2">' +
+        '<form id="count-form" class="form-grid cols-2" novalidate data-testid="inv-count-form-inner">' +
           '<div class="form-field"><label>Art\u00edculo</label>' +
             '<select name="item" required>' +
               '<option value="">Seleccionar...</option>' +
@@ -266,18 +309,36 @@
       window.UI.toast('Guardando conteo...', 'info');
       var session = window.AUTH.readSession();
       var fd = new FormData(form);
+      var itemId = fd.get('item');
+      var locId = fd.get('loc');
+      var prevM = latestMovementForItemLocation(itemId, locId);
+      var prevBal = prevM != null && prevM.balance_after !== undefined && prevM.balance_after !== null
+        ? Number(prevM.balance_after)
+        : null;
+      var newBal = Number(fd.get('balance') || fd.get('qty'));
+      var variance = prevBal !== null && !isNaN(prevBal) ? newBal - prevBal : null;
       var body = {
-        inventory_item_id: fd.get('item'),
-        inventory_location_id: fd.get('loc'),
+        inventory_item_id: itemId,
+        inventory_location_id: locId,
         movement_type: 'counted',
         quantity: Number(fd.get('qty')),
-        balance_after: Number(fd.get('balance') || fd.get('qty')),
+        balance_after: newBal,
         notes: fd.get('notes') || null,
-        metadata: { actorRole: session.role, actorLabel: session.label, source: 'aproviva-suite' },
+        metadata: {
+          actorRole: session.role,
+          actorLabel: session.label,
+          source: 'aproviva-suite',
+          previous_balance: prevBal,
+          count_variance: variance,
+        },
       };
       try {
         await window.SB.insert('inventory_movements', body);
-        window.UI.toast('Conteo guardado.', 'success');
+        var msg = 'Conteo guardado.';
+        if (variance !== null && !isNaN(variance)) {
+          msg += ' Varianza vs saldo anterior en esta ubicaci\u00f3n: ' + (variance > 0 ? '+' : '') + variance + '.';
+        }
+        window.UI.toast(msg, 'success');
         document.getElementById('inv-modal-host').innerHTML = '';
         await loadAll();
       } catch (err) {

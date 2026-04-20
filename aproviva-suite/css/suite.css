@@ -724,6 +724,29 @@ body {
   user-select: none;
 }
 
+/* ── Inventario (APICS-style helpers) ── */
+.inv-apics-help {
+  margin-top: 0.65rem;
+  max-width: 44rem;
+  font-size: 0.86rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.35rem 0.65rem;
+  background: var(--surface-soft);
+}
+.inv-apics-help summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.inv-apics-body {
+  padding: 0.5rem 0 0.15rem;
+  line-height: 1.45;
+}
+.inv-delta-neg { color: var(--danger); font-weight: 600; }
+.inv-delta-zero { color: var(--warning); font-weight: 600; }
+.inv-delta-ok { color: var(--success); }
+
 /* ── Print-friendly reports ── */
 @media print {
   .app-header, .app-nav, .btn, button { display: none !important; }

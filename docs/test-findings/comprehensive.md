@@ -12,11 +12,11 @@
 
 | Surface | State | Evidence |
 |---|---|---|
-| PIN auth (2026 = staff, JD26 = junta) | PASS | Both PINs grant access; bad PIN rejected |
+| PIN auth (four roles: 2026/CONS26, SUP26, GER26, JD26) | PASS | See [`docs/suite-checks/19-apics-verification-checklist.md`](../suite-checks/19-apics-verification-checklist.md) |
 | Role-gated nav (3 modules conserje, 7 junta) | PASS | Snapshot diff confirmed |
 | Inicio dashboard cross-table KPIs | PASS | 5 KPIs loaded from 5 tables |
-| Inventario module (catalog, alerts, movements) | PASS | Live data; 3 items, 2 reorder alerts |
-| Inventario count form (Sc. 1) | PASS | Real INSERT verified (`movement_type='counted'`, qty=12) |
+| Inventario module (catalog, alerts, movements) | PASS | Catálogo con columna **vs reorden**; KPI cobertura; ayuda APICS en página |
+| Inventario count form (Sc. 1) | PASS | INSERT `counted`; metadata con **varianza** vs saldo previo misma ubicación; toast explica varianza |
 | Incidencias module list + filters | PASS | 10 seeded incidents render |
 | Junta governance dashboard (Sc. 16-19) | PASS | KPIs + per-building + chronic patterns + weekly reports |
 | Reportes weekly (Sc. 13) | PASS | Compliance %, by-category breakdown, auto-recommendations |
@@ -26,7 +26,7 @@
 
 | # | Scenario | Module | State | Notes |
 |---|---|---|---|---|
-| 1 | Conserje routine inventory count | inventario | LIVE | Form submits, INSERT verified in Supabase |
+| 1 | Conserje routine inventory count | inventario | LIVE | Conteo cíclico + varianza ubicación; ver checklist [19-apics](../suite-checks/19-apics-verification-checklist.md) |
 | 2 | Conserje reports low/missing/damaged | inventario "Reportar novedad" | LIVE | Creates `incident_tickets` row with category=Inventory |
 | 3 | Admin reviews/routes inventory exception | incidencias | LIVE | Triage list + advance/escalate buttons present (junta only) |
 | 4 | Admin configures recorrido templates | gemba | LIVE | Plantillas guardadas en navegador + modal "Nueva plantilla"; selector al iniciar recorrido |
@@ -51,7 +51,7 @@
 ### P2 — UX nits
 
 - **F1 — Hash-router default route on cold load:** **Addressed** — `aproviva-suite/index.html` now normalizes empty/`#`/`#/` before `ROUTER.start()`, and `router.js` `currentRoute()` maps bare `#/` to `login` or `inicio` by session so the suite does not briefly resolve to `inicio` without a session.
-- **F2 — KPI "Conteos (últimos 50)" filters by `movement_type='counted'`** but seeded data uses `replenished`. Initially shows 0 until at least one `counted` movement exists. **Addressed** — tooltips on Inventario and Reportes daily KPI cards explain that only `counted` movements are included.
+- **F2 — KPI "Conteos"** filters by `movement_type='counted'` in the last **100** movements (replenished does not count). **Addressed** — tooltip en Inventario; ventana ampliada a 100 filas.
 - **F3 — Save-after-Enter behaviour:** pressing Enter in an inline `<input>` inside the form sometimes triggers an unintended hash navigation in the inicio context. Browser MCP-only artifact, not reproducible from human keyboard. Not a real-user bug.
 
 ### P3 — Future polish
