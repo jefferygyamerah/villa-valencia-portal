@@ -1,0 +1,17 @@
+{
+  "name": "villa-valencia-portal-e2e",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:prod": "cross-env BASE_URL=https://villavalencia.vercel.app playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.14.0",
+    "cross-env": "^7.0.3",
+    "serve": "^14.2.4",
+    "typescript": "^5.8.0"
+  }
+}

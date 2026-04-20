@@ -40,6 +40,10 @@ Edit `js/config.js` with your values:
 Historical static hosting can still use GitHub Pages from the `master` branch root with `.nojekyll`.
 Production identity remains `villavalencia.vercel.app`.
 
+## End-to-end tests (Playwright)
+
+From `e2e/`: `npm install` then `npm test` (starts a static server on port 8787 and runs Chromium). To hit production instead: `npm run test:prod` (uses `BASE_URL=https://villavalencia.vercel.app`). CI runs the same suite via `.github/workflows/e2e-playwright.yml`.
+
 ## Lightweight Automation (Drive-based)
 
 Canonical finance automation path:

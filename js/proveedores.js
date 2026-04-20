@@ -239,6 +239,8 @@
   window._closeDetail = closeDetail;
 
   document.addEventListener('DOMContentLoaded', function () {
+    var searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
     applyFilters();
     setupCardClicks();
     setupModalBackdrops();
