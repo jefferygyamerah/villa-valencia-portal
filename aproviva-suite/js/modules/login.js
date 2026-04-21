@@ -11,6 +11,12 @@
           '<input type="password" inputmode="text" id="pin-input" class="pin-input" placeholder="PIN" maxlength="8" autocomplete="off" />' +
           '<div class="login-error" id="login-error"></div>' +
           '<button class="btn-primary" id="pin-submit" type="button">Entrar</button>' +
+          '<div class="btn-row mt-2" id="quick-pin-buttons" style="justify-content:center;gap:0.35rem;flex-wrap:wrap;">' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="2026">Conserjería</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="SUP26">Supervisión</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="GER26">Gerencia</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="JD26">Junta</button>' +
+          '</div>' +
           '<a class="login-back" href="../index.html">&larr; Volver al portal</a>' +
           '<div class="login-hints">' +
             '<strong>Conserjer\u00eda</strong> &mdash; PIN <strong>2026</strong> o <strong>CONS26</strong><br>' +
@@ -41,6 +47,15 @@
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') attempt();
     });
+    var quick = document.getElementById('quick-pin-buttons');
+    if (quick) {
+      quick.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-quick-pin]');
+        if (!b) return;
+        input.value = b.getAttribute('data-quick-pin') || '';
+        attempt();
+      });
+    }
     setTimeout(function () { input.focus(); }, 50);
   }
 

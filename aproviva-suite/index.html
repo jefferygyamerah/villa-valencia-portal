@@ -17,9 +17,14 @@
 <body>
   <div class="app-shell" id="app-shell" data-testid="suite-shell">
     <header class="app-header" id="app-header">
-      <h1>APROVIVA Operaciones <span class="building" id="app-building">Villa Valencia</span></h1>
-      <span class="role-badge" id="app-role-badge" style="display:none;">--</span>
-      <button class="btn-logout" id="app-logout" type="button" style="display:none;">Salir</button>
+      <div class="app-header-main">
+        <h1>APROVIVA Operaciones <span class="building" id="app-building">Villa Valencia</span></h1>
+        <button class="btn-logout" id="app-logout" type="button" style="display:none;">Salir</button>
+      </div>
+      <div class="app-header-subline">
+        <span class="role-badge" id="app-role-badge" style="display:none;">--</span>
+        <span class="app-header-date" id="app-header-date"></span>
+      </div>
     </header>
     <nav class="app-nav" id="app-nav" style="display:none;"></nav>
     <main class="app-content" id="app-content">

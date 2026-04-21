@@ -50,7 +50,8 @@
       html += '<tr>';
       columns.forEach(function (c) {
         var v = c.render ? c.render(r) : (r[c.key] === undefined || r[c.key] === null ? '' : r[c.key]);
-        html += '<td>' + (c.html ? v : esc(v)) + '</td>';
+        var label = c.label || c.key || '';
+        html += '<td data-label="' + esc(label) + '">' + (c.html ? v : esc(v)) + '</td>';
       });
       html += '</tr>';
     });

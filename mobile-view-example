@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>APROVIVA Operations</title>
+<style>
+:root{--bg:#0f1117;--surface:#1a1d27;--card:#22252f;--border:#2e3140;--primary:#6c5ce7;--primary-light:#a29bfe;--accent:#00cec9;--warn:#fdcb6e;--danger:#e17055;--success:#00b894;--text:#e8e8ee;--text2:#9ca3af;--text3:#6b7280;--radius:12px;--nav-h:60px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;min-height:100vh}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:var(--text)}
+input,select,textarea{font-family:inherit;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;width:100%;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--primary)}
+
+/* Shell */
+.app{display:flex;flex-direction:column;height:100vh;max-width:430px;margin:0 auto;position:relative;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);min-height:56px;z-index:10}
+.topbar h1{font-size:16px;font-weight:700}
+.topbar .sub{font-size:11px;color:var(--text2)}
+.content{flex:1;overflow-y:auto;padding:16px;padding-bottom:calc(var(--nav-h) + 20px)}
+.bottomnav{position:absolute;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:10}
+.bottomnav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--text3);transition:.2s}
+.bottomnav button.active{color:var(--primary-light)}
+.bottomnav button .ico{font-size:20px}
+
+/* Role Switcher */
+.role-bar{display:flex;gap:6px;padding:10px 16px;background:var(--surface);overflow-x:auto;border-bottom:1px solid var(--border)}
+.role-bar button{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--card);color:var(--text2);transition:.2s;border:1px solid transparent}
+.role-bar button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid var(--border)}
+.card h3{font-size:14px;margin-bottom:6px}
+.card p{font-size:13px;color:var(--text2);line-height:1.5}
+.card-row{display:flex;gap:10px;margin-bottom:12px}
+.card-row .card{flex:1;text-align:center}
+.stat-val{font-size:24px;font-weight:700;margin:4px 0}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+
+/* Badges */
+.badge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-warn{background:rgba(253,203,110,.15);color:var(--warn)}
+.badge-danger{background:rgba(225,112,85,.15);color:var(--danger)}
+.badge-success{background:rgba(0,184,148,.15);color:var(--success)}
+.badge-info{background:rgba(108,92,231,.15);color:var(--primary-light)}
+.badge-accent{background:rgba(0,206,201,.15);color:var(--accent)}
+
+/* Buttons */
+.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;transition:.2s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-light)}
+.btn-sm{padding:6px 14px;font-size:12px}
+.btn-outline{border:1px solid var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary-light)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn-block{display:block;width:100%;text-align:center}
+
+/* Lists */
+.list-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border-radius:var(--radius);margin-bottom:8px;border:1px solid var(--border);cursor:pointer;transition:.15s}
+.list-item:hover{border-color:var(--primary)}
+.list-item .ico{font-size:24px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--surface);border-radius:10px;flex-shrink:0}
+.list-item .info{flex:1;min-width:0}
+.list-item .info h4{font-size:13px;margin-bottom:2px}
+.list-item .info p{font-size:11px;color:var(--text3)}
+.list-item .trail{text-align:right;flex-shrink:0}
+
+/* Pipeline */
+.pipeline{display:flex;gap:4px;margin:12px 0;overflow-x:auto}
+.pipe-stage{flex:1;min-width:0;text-align:center;padding:6px 4px;border-radius:6px;font-size:10px;font-weight:600;background:var(--surface);color:var(--text3);white-space:nowrap}
+.pipe-stage.active{background:var(--primary);color:#fff}
+.pipe-stage.done{background:var(--success);color:#fff}
+
+/* Modal / Bottom Sheet */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);border-radius:16px 16px 0 0;padding:20px 16px 30px;width:100%;max-width:430px;max-height:80vh;overflow-y:auto}
+.sheet h2{font-size:16px;margin-bottom:16px}
+.sheet .close-btn{position:absolute;top:12px;right:16px;font-size:20px;color:var(--text3)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px}
+
+/* Offline Banner */
+.offline-banner{background:var(--warn);color:#000;text-align:center;padding:6px;font-size:12px;font-weight:600}
+
+/* Sequential Card */
+.seq-card{background:var(--card);border-radius:var(--radius);padding:24px;text-align:center;border:1px solid var(--border)}
+.seq-card .seq-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.seq-card .seq-sub{font-size:13px;color:var(--text2);margin-bottom:20px}
+.seq-progress{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px}
+.seq-progress .bar{flex:1;max-width:200px;height:6px;background:var(--surface);border-radius:3px;overflow:hidden}
+.seq-progress .bar .fill{height:100%;background:var(--primary);border-radius:3px;transition:.3s}
+.seq-progress span{font-size:12px;color:var(--text3)}
+.qty-control{display:flex;align-items:center;justify-content:center;gap:16px;margin:16px 0}
+.qty-control button{width:44px;height:44px;border-radius:50%;background:var(--surface);font-size:20px;font-weight:700;border:1px solid var(--border)}
+.qty-control .qty{font-size:28px;font-weight:700;min-width:60px;text-align:center}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:16px;overflow-x:auto}
+.tabs button{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--card);color:var(--text2);border:1px solid var(--border)}
+.tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* Gauge */
+.gauge-wrap{text-align:center;margin:16px 0}
+.gauge-circle{width:140px;height:140px;border-radius:50%;border:8px solid var(--surface);display:inline-flex;align-items:center;justify-content:center;flex-direction:column;position:relative}
+.gauge-circle::before{content:'';position:absolute;inset:-8px;border-radius:50%;border:8px solid transparent;border-top-color:var(--primary);border-right-color:var(--primary);transform:rotate(45deg)}
+.gauge-val{font-size:28px;font-weight:700}
+.gauge-unit{font-size:11px;color:var(--text3)}
+
+/* Timeline */
+.timeline-item{display:flex;gap:12px;margin-bottom:16px;position:relative}
+.timeline-item::before{content:'';position:absolute;left:15px;top:32px;bottom:-16px;width:2px;background:var(--border)}
+.timeline-item:last-child::before{display:none}
+.timeline-dot{width:32px;height:32px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;border:2px solid var(--border);z-index:1}
+.timeline-content{flex:1;background:var(--card);border-radius:8px;padding:10px 12px}
+.timeline-content h4{font-size:12px;margin-bottom:2px}
+.timeline-content p{font-size:11px;color:var(--text3)}
+.timeline-content .time{font-size:10px;color:var(--text3);margin-top:4px}
+
+.hidden{display:none!important}
+.section-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px}
+.mb-12{margin-bottom:12px}
+.mt-8{margin-top:8px}
+.flex-between{display:flex;align-items:center;justify-content:space-between}
+.gap-8{gap:8px}
+.text-center{text-align:center}
+</style>
+</head>
+<body>
+
+<div class="app" id="app"></div>
+
+<script>
+const S={
+  role:'asistente',
+  tab:'home',
+  sheet:null,
+  offline:false,
+  building:'Villa Valencia',
+  modules:{inventory:true,inspections:true,incidents:true,vendors:true,meetings:true,supervision:true,weekly:true,projects:true},
+  // Sequential states
+  seqMode:null, seqIdx:0,
+  // Demo data
+  invItems:[
+    {id:1,name:'Cloro Líquido',unit:'gal',qty:3,min:5,cat:'Limpieza',type:'stock'},
+    {id:2,name:'Bolsas Basura 55gal',unit:'und',qty:45,min:20,cat:'Limpieza',type:'stock'},
+    {id:3,name:'Aceite Motor',unit:'qt',qty:2,min:4,cat:'Mantenimiento',type:'stock'},
+    {id:4,name:'Bombillos LED',unit:'und',qty:8,min:10,cat:'Eléctrico',type:'stock'},
+    {id:5,name:'Jabón Líquido',unit:'gal',qty:6,min:3,cat:'Limpieza',type:'stock'},
+    {id:6,name:'Filtros A/C',unit:'und',qty:1,min:2,cat:'HVAC',type:'stock'},
+    {id:7,name:'Planta Eléctrica — Diesel',unit:'%',qty:72,min:30,cat:'Combustible',type:'fuel'},
+    {id:8,name:'Bomba de Agua — Gasolina',unit:'%',qty:55,min:25,cat:'Combustible',type:'fuel'}
+  ],
+  fuelReadings:[
+    {date:'2026-04-13',level:72,asset:'Planta Eléctrica'},
+    {date:'2026-04-12',level:78,asset:'Planta Eléctrica'},
+    {date:'2026-04-11',level:80,asset:'Planta Eléctrica'},
+    {date:'2026-04-10',level:85,asset:'Planta Eléctrica'},
+    {date:'2026-04-09',level:90,asset:'Planta Eléctrica'}
+  ],
+  incidents:[
+    {id:1,title:'Filtración Piso 8 Apt 8B',status:'open',priority:'high',reporter:'J. Pérez',date:'2026-04-12',sla:24,elapsed:48},
+    {id:2,title:'Ascensor #2 Ruido Anormal',status:'progress',priority:'medium',reporter:'Staff',date:'2026-04-13',sla:48,elapsed:20},
+    {id:3,title:'Luz Pasillo P3 Fundida',status:'resolved',priority:'low',reporter:'M. García',date:'2026-04-10',sla:72,elapsed:16}
+  ],
+  vendors:[
+    {id:1,name:'AquaClean Piscinas',day:'Lunes',time:'07:00',status:'checked-in',type:'Mantenimiento Piscina'},
+    {id:2,name:'SecuriTech',day:'Martes',time:'09:00',status:'pending',type:'Cámaras / CCTV'},
+    {id:3,name:'JardínPro',day:'Miércoles',time:'06:30',status:'no-show',type:'Jardinería'},
+    {id:4,name:'ElevaMax',day:'Jueves',time:'08:00',status:'pending',type:'Ascensores'}
+  ],
+  inspAreas:[
+    {id:1,name:'Lobby Principal',condition:'good',lastCheck:'2026-04-13'},
+    {id:2,name:'Piscina & Deck',condition:'attention',lastCheck:'2026-04-12'},
+    {id:3,name:'Gimnasio',condition:'good',lastCheck:'2026-04-13'},
+    {id:4,name:'Azotea / Roof',condition:'urgent',lastCheck:'2026-04-11'},
+    {id:5,name:'Estacionamiento P1',condition:'good',lastCheck:'2026-04-13'},
+    {id:6,name:'Salón Social',condition:'attention',lastCheck:'2026-04-10'}
+  ],
+  projects:[
+    {id:1,name:'Remodelación Lobby',stage:3,budget:25000,spent:18200,owner:'Ana M.'},
+    {id:2,name:'Sistema Solar Azotea',stage:1,budget:0,spent:0,owner:'Carlos R.'},
+    {id:3,name:'Pintura Fachada Este',stage:4,budget:12000,spent:9800,owner:'Ana M.'}
+  ],
+  meetings:[
+    {id:1,date:'2026-04-12',title:'Reunión Semanal Staff',attendees:4,actions:3,actionsComplete:1},
+    {id:2,date:'2026-04-05',title:'Coordinación Proveedores',attendees:3,actions:2,actionsComplete:2}
+  ],
+  weeklyReports:[
+    {id:1,week:'Sem 14 (Abr 7-13)',status:'draft',sections:7,complete:4},
+    {id:2,week:'Sem 13 (Mar 31 - Abr 6)',status:'approved',sections:7,complete:7}
+  ],
+  residentDocs:[
+    {name:'Reglamento Interno 2026',type:'PDF',date:'2026-01-15'},
+    {name:'Acta Asamblea Mar 2026',type:'PDF',date:'2026-03-20'},
+    {name:'Presupuesto Anual 2026',type:'PDF',date:'2026-01-10'}
+  ]
+};
+
+const ROLES=[
+  {key:'conserje',label:'Conserje',icon:'🛡️'},
+  {key:'asistente',label:'Admin Planta',icon:'📋'},
+  {key:'supervisor',label:'Supervisor',icon:'👁️'},
+  {key:'admin',label:'Gerencia',icon:'🏛️'},
+  {key:'propietario',label:'Residente',icon:'🏠'}
+];
+
+const STAGES=['Ideación','Evaluación','Aprobación','Ejecución','Monitoreo','Cierre'];
+
+const NAV={
+  conserje:[
+    {key:'home',icon:'🏠',label:'Inicio'},
+    {key:'inventory',icon:'📦',label:'Inventario'},
+    {key:'incidents',icon:'🚨',label:'Incidentes'},
+    {key:'inspections',icon:'🔍',label:'Recorrido'},
+    {key:'vendors',icon:'🚚',label:'Proveedores'}
+  ],
+  asistente:[
+    {key:'home',icon:'🏠',label:'Inicio'},
+    {key:'ops',icon:'⚡',label:'Operaciones'},
+    {key:'vendors',icon:'🚚',label:'Proveedores'},
+    {key:'projects',icon:'🏗️',label:'Proyectos'},
+    {key:'reports',icon:'📊',label:'Reportes'}
+  ],
+  supervisor:[
+    {key:'home',icon:'🏠',label:'Inicio'},
+    {key:'oversight',icon:'👁️',label:'Control'},
+    {key:'reports',icon:'📊',label:'Reportes'},
+    {key:'projects',icon:'🏗️',label:'Proyectos'},
+    {key:'supervision',icon:'📝',label:'Supervisión'}
+  ],
+  admin:[
+    {key:'home',icon:'🏠',label:'Inicio'},
+    {key:'buildings',icon:'🏢',label:'Edificios'},
+    {key:'staff',icon:'👥',label:'Personal'},
+    {key:'config',icon:'⚙️',label:'Config'},
+    {key:'analytics',icon:'📈',label:'Analítica'}
+  ],
+  propietario:[
+    {key:'home',icon:'🏠',label:'Inicio'},
+    {key:'docs',icon:'📄',label:'Documentos'},
+    {key:'finance',icon:'💰',label:'Finanzas'},
+    {key:'issues',icon:'📩',label:'Solicitudes'},
+    {key:'news',icon:'📢',label:'Avisos'}
+  ]
+};
+
+function condBadge(c){
+  if(c==='good') return '<span class="badge badge-success">✓ Bien</span>';
+  if(c==='attention') return '<span class="badge badge-warn">⚠ Atención</span>';
+  return '<span class="badge badge-danger">🔴 Urgente</span>';
+}
+function statusBadge(s){
+  if(s==='open') return '<span class="badge badge-danger">Abierto</span>';
+  if(s==='progress') return '<span class="badge badge-info">En Progreso</span>';
+  if(s==='resolved') return '<span class="badge badge-success">Resuelto</span>';
+  if(s==='draft') return '<span class="badge badge-warn">Borrador</span>';
+  if(s==='approved') return '<span class="badge badge-success">Aprobado</span>';
+  if(s==='checked-in') return '<span class="badge badge-success">✓ Check-in</span>';
+  if(s==='no-show') return '<span class="badge badge-danger">No Show</span>';
+  return '<span class="badge badge-info">Pendiente</span>';
+}
+function pctBar(pct,color){
+  return `<div style="height:6px;background:var(--surface);border-radius:3px;margin-top:6px"><div style="height:100%;width:${pct}%;background:var(--${color});border-radius:3px"></div></div>`;
+}
+
+function render(){
+  const nav=NAV[S.role]||NAV.asistente;
+  if(!nav.find(n=>n.key===S.tab)) S.tab='home';
+  
+  let html='';
+  // Offline banner
+  if(S.offline) html+='<div class="offline-banner">📡 Sin conexión — cambios guardados localmente</div>';
+  // Role bar
+  html+='<div class="role-bar">';
+  ROLES.forEach(r=>{html+=`<button class="${S.role===r.key?'active':''}" onclick="switchRole('${r.key}')">${r.icon} ${r.label}</button>`});
+  html+='</div>';
+  // Topbar
+  html+=`<div class="topbar"><div><h1>${S.building}</h1><div class="sub">${ROLES.find(r=>r.key===S.role).icon} ${ROLES.find(r=>r.key===S.role).label} · Hoy: 14 Abr 2026</div></div><button onclick="toggleOffline()" style="font-size:20px">${S.offline?'📡':'🔔'}</button></div>`;
+  // Content
+  html+='<div class="content" id="content">';
+  html+=renderPage();
+  html+='</div>';
+  // Bottom Nav
+  html+='<div class="bottomnav">';
+  nav.forEach(n=>{html+=`<button class="${S.tab===n.key?'active':''}" onclick="go('${n.key}')"><span class="ico">${n.icon}</span>${n.label}</button>`});
+  html+='</div>';
+  // Sheet
+  if(S.sheet) html+=renderSheet();
+  
+  document.getElementById('app').innerHTML=html;
+}
+
+function renderPage(){
+  const k=S.role+'_'+S.tab;
+  // Sequential modes override
+  if(S.seqMode==='inv-count') return renderSeqInvCount();
+  if(S.seqMode==='walkthrough') return renderSeqWalkthrough();
+  
+  switch(k){
+    // ---- CONSERJE ----
+    case 'conserje_home': return conserjeHome();
+    case 'conserje_inventory': return inventoryPage();
+    case 'conserje_incidents': return incidentPage();
+    case 'conserje_inspections': return inspectionsPage();
+    case 'conserje_vendors': return vendorPage();
+    // ---- ASISTENTE ----
+    case 'asistente_home': return asistenteHome();
+    case 'asistente_ops': return opsPage();
+    case 'asistente_vendors': return vendorPage();
+    case 'asistente_projects': return projectsPage();
+    case 'asistente_reports': return reportsPage();
+    // ---- SUPERVISOR ----
+    case 'supervisor_home': return supervisorHome();
+    case 'supervisor_oversight': return oversightPage();
+    case 'supervisor_reports': return reportsPage();
+    case 'supervisor_projects': return projectsPage();
+    case 'supervisor_supervision': return supervisionPage();
+    // ---- ADMIN ----
+    case 'admin_home': return adminHome();
+    case 'admin_buildings': return buildingsPage();
+    case 'admin_staff': return staffPage();
+    case 'admin_config': return configPage();
+    case 'admin_analytics': return analyticsPage();
+    // ---- RESIDENTE ----
+    case 'propietario_home': return residentHome();
+    case 'propietario_docs': return residentDocs();
+    case 'propietario_finance': return residentFinance();
+    case 'propietario_issues': return residentIssues();
+    case 'propietario_news': return residentNews();
+    default: return '<p>Página no encontrada</p>';
+  }
+}
+
+// ===================== CONSERJE =====================
+function conserjeHome(){
+  const lowStock=S.invItems.filter(i=>i.qty<=i.min).length;
+  const openInc=S.incidents.filter(i=>i.status==='open').length;
+  return `
+    <h2 style="font-size:20px;margin-bottom:4px">Buenos días 👋</h2>
+    <p style="color:var(--text2);margin-bottom:16px">Turno: 06:00–14:00 · Torre A</p>
+    <div class="card-row">
+      <div class="card"><div class="stat-val" style="color:var(--warn)">${lowStock}</div><div class="stat-label">Stock Bajo</div></div>
+      <div class="card"><div class="stat-val" style="color:var(--danger)">${openInc}</div><div class="stat-label">Incidentes</div></div>
+      <div class="card"><div class="stat-val" style="color:var(--accent)">3</div><div class="stat-label">Recorridos</div></div>
+    </div>
+    <div class="section-title">Acciones Rápidas</div>
+    <div class="list-item" onclick="go('incidents');openSheet('new-incident')"><div class="ico">🚨</div><div class="info"><h4>Reportar Incidente</h4><p>Registrar nuevo evento</p></div><div class="trail">→</div></div>
+    <div class="list-item" onclick="go('inventory')"><div class="ico">📦</div><div class="info"><h4>Inventario & Combustible</h4><p>Insumos, conteos y niveles</p></div><div class="trail">→</div></div>
+    <div class="list-item" onclick="startSeq('walkthrough')"><div class="ico">🔍</div><div class="info"><h4>Iniciar Recorrido</h4><p>Inspección de áreas comunes</p></div><div class="trail">→</div></div>
+    <div class="list-item" onclick="go('vendors')"><div class="ico">🚚</div><div class="info"><h4>Proveedores Hoy</h4><p>Check-in/out y no-shows</p></div><div class="trail">→</div></div>
+    <button class="btn btn-primary btn-block mt-8" onclick="openSheet('daily-report')">📝 Entregar Reporte de Turno</button>`;
+}
+
+// ===================== ASISTENTE =====================
+function asistenteHome(){
+  const lowStock=S.invItems.filter(i=>i.qty<=i.min).length;
+  const pendVendors=S.vendors.filter(v=>v.status==='pending').length;
+  const noShows=S.vendors.filter(v=>v.status==='no-show').length;
+  const draftRpt=S.weeklyReports.filter(r=>r.status==='draft').length;
+  return `
+    <h2 style="font-size:20px;margin-bottom:4px">Admin de Planta</h2>
+    <p style="color:var(--text2);margin-bottom:16px">Villa Valencia · Semana 15 · Operaciones en sitio</p>
+    <div class="card-row">
+      <div class="card"><div class="stat-val" style="color:var(--warn)">${lowStock}</div><div class="stat-label">Alertas Inv.</div></div>
+      <div class="card"><div class="stat-val" style="color:var(--accent)">${pendVendors}</div><div class="stat-label">Proveedores Hoy</div></div>
+      <div class="card"><div class="stat-val" style="color:var(--danger)">${noShows}</div><div class="stat-label">No-Shows</div></div>
+    </div>
+    <div class="section-title">Pendientes</div>
+    ${draftRpt?`<div class="list-item" onclick="go('reports')"><div class="ico">📊</div><div class="info"><h4>Reporte Semanal</h4><p>${S.weeklyReports[0].complete}/7 secciones completas</p></div><div class="trail"><span class="badge badge-warn">Borrador</span></div></div>`:''}
+    <div class="list-item" onclick="go('ops')"><div class="ico">📋</div><div class="info"><h4>Cronograma Semanal</h4><p>3 trabajos planificados para hoy</p></div><div class="trail">→</div></div>
+    <div class="list-item" onclick="openSheet('meeting')"><div class="ico">👥</div><div class="info"><h4>Registrar Reunión</h4><p>Capturar acta y acciones</p></div><div class="trail">→</div></div>
+    <div class="section-title">Incidentes Activos</div>
+    ${S.incidents.filter(i=>i.status!=='resolved').map(i=>`
+      <div class="list-item" onclick="openSheet('incident-detail')"><div class="ico">${i.priority==='high'?'🔴':'🟡'}</div><div class="info"><h4>${i.title}</h4><p>${i.reporter} · ${i.date}</p></div><div class="trail">${statusBadge(i.status)}${i.elapsed>i.sla?'<br><span class="badge badge-danger" style="margin-top:4px">SLA ⚠</span>':''}</div></div>
+    `).join('')}`;
+}
+
+// ===================== SUPERVISOR =====================
+function supervisorHome(){
+  const escalated=S.incidents.filter(i=>i.elapsed>i.sla).length;
+  const pendApproval=S.weeklyReports.filter(r=>r.status==='draft').length;
+  return `
+    <h2 style="font-size:20px;margin-bottom:4px">Control Supervisorio</h2>
+    <p style="color:var(--text2);margin-bottom:16px">Multi-edificio · Hoy: 14 Abr 2026</p>
+    <div class="card-row">
+      <div class="card"><div class="stat-val" style="color:var(--danger)">${escalated}</div><div class="stat-label">Escalados</div></div>
+      <div class="card"><div class="stat-val" style="color:var(--warn)">${pendApproval}</div><div class="stat-label">Reportes x Aprobar</div></div>
+      <div class="card"><div class="stat-val" style="color:var(--success)">2</div><div class="stat-label">Proyectos Activos</div></div>
+    </div>
+    <div class="section-title">Alertas & Escalaciones</div>
+    ${S.incidents.filter(i=>i.elapsed>i.sla).map(i=>`
+      <div class="card" style="border-left:3px solid var(--danger)">
+        <div class="flex-between"><h3>${i.title}</h3><span class="badge badge-danger">SLA Excedido</span></div>
+        <p>Reportado: ${i.date} · Elapsed: ${i.elapsed}h / SLA: ${i.sla}h</p>
+        <div style="margin-top:8px"><button class="btn btn-sm btn-danger" onclick="openSheet('escalation')">Escalar</button> <button class="btn btn-sm btn-outline">Ver Detalle</button></div>
+      </div>
+    `).join('')}
+    <div class="section-title">Notas de Supervisión Recientes</div>
+    <div class="timeline-item"><div class="timeline-dot">📝</div><div class="timeline-content"><h4>Visita Torre A</h4><p>Lobby impecable. Piscina requiere reparación de baldosa perimetral. Guardia nocturno cumplió protocolo.</p><div class="time">Hoy 08:30</div></div></div>
+    <div class="timeline-item"><div class="timeline-dot">📝</div><div class="timeline-content"><h4>Revisión Equipos Mecánicos</h4><p>Planta eléctrica sin novedad. Bomba #2 presenta vibración. Programar mantenimiento preventivo.</p><div class="time">Ayer 15:00</div></div></div>`;
+}
+
+// ===================== ADMIN =====================
+function adminHome(){
+  return `
+    <h2 style="font-size:20px;margin-bottom:4px">Gerencia</h2>
+    <p style="color:var(--text2);margin-bottom:16px">APROVIVA · Administradora de Propiedades</p>
+    <div class="card-row">
+      <div class="card"><div class="stat-val">1</div><div class="stat-label">Edificios</div></div>
+      <div class="card"><div class="stat-val">5</div><div class="stat-label">Staff Activo</div></div>
+      <div class="card"><div class="stat-val">9</div><div class="stat-label">Módulos</div></div>
+    </div>
+    <div class="section-title">Edificios</div>
+    <div class="list-item" onclick="go('buildings')"><div class="ico">🏢</div><div class="info"><h4>Villa Valencia</h4><p>12 pisos · 48 aptos · 5 staff</p></div><div class="trail"><span class="badge badge-success">Activo</span></div></div>
+    <div class="list-item" style="opacity:.4"><div class="ico">🏗️</div><div class="info"><h4>Agregar Edificio</h4><p>Expandir portafolio</p></div><div class="trail">+</div></div>
+    <div class="section-title">Acceso Rápido</div>
+    <div class="list-item" onclick="go('staff')"><div class="ico">👥</div><div class="info"><h4>Gestión de Personal</h4><p>Asignar roles y edificios</p></div><div class="trail">→</div></div>
+    <div class="list-item" onclick="go('config')"><div class="ico">⚙️</div><div class="info"><h4>Módulos & Configuración</h4><p>Activar/desactivar por edificio</p></div><div class="trail">→</div></div>
+    <div class="list-item" onclick="go('analytics')"><div class="ico">📈</div><div class="info"><h4>Analítica de Portafolio</h4><p>KPIs y cumplimiento cross-edificio</p></div><div class="trail">→</div></div>`;
+}
+
+// ===================== RESIDENTE =====================
+function residentHome(){
+  return `
+    <h2 style="font-size:20px;margin-bottom:4px">Bienvenido 🏠</h2>
+    <p style="color:var(--text2);margin-bottom:16px">Villa Valencia · Apt 5A</p>
+    <div class="card-row">
+      <div class="card"><div class="stat-val" style="color:var(--success)">✓</div><div class="stat-label">Cuota al Día</div></div>
+      <div class="card"><div class="stat-val">1</div><div class="stat-label">Solicitud</div></div>
+      <div class="card"><div class="stat-val">2</div><div class="stat-label">Avisos</div></div>
+    </div>
+    <div class="section-title">Últimos Avisos</div>
+    <div class="card"><h3>📢 Mantenimiento Ascensor #2</h3><p>El ascensor #2 estará fuera de servicio el miércoles 16 de abril de 8am a 12pm por mantenimiento preventivo.</p><div style="margin-top:6px;font-size:11px;color:var(--text3)">Publicado: 13 Abr 2026</div></div>
+    <div class="card"><h3>🎉 Asamblea General Mayo</h3><p>Se convoca asamblea general ordinaria para el sábado 10 de mayo a las 3:00 PM en el Salón Social.</p><div style="margin-top:6px;font-size:11px;color:var(--text3)">Publicado: 10 Abr 2026</div></div>
+    <div class="section-title">Mi Solicitud</div>
+    <div class="list-item"><div class="ico">📩</div><div class="info"><h4>Filtración baño secundario</h4><p>Enviada: 12 Abr 2026</p></div><div class="trail"><span class="badge badge-info">En Revisión</span></div></div>
+    <button class="btn btn-primary btn-block mt-8" onclick="openSheet('new-issue')">📩 Nueva Solicitud</button>`;
+}
+
+// ===================== MODULE PAGES =====================
+function inventoryPage(){
+  const lowItems=S.invItems.filter(i=>i.qty<=i.min);
+  const stockItems=S.invItems.filter(i=>i.type==='stock');
+  const fuelItems=S.invItems.filter(i=>i.type==='fuel');
+  const invTab=S.invTab||'stock';
+  return `
+    <div class="flex-between mb-12"><h2 style="font-size:18px">📦 Inventario</h2><button class="btn btn-sm btn-primary" onclick="startSeq('inv-count')">Conteo Completo</button></div>
+    ${lowItems.length?`<div class="card" style="border-left:3px solid var(--warn)"><h3>⚠ ${lowItems.length} items bajo mínimo</h3><p>${lowItems.map(i=>i.name).join(', ')}</p></div>`:''}
+    <div class="tabs"><button class="${invTab==='stock'?'active':''}" onclick="S.invTab='stock';render()">Insumos (${stockItems.length})</button><button class="${invTab==='fuel'?'active':''}" onclick="S.invTab='fuel';render()">Combustible (${fuelItems.length})</button></div>
+    ${invTab==='stock'?stockItems.map(i=>`
+      <div class="list-item" onclick="openSheet('inv-edit')">
+        <div class="ico">📦</div>
+        <div class="info"><h4>${i.name}</h4><p>${i.cat} · Mín: ${i.min} ${i.unit}</p></div>
+        <div class="trail"><div style="font-size:18px;font-weight:700;${i.qty<=i.min?'color:var(--warn)':''}">${i.qty}</div><div style="font-size:10px;color:var(--text3)">${i.unit}</div></div>
+      </div>
+    `).join(''):''}
+    ${invTab==='fuel'?fuelItems.map(i=>`
+      <div class="card">
+        <div class="flex-between"><h3>⛽ ${i.name}</h3>${i.qty<=i.min?'<span class="badge badge-danger">Bajo</span>':i.qty<=50?'<span class="badge badge-warn">Medio</span>':'<span class="badge badge-success">OK</span>'}</div>
+        <div class="gauge-wrap"><div class="gauge-circle" style="border-color:${i.qty<=i.min?'var(--danger)':i.qty<=50?'var(--warn)':'var(--success)'}"><div class="gauge-val">${i.qty}%</div><div class="gauge-unit">Nivel</div></div></div>
+        ${pctBar(i.qty, i.qty<=i.min?'danger':i.qty<=50?'warn':'success')}
+        <div style="margin-top:10px;display:flex;gap:8px"><button class="btn btn-sm btn-primary" onclick="openSheet('fuel-reading')">📷 Nueva Lectura</button><button class="btn btn-sm btn-outline">Historial</button></div>
+      </div>
+    `).join(''):''}`;
+}
+
+function fuelPage(){
+  const last=S.fuelReadings[0];
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">⛽ Gas & Diesel</h2>
+    <div class="card">
+      <h3>Planta Eléctrica</h3>
+      <div class="gauge-wrap"><div class="gauge-circle"><div class="gauge-val">${last.level}%</div><div class="gauge-unit">Nivel Actual</div></div></div>
+      <p class="text-center" style="font-size:12px;color:var(--text3)">Última lectura: ${last.date}</p>
+      ${pctBar(last.level, last.level<30?'danger':last.level<50?'warn':'success')}
+    </div>
+    <button class="btn btn-primary btn-block mb-12" onclick="openSheet('fuel-reading')">📷 Nueva Lectura</button>
+    <div class="section-title">Historial</div>
+    ${S.fuelReadings.map(r=>`
+      <div class="list-item"><div class="ico">⛽</div><div class="info"><h4>${r.level}%</h4><p>${r.date}</p></div><div class="trail">${r.level<50?'<span class="badge badge-warn">Bajo</span>':'<span class="badge badge-success">OK</span>'}</div></div>
+    `).join('')}
+    <div class="section-title">Tendencia (7 días)</div>
+    <div class="card" style="padding:12px">
+      <svg viewBox="0 0 300 100" style="width:100%;height:80px">
+        <polyline points="${S.fuelReadings.map((r,i)=>`${260-i*60},${100-r.level}`).join(' ')}" fill="none" stroke="var(--primary)" stroke-width="2"/>
+        ${S.fuelReadings.map((r,i)=>`<circle cx="${260-i*60}" cy="${100-r.level}" r="3" fill="var(--primary-light)"/>`).join('')}
+        <line x1="0" y1="70" x2="300" y2="70" stroke="var(--warn)" stroke-width="1" stroke-dasharray="4"/>
+        <text x="302" y="73" fill="var(--warn)" font-size="8">30%</text>
+      </svg>
+    </div>`;
+}
+
+function incidentPage(){
+  return `
+    <div class="flex-between mb-12"><h2 style="font-size:18px">🚨 Incidentes</h2><button class="btn btn-sm btn-primary" onclick="openSheet('new-incident')">+ Nuevo</button></div>
+    <div class="tabs"><button class="active">Todos</button><button>Abiertos</button><button>En Progreso</button><button>Resueltos</button></div>
+    ${S.incidents.map(i=>`
+      <div class="list-item" onclick="openSheet('incident-detail')">
+        <div class="ico">${i.priority==='high'?'🔴':i.priority==='medium'?'🟡':'🟢'}</div>
+        <div class="info"><h4>${i.title}</h4><p>${i.reporter} · ${i.date}</p></div>
+        <div class="trail">${statusBadge(i.status)}${i.elapsed>i.sla?'<br><span class="badge badge-danger" style="margin-top:4px">SLA ⚠</span>':''}</div>
+      </div>
+    `).join('')}`;
+}
+
+function inspectionsPage(){
+  return `
+    <div class="flex-between mb-12"><h2 style="font-size:18px">🔍 Áreas Comunes</h2><button class="btn btn-sm btn-primary" onclick="startSeq('walkthrough')">Iniciar Recorrido</button></div>
+    ${S.inspAreas.map(a=>`
+      <div class="list-item" onclick="openSheet('insp-detail')">
+        <div class="ico">${a.condition==='good'?'✅':a.condition==='attention'?'⚠️':'🔴'}</div>
+        <div class="info"><h4>${a.name}</h4><p>Últ. inspección: ${a.lastCheck}</p></div>
+        <div class="trail">${condBadge(a.condition)}</div>
+      </div>
+    `).join('')}`;
+}
+
+function vendorPage(){
+  return `
+    <div class="flex-between mb-12"><h2 style="font-size:18px">🚚 Proveedores</h2><button class="btn btn-sm btn-outline">+ Programar</button></div>
+    <div class="tabs"><button class="active">Esta Semana</button><button>Recurrentes</button><button>Historial</button></div>
+    ${S.vendors.map(v=>`
+      <div class="list-item">
+        <div class="ico">🚚</div>
+        <div class="info"><h4>${v.name}</h4><p>${v.type} · ${v.day} ${v.time}</p></div>
+        <div class="trail">
+          ${statusBadge(v.status)}
+          ${v.status==='pending'?`<br><button class="btn btn-sm btn-success mt-8" onclick="event.stopPropagation();checkIn(${v.id})">Check-in</button>`:''}
+          ${v.status==='no-show'?`<br><button class="btn btn-sm btn-danger mt-8" onclick="event.stopPropagation();openSheet('no-show')">Gestionar</button>`:''}
+        </div>
+      </div>
+    `).join('')}`;
+}
+
+function opsPage(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">⚡ Operaciones</h2>
+    <div class="tabs"><button class="active" onclick="S.tab='ops';render()">Cronograma</button><button onclick="go('inventory')">Inventario</button><button onclick="go('fuel')">Combustible</button><button onclick="go('inspections')">Inspecciones</button></div>
+    <div class="section-title">Cronograma Hoy — Lunes 14 Abr</div>
+    <div class="timeline-item"><div class="timeline-dot">🔍</div><div class="timeline-content"><h4>Recorrido Matutino</h4><p>Lobby, Piscina, Gym, Estacionamiento</p><div class="time">06:30 · Conserje: Luis</div></div></div>
+    <div class="timeline-item"><div class="timeline-dot">🚚</div><div class="timeline-content"><h4>AquaClean Piscinas</h4><p>Mantenimiento mensual piscina</p><div class="time">07:00 · Verificar: Ana</div></div></div>
+    <div class="timeline-item"><div class="timeline-dot">📦</div><div class="timeline-content"><h4>Conteo Inventario Limpieza</h4><p>Productos de limpieza y basura</p><div class="time">09:00 · Conserje: María</div></div></div>
+    <div class="timeline-item"><div class="timeline-dot">🔧</div><div class="timeline-content"><h4>Reparación Baldosa Deck</h4><p>Handyman: Pedro · Material confirmado</p><div class="time">10:00 · Verificar: Ana</div></div></div>
+    <div class="timeline-item"><div class="timeline-dot">👥</div><div class="timeline-content"><h4>Reunión Semanal Staff</h4><p>Todos · Salón Admin</p><div class="time">14:00</div></div></div>
+    <div class="section-title">Reuniones</div>
+    ${S.meetings.map(m=>`
+      <div class="list-item" onclick="openSheet('meeting-detail')"><div class="ico">👥</div><div class="info"><h4>${m.title}</h4><p>${m.date} · ${m.attendees} asistentes</p></div><div class="trail"><span class="badge badge-info">${m.actionsComplete}/${m.actions} acciones</span></div></div>
+    `).join('')}`;
+}
+
+function projectsPage(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">🏗️ Proyectos</h2>
+    ${S.role==='asistente'?'<button class="btn btn-sm btn-primary mb-12" onclick="openSheet(\'new-project\')">+ Nueva Idea</button>':''}
+    ${S.projects.map(p=>{
+      const pct=p.budget?Math.round(p.spent/p.budget*100):0;
+      return `
+      <div class="card">
+        <div class="flex-between"><h3>${p.name}</h3><span class="badge badge-info">${STAGES[p.stage]}</span></div>
+        <div class="pipeline">${STAGES.map((s,i)=>`<div class="pipe-stage ${i<p.stage?'done':i===p.stage?'active':''}">${s}</div>`).join('')}</div>
+        <p style="font-size:12px;color:var(--text2)">Responsable: ${p.owner}</p>
+        ${p.budget?`<div class="flex-between mt-8"><span style="font-size:12px">Presupuesto</span><span style="font-size:12px;font-weight:600">$${p.spent.toLocaleString()} / $${p.budget.toLocaleString()}</span></div>${pctBar(pct,pct>90?'danger':pct>70?'warn':'primary')}`:'<p style="font-size:12px;color:var(--text3);margin-top:8px">Sin presupuesto asignado</p>'}
+        <div style="margin-top:10px"><button class="btn btn-sm btn-outline" onclick="openSheet('project-detail')">Ver Detalle</button> ${S.role==='asistente'?'<button class="btn btn-sm btn-primary" onclick="openSheet(\'project-update\')">Actualizar</button>':''}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+function reportsPage(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">📊 Reportes Semanales</h2>
+    ${S.weeklyReports.map(r=>`
+      <div class="card">
+        <div class="flex-between"><h3>${r.week}</h3>${statusBadge(r.status)}</div>
+        <p style="margin-top:6px;font-size:12px;color:var(--text2)">${r.complete}/${r.sections} secciones completas</p>
+        ${pctBar(Math.round(r.complete/r.sections*100),r.status==='approved'?'success':'primary')}
+        <div style="margin-top:10px">
+          ${r.status==='draft'&&S.role==='asistente'?'<button class="btn btn-sm btn-primary" onclick="openSheet(\'weekly-edit\')">Completar & Enviar</button>':''}
+          ${r.status==='draft'&&S.role==='supervisor'?'<button class="btn btn-sm btn-success" onclick="approveReport('+r.id+')">✓ Aprobar</button> <button class="btn btn-sm btn-outline" onclick="openSheet(\'report-comment\')">Comentar</button>':''}
+          ${r.status==='approved'?'<button class="btn btn-sm btn-outline">📥 Descargar PDF</button>':''}
+        </div>
+      </div>
+    `).join('')}
+    <div class="section-title">Secciones del Reporte</div>
+    ${['Inventario','Combustible','Reuniones','Proveedores','Inspecciones','Incidentes','Supervisión'].map((s,i)=>`
+      <div class="list-item"><div class="ico">${['📦','⛽','👥','🚚','🔍','🚨','📝'][i]}</div><div class="info"><h4>${s}</h4><p>Auto-generado de registros semanales</p></div><div class="trail">${i<4?'<span class="badge badge-success">✓</span>':'<span class="badge badge-warn">Pendiente</span>'}</div></div>
+    `).join('')}`;
+}
+
+function supervisionPage(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">📝 Supervisión</h2>
+    <button class="btn btn-primary btn-block mb-12" onclick="openSheet('new-supervision')">+ Registrar Visita</button>
+    <div class="section-title">Visitas Recientes</div>
+    <div class="timeline-item"><div class="timeline-dot">📝</div><div class="timeline-content"><h4>Inspección General Torre A</h4><p>Lobby impecable. Baldosa deck requiere atención. Bomba #2 con vibración anormal — programar mantenimiento.</p><div class="time">Hoy 08:30 · Supervisor: Carlos</div></div></div>
+    <div class="timeline-item"><div class="timeline-dot">📝</div><div class="timeline-content"><h4>Verificación Nocturna</h4><p>Guardia nocturno en puesto. Cámaras operativas. Iluminación exterior completa.</p><div class="time">13 Abr 22:00 · Supervisor: Carlos</div></div></div>
+    <div class="timeline-item"><div class="timeline-dot">📝</div><div class="timeline-content"><h4>Revisión Post-Lluvia</h4><p>Sin filtraciones en azotea. Drenajes funcionando. Jardín sin daños.</p><div class="time">12 Abr 10:00 · Supervisor: Carlos</div></div></div>`;
+}
+
+function oversightPage(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">👁️ Control Multi-Edificio</h2>
+    <div class="card"><h3>Villa Valencia</h3>
+      <div class="card-row" style="margin-top:8px">
+        <div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--danger)">1</div><div style="font-size:10px;color:var(--text3)">SLA Breach</div></div>
+        <div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--warn)">4</div><div style="font-size:10px;color:var(--text3)">Stock Bajo</div></div>
+        <div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--success)">85%</div><div style="font-size:10px;color:var(--text3)">Cumplimiento</div></div>
+      </div>
+    </div>
+    <div class="section-title">Feed de Alertas</div>
+    <div class="list-item" style="border-left:3px solid var(--danger)"><div class="ico">🔴</div><div class="info"><h4>Filtración Piso 8 — SLA Excedido</h4><p>48h elapsed / 24h SLA · Escalación automática</p></div></div>
+    <div class="list-item" style="border-left:3px solid var(--warn)"><div class="ico">⚠️</div><div class="info"><h4>JardínPro — No Show</h4><p>Visita programada 06:30 no realizada</p></div></div>
+    <div class="list-item" style="border-left:3px solid var(--warn)"><div class="ico">📦</div><div class="info"><h4>Cloro Líquido bajo mínimo</h4><p>3 gal disponibles / mínimo 5 gal</p></div></div>`;
+}
+
+// ---- ADMIN PAGES ----
+function buildingsPage(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">🏢 Edificios</h2>
+    <div class="card">
+      <div class="flex-between"><h3>Villa Valencia</h3><span class="badge badge-success">Activo</span></div>
+      <p style="margin-top:6px;font-size:12px;color:var(--text2)">Costa del Este, Panamá · 12 pisos · 48 unidades</p>
+      <div class="card-row" style="margin-top:12px">
+        <div style="flex:1;text-align:center"><div style="font-weight:700">5</div><div style="font-size:10px;color:var(--text3)">Staff</div></div>
+        <div style="flex:1;text-align:center"><div style="font-weight:700">9</div><div style="font-size:10px;color:var(--text3)">Módulos</div></div>
+        <div style="flex:1;text-align:center"><div style="font-weight:700">48</div><div style="font-size:10px;color:var(--text3)">Unidades</div></div>
+      </div>
+      <button class="btn btn-sm btn-outline mt-8" onclick="go('config')">⚙ Configurar</button>
+    </div>`;
+}
+function staffPage(){
+  const staff=[
+    {name:'Luis M.',role:'Conserje',shift:'06:00-14:00',building:'Torre A'},
+    {name:'María P.',role:'Conserje',shift:'14:00-22:00',building:'Torre A'},
+    {name:'Roberto S.',role:'Seguridad',shift:'22:00-06:00',building:'Torre A'},
+    {name:'Ana M.',role:'Asistente',shift:'08:00-17:00',building:'Villa Valencia'},
+    {name:'Carlos R.',role:'Supervisor',shift:'Flexible',building:'Multi-edificio'}
+  ];
+  return `
+    <div class="flex-between mb-12"><h2 style="font-size:18px">👥 Personal</h2><button class="btn btn-sm btn-primary">+ Agregar</button></div>
+    ${staff.map(s=>`
+      <div class="list-item"><div class="ico">👤</div><div class="info"><h4>${s.name}</h4><p>${s.role} · ${s.shift}</p></div><div class="trail"><span class="badge badge-info">${s.building}</span></div></div>
+    `).join('')}`;
+}
+function configPage(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">⚙️ Módulos — Villa Valencia</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Activar o desactivar módulos por edificio. Los módulos desactivados desaparecen de la navegación.</p>
+    ${Object.entries(S.modules).map(([k,v])=>`
+      <div class="list-item" onclick="toggleModule('${k}')">
+        <div class="ico">${{inventory:'📦',inspections:'🔍',incidents:'🚨',vendors:'🚚',meetings:'👥',supervision:'📝',weekly:'📊',projects:'🏗️'}[k]}</div>
+        <div class="info"><h4>${k.charAt(0).toUpperCase()+k.slice(1)}</h4></div>
+        <div class="trail"><div style="width:44px;height:24px;border-radius:12px;background:${v?'var(--success)':'var(--surface)'};border:1px solid var(--border);position:relative"><div style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:1px;${v?'right:1px':'left:1px'};transition:.2s"></div></div></div>
+      </div>
+    `).join('')}`;
+}
+function analyticsPage(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">📈 Analítica de Portafolio</h2>
+    <div class="card-row">
+      <div class="card"><div class="stat-val" style="color:var(--success)">92%</div><div class="stat-label">Cobranza</div></div>
+      <div class="card"><div class="stat-val" style="color:var(--primary)">87%</div><div class="stat-label">Cumplimiento Ops</div></div>
+    </div>
+    <div class="card"><h3>Incidentes — Últimos 30 días</h3>
+      <svg viewBox="0 0 300 80" style="width:100%;height:60px;margin-top:8px">
+        <rect x="10" y="20" width="30" height="60" rx="4" fill="var(--danger)" opacity=".7"/><text x="25" y="15" text-anchor="middle" fill="var(--text3)" font-size="8">12</text>
+        <rect x="60" y="40" width="30" height="40" rx="4" fill="var(--warn)" opacity=".7"/><text x="75" y="35" text-anchor="middle" fill="var(--text3)" font-size="8">8</text>
+        <rect x="110" y="50" width="30" height="30" rx="4" fill="var(--success)" opacity=".7"/><text x="125" y="45" text-anchor="middle" fill="var(--text3)" font-size="8">5</text>
+        <rect x="160" y="30" width="30" height="50" rx="4" fill="var(--warn)" opacity=".7"/><text x="175" y="25" text-anchor="middle" fill="var(--text3)" font-size="8">10</text>
+        <text x="25" y="88" text-anchor="middle" fill="var(--text3)" font-size="7">Sem11</text>
+        <text x="75" y="88" text-anchor="middle" fill="var(--text3)" font-size="7">Sem12</text>
+        <text x="125" y="88" text-anchor="middle" fill="var(--text3)" font-size="7">Sem13</text>
+        <text x="175" y="88" text-anchor="middle" fill="var(--text3)" font-size="7">Sem14</text>
+      </svg>
+    </div>
+    <div class="card"><h3>Proveedor Cumplimiento</h3><p style="margin-top:8px">AquaClean: <span style="color:var(--success)">100%</span> · SecuriTech: <span style="color:var(--success)">95%</span> · JardínPro: <span style="color:var(--danger)">60%</span> · ElevaMax: <span style="color:var(--success)">100%</span></p></div>`;
+}
+
+// ---- RESIDENT PAGES ----
+function residentDocs(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">📄 Documentos</h2>
+    ${S.residentDocs.map(d=>`
+      <div class="list-item"><div class="ico">📄</div><div class="info"><h4>${d.name}</h4><p>${d.type} · ${d.date}</p></div><div class="trail"><button class="btn btn-sm btn-outline">📥</button></div></div>
+    `).join('')}`;
+}
+function residentFinance(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">💰 Estado de Cuenta</h2>
+    <div class="card">
+      <div class="flex-between"><h3>Cuota Mensual</h3><span class="badge badge-success">Al Día</span></div>
+      <div class="stat-val" style="margin:8px 0">$350.00</div>
+      <p style="font-size:12px;color:var(--text2)">Próximo vencimiento: 1 Mayo 2026</p>
+    </div>
+    <div class="section-title">Historial</div>
+    ${['Abril 2026','Marzo 2026','Febrero 2026'].map((m,i)=>`
+      <div class="list-item"><div class="ico">✅</div><div class="info"><h4>${m}</h4><p>$350.00 · Pagado</p></div><div class="trail"><span class="badge badge-success">✓</span></div></div>
+    `).join('')}`;
+}
+function residentIssues(){
+  return `
+    <div class="flex-between mb-12"><h2 style="font-size:18px">📩 Mis Solicitudes</h2><button class="btn btn-sm btn-primary" onclick="openSheet('new-issue')">+ Nueva</button></div>
+    <div class="list-item"><div class="ico">📩</div><div class="info"><h4>Filtración baño secundario</h4><p>12 Abr 2026</p></div><div class="trail"><span class="badge badge-info">En Revisión</span></div></div>
+    <div class="list-item"><div class="ico">✅</div><div class="info"><h4>Reparación timbre entrada</h4><p>28 Mar 2026</p></div><div class="trail"><span class="badge badge-success">Resuelto</span></div></div>`;
+}
+function residentNews(){
+  return `
+    <h2 style="font-size:18px;margin-bottom:16px">📢 Avisos</h2>
+    <div class="card"><h3>🔧 Mantenimiento Ascensor #2</h3><p>El ascensor #2 estará fuera de servicio el miércoles 16 de abril de 8am a 12pm por mantenimiento preventivo.</p><div style="margin-top:6px;font-size:11px;color:var(--text3)">13 Abr 2026</div></div>
+    <div class="card"><h3>🎉 Asamblea General Mayo</h3><p>Se convoca asamblea general ordinaria para el sábado 10 de mayo a las 3:00 PM en el Salón Social. Confirmación requerida.</p><div style="margin-top:6px;font-size:11px;color:var(--text3)">10 Abr 2026</div></div>
+    <div class="card"><h3>💧 Suspensión de Agua Programada</h3><p>IDAAN informa suspensión el 20 de abril de 10pm a 5am. Se recomienda almacenar agua.</p><div style="margin-top:6px;font-size:11px;color:var(--text3)">8 Abr 2026</div></div>`;
+}
+
+// ===================== SEQUENTIAL MODES =====================
+function renderSeqInvCount(){
+  const item=S.invItems[S.seqIdx];
+  const pct=Math.round((S.seqIdx/S.invItems.length)*100);
+  return `
+    <div class="flex-between mb-12"><button class="btn btn-sm btn-outline" onclick="exitSeq()">✕ Salir</button><span style="font-size:12px;color:var(--text2)">Conteo Completo</span></div>
+    <div class="seq-card">
+      <div class="seq-progress"><div class="bar"><div class="fill" style="width:${pct}%"></div></div><span>${S.seqIdx+1}/${S.invItems.length}</span></div>
+      <div class="seq-title">${item.name}</div>
+      <div class="seq-sub">${item.cat} · Mínimo: ${item.min} ${item.unit}</div>
+      <div class="qty-control">
+        <button onclick="adjQty(-1)">−</button>
+        <div class="qty">${item.qty}</div>
+        <button onclick="adjQty(1)">+</button>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px">${item.unit}</div>
+      <div style="display:flex;gap:8px">
+        ${S.seqIdx>0?'<button class="btn btn-outline" style="flex:1" onclick="seqPrev()">← Anterior</button>':''}
+        <button class="btn btn-primary" style="flex:1" onclick="seqNext()">${S.seqIdx===S.invItems.length-1?'✓ Finalizar':'Siguiente →'}</button>
+      </div>
+    </div>`;
+}
+
+function renderSeqWalkthrough(){
+  const area=S.inspAreas[S.seqIdx];
+  const pct=Math.round((S.seqIdx/S.inspAreas.length)*100);
+  return `
+    <div class="flex-between mb-12"><button class="btn btn-sm btn-outline" onclick="exitSeq()">✕ Salir</button><span style="font-size:12px;color:var(--text2)">Recorrido Áreas Comunes</span></div>
+    <div class="seq-card">
+      <div class="seq-progress"><div class="bar"><div class="fill" style="width:${pct}%"></div></div><span>${S.seqIdx+1}/${S.inspAreas.length}</span></div>
+      <div class="seq-title">${area.name}</div>
+      <div class="seq-sub">Última inspección: ${area.lastCheck}</div>
+      <div style="width:100%;height:120px;background:var(--surface);border-radius:8px;display:flex;align-items:center;justify-content:center;margin:12px 0;font-size:32px">📷</div>
+      <button class="btn btn-sm btn-outline mb-12">Tomar Foto</button>
+      <div class="section-title" style="text-align:left">Condición</div>
+      <div style="display:flex;gap:6px;margin-bottom:16px">
+        <button class="btn btn-sm ${area.condition==='good'?'btn-success':'btn-outline'}" onclick="setCondition(${S.seqIdx},'good')">✓ Bien</button>
+        <button class="btn btn-sm ${area.condition==='attention'?'btn-primary':'btn-outline'}" style="${area.condition==='attention'?'background:var(--warn)':''}" onclick="setCondition(${S.seqIdx},'attention')">⚠ Atención</button>
+        <button class="btn btn-sm ${area.condition==='urgent'?'btn-danger':'btn-outline'}" onclick="setCondition(${S.seqIdx},'urgent')">🔴 Urgente</button>
+      </div>
+      <div class="field"><label>Notas</label><textarea rows="2" placeholder="Observaciones..."></textarea></div>
+      <div style="display:flex;gap:8px">
+        ${S.seqIdx>0?'<button class="btn btn-outline" style="flex:1" onclick="seqPrev()">← Anterior</button>':''}
+        <button class="btn btn-primary" style="flex:1" onclick="seqNext()">${S.seqIdx===S.inspAreas.length-1?'✓ Finalizar':'Siguiente →'}</button>
+      </div>
+    </div>`;
+}
+
+// ===================== SHEETS =====================
+function renderSheet(){
+  let inner='';
+  switch(S.sheet){
+    case 'new-incident':
+      inner=`<h2>🚨 Nuevo Incidente</h2>
+        <div class="field"><label>Título</label><input placeholder="Ej: Filtración piso 5"></div>
+        <div class="field"><label>Prioridad</label><select><option>Alta</option><option selected>Media</option><option>Baja</option></select></div>
+        <div class="field"><label>Ubicación</label><input placeholder="Ej: Piso 8, Apt 8B"></div>
+        <div class="field"><label>Descripción</label><textarea rows="3" placeholder="Detalle del incidente..."></textarea></div>
+        <div class="field"><label>Foto</label><button class="btn btn-sm btn-outline">📷 Adjuntar Foto</button></div>
+        <button class="btn btn-primary btn-block" onclick="closeSheet()">Guardar Incidente</button>`;
+      break;
+    case 'fuel-reading':
+      inner=`<h2>⛽ Nueva Lectura</h2>
+        <div class="field"><label>Activo</label><select><option>Planta Eléctrica</option></select></div>
+        <div class="gauge-wrap"><div class="gauge-circle"><div class="gauge-val">72</div><div class="gauge-unit">%</div></div></div>
+        <div class="field"><label>Nivel (%)</label><input type="range" min="0" max="100" value="72" style="padding:0"></div>
+        <div class="field"><label>Foto del Medidor</label><button class="btn btn-sm btn-outline">📷 Capturar</button></div>
+        <div class="field"><label>Notas</label><textarea rows="2" placeholder="Observaciones..."></textarea></div>
+        <button class="btn btn-primary btn-block" onclick="closeSheet()">Guardar Lectura</button>`;
+      break;
+    case 'meeting':
+      inner=`<h2>👥 Registrar Reunión</h2>
+        <div class="field"><label>Título</label><input value="Reunión Semanal Staff"></div>
+        <div class="field"><label>Asistentes</label><input placeholder="Ej: Luis, María, Ana, Carlos"></div>
+        <div class="field"><label>Notas / Acta</label><textarea rows="4" placeholder="Temas discutidos..."></textarea></div>
+        <div class="section-title">Acciones Extraídas</div>
+        <div class="list-item"><div class="ico">☑️</div><div class="info"><h4>Reparar baldosa deck piscina</h4><p>Asignado: Pedro · Plazo: 18 Abr</p></div></div>
+        <div class="list-item"><div class="ico">☑️</div><div class="info"><h4>Cotizar pintura pasillo P3</h4><p>Asignado: Ana · Plazo: 16 Abr</p></div></div>
+        <button class="btn btn-sm btn-outline mb-12">+ Agregar Acción</button>
+        <button class="btn btn-primary btn-block" onclick="closeSheet()">Guardar Reunión</button>`;
+      break;
+    case 'new-supervision':
+      inner=`<h2>📝 Registrar Visita de Supervisión</h2>
+        <div class="field"><label>Edificio</label><select><option>Villa Valencia — Torre A</option></select></div>
+        <div class="field"><label>Tipo</label><select><option>Inspección General</option><option>Verificación Nocturna</option><option>Post-Evento</option><option>Otro</option></select></div>
+        <div class="field"><label>Checklist Rápido</label>
+          <div class="list-item" style="margin:4px 0"><div class="ico">☑️</div><div class="info"><h4>Guardia en puesto</h4></div></div>
+          <div class="list-item" style="margin:4px 0"><div class="ico">☑️</div><div class="info"><h4>Áreas comunes limpias</h4></div></div>
+          <div class="list-item" style="margin:4px 0"><div class="ico">⬜</div><div class="info"><h4>Equipos mecánicos OK</h4></div></div>
+          <div class="list-item" style="margin:4px 0"><div class="ico">☑️</div><div class="info"><h4>Iluminación completa</h4></div></div>
+        </div>
+        <div class="field"><label>Notas</label><textarea rows="3" placeholder="Observaciones detalladas..."></textarea></div>
+        <button class="btn btn-primary btn-block" onclick="closeSheet()">Guardar Visita</button>`;
+      break;
+    case 'new-project':
+      inner=`<h2>💡 Nueva Idea de Proyecto</h2>
+        <div class="field"><label>Nombre</label><input placeholder="Ej: Sistema de Paneles Solares"></div>
+        <div class="field"><label>Justificación</label><textarea rows="3" placeholder="¿Por qué es necesario?"></textarea></div>
+        <div class="field"><label>Categoría</label><select><option>Infraestructura</option><option>Tecnología</option><option>Seguridad</option><option>Áreas Comunes</option><option>Sustentabilidad</option></select></div>
+        <div class="field"><label>Presupuesto Estimado</label><input type="number" placeholder="$0.00"></div>
+        <div class="field"><label>Documentos</label><button class="btn btn-sm btn-outline">📎 Adjuntar</button></div>
+        <button class="btn btn-primary btn-block" onclick="closeSheet()">Enviar Idea</button>`;
+      break;
+    case 'new-issue':
+      inner=`<h2>📩 Nueva Solicitud</h2>
+        <div class="field"><label>Asunto</label><input placeholder="Ej: Reparación de grifo"></div>
+        <div class="field"><label>Categoría</label><select><option>Plomería</option><option>Electricidad</option><option>Áreas Comunes</option><option>Ruido</option><option>Otro</option></select></div>
+        <div class="field"><label>Descripción</label><textarea rows="3" placeholder="Describa su solicitud..."></textarea></div>
+        <div class="field"><label>Foto</label><button class="btn btn-sm btn-outline">📷 Adjuntar</button></div>
+        <button class="btn btn-primary btn-block" onclick="closeSheet()">Enviar Solicitud</button>`;
+      break;
+    case 'daily-report':
+      inner=`<h2>📝 Reporte de Turno</h2>
+        <div class="field"><label>Turno</label><select><option>06:00–14:00</option><option>14:00–22:00</option><option>22:00–06:00</option></select></div>
+        <div class="field"><label>Novedades</label><textarea rows="3" placeholder="Resumen de novedades del turno..."></textarea></div>
+        <div class="field"><label>Pendientes para siguiente turno</label><textarea rows="2" placeholder="Tareas pendientes..."></textarea></div>
+        <button class="btn btn-primary btn-block" onclick="closeSheet()">Entregar Reporte</button>`;
+      break;
+    case 'no-show':
+      inner=`<h2>🚫 Gestionar No-Show</h2>
+        <div class="card" style="border-left:3px solid var(--danger)"><h3>JardínPro</h3><p>Jardinería · Miércoles 06:30</p></div>
+        <div class="section-title">Acciones</div>
+        <button class="btn btn-outline btn-block mb-12" onclick="closeSheet()">📞 Llamar Proveedor</button>
+        <button class="btn btn-outline btn-block mb-12" onclick="closeSheet()">📅 Reprogramar Visita</button>
+        <button class="btn btn-danger btn-block" onclick="closeSheet()">🚩 Marcar Incumplimiento</button>`;
+      break;
+    case 'inv-edit':
+      inner=`<h2>📦 Actualizar Item</h2>
+        <div class="field"><label>Producto</label><input value="Cloro Líquido" readonly></div>
+        <div class="qty-control"><button onclick="">−</button><div class="qty">3</div><button onclick="">+</button></div>
+        <div class="field"><label>Notas</label><textarea rows="2" placeholder="Motivo del ajuste..."></textarea></div>
+        <button class="btn btn-primary btn-block" onclick="closeSheet()">Guardar</button>`;
+      break;
+    case 'weekly-edit':
+      inner=`<h2>📊 Completar Reporte Semanal</h2>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Sem 14 (Abr 7-13) · 4/7 secciones listas</p>
+        ${['Inventario ✓','Combustible ✓','Reuniones ✓','Proveedores ✓','Inspecciones','Incidentes','Supervisión'].map((s,i)=>`
+          <div class="list-item"><div class="ico">${i<4?'✅':'⬜'}</div><div class="info"><h4>${s}</h4></div></div>
+        `).join('')}
+        <button class="btn btn-primary btn-block mt-8" onclick="closeSheet()">Enviar a Supervisor</button>`;
+      break;
+    default:
+      inner=`<h2>Detalle</h2><p>Contenido del detalle aquí.</p><button class="btn btn-primary btn-block mt-8" onclick="closeSheet()">Cerrar</button>`;
+  }
+  return `<div class="sheet-overlay" onclick="closeSheet()"><div class="sheet" onclick="event.stopPropagation()">${inner}</div></div>`;
+}
+
+// ===================== ACTIONS =====================
+function switchRole(r){S.role=r;S.tab='home';S.seqMode=null;S.sheet=null;render()}
+function go(t){S.tab=t;S.seqMode=null;S.sheet=null;render()}
+function openSheet(s){S.sheet=s;render()}
+function closeSheet(){S.sheet=null;render()}
+function toggleOffline(){S.offline=!S.offline;render()}
+function toggleModule(k){S.modules[k]=!S.modules[k];render()}
+function startSeq(mode){S.seqMode=mode;S.seqIdx=0;render()}
+function exitSeq(){S.seqMode=null;render()}
+function seqNext(){
+  const max=S.seqMode==='inv-count'?S.invItems.length:S.inspAreas.length;
+  if(S.seqIdx<max-1){S.seqIdx++;render()}
+  else exitSeq();
+}
+function seqPrev(){if(S.seqIdx>0){S.seqIdx--;render()}}
+function adjQty(d){S.invItems[S.seqIdx].qty=Math.max(0,S.invItems[S.seqIdx].qty+d);render()}
+function setCondition(i,c){S.inspAreas[i].condition=c;render()}
+function checkIn(id){const v=S.vendors.find(x=>x.id===id);if(v)v.status='checked-in';render()}
+function approveReport(id){const r=S.weeklyReports.find(x=>x.id===id);if(r){r.status='approved';r.complete=7}render()}
+
+// Init
+render();
+</script>
+</body>
+</html>

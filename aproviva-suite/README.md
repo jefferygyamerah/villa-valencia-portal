@@ -7,7 +7,7 @@ scenarios across 5 roles (conserje, admin de planta, supervisor, gerencia, junta
 - **Preview (here.now):** https://whole-crystal-6gt7.here.now/
 - **Stack:** Vanilla HTML / CSS / JS (no build step) over Supabase REST + RLS.
 - **Auth:** PIN-based session — four operational roles: **2026** / **CONS26** (conserjería), **SUP26** (supervisión), **GER26** (gerencia), **JD26** (junta: gobernanza + backlog hacia operaciones). POC-grade — see security note below.
-- **Data:** Live Supabase project `tgoitmwdpdkhlpqpwrvs` (47 already-migrated tables). **PQRS** cases table: `supabase/migrations/20260422120000_pqrs_cases.sql` (portal toggles via `js/config.js` `PQRS_USE_VV_SUPABASE`). See `../docs/PQRS-MIGRATION-PH-TO-VV.md`. Map/recorrido: `20260420120000_recorrido_map_waypoints.sql`, `20260421120000_site_place_geo_pqrs_map.sql`, optional `20260421130000_drop_duplicate_pqrs_map_objects.sql`.
+- **Data:** Live Supabase project `tgoitmwdpdkhlpqpwrvs` (47 already-migrated tables). **PQRS** cases table: `supabase/migrations/20260422120000_pqrs_cases.sql` (portal toggles via `js/config.js` `PQRS_USE_VV_SUPABASE`). See `../docs/PQRS-MIGRATION-PH-TO-VV.md`. Map/recorrido: `20260420120000_recorrido_map_waypoints.sql`, `20260421120000_site_place_geo_pqrs_map.sql`, optional `20260421130000_drop_duplicate_pqrs_map_objects.sql`. **Gemba plantillas compartidas:** `20260423120000_gemba_round_templates.sql`.
 
 ## Modules
 
@@ -15,7 +15,7 @@ scenarios across 5 roles (conserje, admin de planta, supervisor, gerencia, junta
 |---|---|---|
 | `#/inicio` | all | cross-table KPIs |
 | `#/inventario` | conserje, supervisor, gerencia | `inventory_items`, `inventory_locations`, `inventory_movements` |
-| `#/gemba` | conserje, supervisor, gerencia | `inspection_rounds`, `inspection_findings` |
+| `#/gemba` | conserje, supervisor, gerencia | `inspection_rounds`, `inspection_findings`, **`gemba_round_templates`** |
 | `#/mapa` | conserje, supervisor, gerencia (requires `gemba`) | static `data/villa-valencia-site.geojson` + **`recorrido_map_waypoints`** |
 | **`mapa-pqrs.html`** | public (no login) | Same GeoJSON + read-only waypoints from Supabase — linked from **PQRS** on the main portal for residents |
 | `#/incidencias` | conserje, supervisor, gerencia | `incident_tickets` (+ `escalation_events` on escalate) |

@@ -27,6 +27,18 @@
     return name.split('?')[0];
   }
 
+  function formatHeaderDate() {
+    try {
+      return 'Hoy: ' + new Date().toLocaleDateString('es-PA', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch (e) {
+      return '';
+    }
+  }
+
   function setShellAuthed(on) {
     var shell = document.getElementById('app-shell');
     if (shell) shell.classList.toggle('app-shell--authed', !!on);
@@ -79,12 +91,14 @@
     var nav = document.getElementById('app-nav');
     var roleBadge = document.getElementById('app-role-badge');
     var logoutBtn = document.getElementById('app-logout');
+    var headerDate = document.getElementById('app-header-date');
     if (!nav) return;
 
     if (!session) {
       nav.style.display = 'none';
       if (roleBadge) roleBadge.style.display = 'none';
       if (logoutBtn) logoutBtn.style.display = 'none';
+      if (headerDate) headerDate.textContent = '';
       return;
     }
     nav.style.display = '';
@@ -94,18 +108,19 @@
       roleBadge.className = 'role-badge role-' + session.role;
     }
     if (logoutBtn) logoutBtn.style.display = '';
+    if (headerDate) headerDate.textContent = formatHeaderDate();
 
     var current = currentRoute();
     var items = [
-      { name: 'inicio', label: 'Inicio', module: null },
-      { name: 'inventario', label: 'Inventario', module: 'inventario' },
-      { name: 'gemba', label: 'Recorridos', module: 'gemba' },
-      { name: 'mapa', label: 'Mapa', module: 'gemba' },
-      { name: 'incidencias', label: 'Incidencias', module: 'incidencias' },
-      { name: 'proyectos', label: 'Proyectos', module: 'proyectos' },
-      { name: 'maestros', label: 'Datos maestros', module: 'maestros' },
-      { name: 'reportes', label: 'Reportes', module: 'reportes' },
-      { name: 'junta', label: 'Gobernanza', module: 'junta' },
+      { name: 'inicio', label: 'Inicio', icon: '\ud83c\udfe0', module: null },
+      { name: 'inventario', label: 'Inventario', icon: '\ud83d\udce6', module: 'inventario' },
+      { name: 'gemba', label: 'Recorridos', icon: '\ud83d\udd0d', module: 'gemba' },
+      { name: 'mapa', label: 'Mapa', icon: '\ud83d\uddfa\ufe0f', module: 'gemba' },
+      { name: 'incidencias', label: 'Incidencias', icon: '\ud83d\udea8', module: 'incidencias' },
+      { name: 'proyectos', label: 'Proyectos', icon: '\ud83c\udfd7\ufe0f', module: 'proyectos' },
+      { name: 'maestros', label: 'Maestros', icon: '\ud83d\uddc2\ufe0f', module: 'maestros' },
+      { name: 'reportes', label: 'Reportes', icon: '\ud83d\udcca', module: 'reportes' },
+      { name: 'junta', label: 'Junta', icon: '\ud83e\udded', module: 'junta' },
     ].filter(function (i) {
       return !i.module || window.AUTH.canAccess(i.module);
     });
@@ -113,7 +128,10 @@
     nav.innerHTML = items.map(function (i) {
       var cls = 'nav-link' + (i.name === current ? ' active' : '');
       var cur = i.name === current ? ' aria-current="page"' : '';
-      return '<a class="' + cls + '" href="#/' + i.name + '"' + cur + '>' + window.UI.esc(i.label) + '</a>';
+      return '<a class="' + cls + '" href="#/' + i.name + '" title="' + window.UI.esc(i.label) + '"' + cur + '>' +
+        '<span class="nav-ico" aria-hidden="true">' + (i.icon || '') + '</span>' +
+        '<span class="nav-label">' + window.UI.esc(i.label) + '</span>' +
+      '</a>';
     }).join('');
   }
 

@@ -3,9 +3,10 @@
  * Scenarios 4 (configure), 5 (execute), 6 (report issue), 7 (route), 10 (missed).
  */
 (function () {
-  var STATE = { rounds: [], findings: [], locations: [], templates: [] };
-  /** Legacy browser-only presets (Sc. 4) — one-time import to Supabase. */
+  var STATE = { rounds: [], findings: [], locations: [], templates: [], templateStore: 'table', templateBuilding: null };
+  /** Legacy browser-only presets (Sc. 4) — one-time import to shared storage. */
   var TEMPLATES_KEY = 'vv_gemba_round_templates_v1';
+  var TEMPLATE_METADATA_KEY = 'gemba_templates';
 
   function loadLocalTemplatesLegacy() {
     try {
@@ -17,6 +18,87 @@
     }
   }
 
+  function normalizeRoundType(v) {
+    if (v === 'daily' || v === 'weekly' || v === 'monthly') return v;
+    return 'ad_hoc';
+  }
+
+  function normalizeTemplate(raw, fallbackId) {
+    var name = String((raw && raw.name) || '').trim();
+    var title = String((raw && raw.title) || '').trim();
+    var area = String((raw && raw.area) || '').trim();
+    if (!name || !title || !area) return null;
+    return {
+      id: String((raw && raw.id) || fallbackId || ''),
+      name: name,
+      title: title,
+      area: area,
+      round_type: normalizeRoundType(raw && raw.round_type),
+      sort_order: Number((raw && raw.sort_order) || 0),
+      is_active: raw && raw.is_active !== false,
+    };
+  }
+
+  function sortedTemplates(rows) {
+    return rows.slice().sort(function (a, b) {
+      var ao = Number((a && a.sort_order) || 0);
+      var bo = Number((b && b.sort_order) || 0);
+      if (ao !== bo) return ao - bo;
+      return String((a && a.name) || '').localeCompare(String((b && b.name) || ''), 'es');
+    });
+  }
+
+  function newTemplateId() {
+    return 'tpl-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e6).toString(36);
+  }
+
+  async function fetchTemplatesFromBuildingMetadata() {
+    var bid = window.APROVIVA_SUITE_CONFIG.BUILDING_ID;
+    var rows = await window.SB.select('buildings', {
+      select: 'id,metadata',
+      id: 'eq.' + bid,
+      limit: '1',
+    });
+    var b = rows && rows[0];
+    if (!b) throw new Error('No se encontró el edificio para plantillas compartidas.');
+    STATE.templateBuilding = b;
+    var list = b.metadata && Array.isArray(b.metadata[TEMPLATE_METADATA_KEY]) ? b.metadata[TEMPLATE_METADATA_KEY] : [];
+    var mapped = [];
+    for (var i = 0; i < list.length; i++) {
+      var t = normalizeTemplate(list[i], newTemplateId());
+      if (t && t.is_active) mapped.push(t);
+    }
+    STATE.templates = sortedTemplates(mapped);
+    STATE.templateStore = 'metadata';
+  }
+
+  async function saveTemplatesToBuildingMetadata(rows) {
+    var bid = window.APROVIVA_SUITE_CONFIG.BUILDING_ID;
+    if (!STATE.templateBuilding || !STATE.templateBuilding.id) {
+      await fetchTemplatesFromBuildingMetadata();
+    }
+    var base = (STATE.templateBuilding && STATE.templateBuilding.metadata && typeof STATE.templateBuilding.metadata === 'object')
+      ? STATE.templateBuilding.metadata
+      : {};
+    var metadata = {};
+    for (var k in base) metadata[k] = base[k];
+    metadata[TEMPLATE_METADATA_KEY] = rows.map(function (r, idx) {
+      var t = normalizeTemplate(r, newTemplateId());
+      if (!t) return null;
+      return {
+        id: t.id || newTemplateId(),
+        name: t.name,
+        title: t.title,
+        area: t.area,
+        round_type: t.round_type,
+        sort_order: idx,
+        is_active: true,
+      };
+    }).filter(Boolean);
+    await window.SB.update('buildings', { id: 'eq.' + bid }, { metadata: metadata });
+    STATE.templateBuilding = { id: bid, metadata: metadata };
+  }
+
   async function fetchTemplates() {
     var bid = window.APROVIVA_SUITE_CONFIG.BUILDING_ID;
     try {
@@ -26,11 +108,19 @@
         is_active: 'eq.true',
         order: 'sort_order.asc,name.asc',
       });
-      STATE.templates = Array.isArray(rows) ? rows : [];
+      STATE.templates = sortedTemplates(Array.isArray(rows) ? rows : []);
+      STATE.templateStore = 'table';
+      STATE.templateBuilding = null;
+      return;
     } catch (e) {
+      if (!e || e.status !== 404) console.warn('gemba_round_templates:', e);
+    }
+    try {
+      await fetchTemplatesFromBuildingMetadata();
+    } catch (metaErr) {
       STATE.templates = [];
-      if (e && e.status === 404) return;
-      console.warn('gemba_round_templates:', e);
+      STATE.templateStore = 'table';
+      console.warn('gemba_templates_metadata:', metaErr);
     }
   }
 
@@ -150,23 +240,58 @@
     }).join('');
   }
 
+  async function createTemplateShared(rawTemplate) {
+    var bid = window.APROVIVA_SUITE_CONFIG.BUILDING_ID;
+    var t = normalizeTemplate(rawTemplate, newTemplateId());
+    if (!t) throw new Error('Completa nombre, título y zona para guardar la plantilla.');
+    if (STATE.templateStore === 'metadata') {
+      var rows = (STATE.templates || []).slice();
+      rows.push({
+        id: t.id || newTemplateId(),
+        name: t.name,
+        title: t.title,
+        area: t.area,
+        round_type: t.round_type,
+        sort_order: rows.length,
+        is_active: true,
+      });
+      await saveTemplatesToBuildingMetadata(rows);
+      return;
+    }
+    await window.SB.insert('gemba_round_templates', {
+      building_id: bid,
+      name: t.name,
+      title: t.title,
+      area: t.area,
+      round_type: t.round_type,
+      sort_order: 0,
+      is_active: true,
+    });
+  }
+
+  async function deleteTemplateShared(id) {
+    if (!id) return;
+    if (STATE.templateStore === 'metadata') {
+      var kept = (STATE.templates || []).filter(function (t) { return String(t.id) !== String(id); });
+      await saveTemplatesToBuildingMetadata(kept);
+      return;
+    }
+    await window.SB.remove('gemba_round_templates', { id: 'eq.' + id });
+  }
+
   async function importLocalTemplatesLegacy() {
     var local = loadLocalTemplatesLegacy();
     if (!local.length) return;
-    var bid = window.APROVIVA_SUITE_CONFIG.BUILDING_ID;
     var n = 0;
     var lastErr = '';
     for (var i = 0; i < local.length; i++) {
       var t = local[i];
       try {
-        await window.SB.insert('gemba_round_templates', {
-          building_id: bid,
+        await createTemplateShared({
           name: String(t.name || '').trim() || 'Importada',
           title: String(t.title || '').trim(),
           area: String(t.area || '').trim(),
           round_type: t.round_type || 'ad_hoc',
-          sort_order: 0,
-          is_active: true,
         });
         n++;
       } catch (e) {
@@ -191,6 +316,9 @@
     }
     await fetchTemplates();
     var legacy = loadLocalTemplatesLegacy();
+    var storeBanner = STATE.templateStore === 'metadata'
+      ? '<div class="error-box" style="margin-bottom:0.75rem">Modo compatibilidad activo: las plantillas se guardan en <code>buildings.metadata.gemba_templates</code> hasta aplicar la migración dedicada.</div>'
+      : '';
     var importBanner = legacy.length
       ? '<div class="error-box" style="margin-bottom:0.75rem" id="tpl-import-banner">Hay plantillas solo en este navegador (local). ' +
           '<button type="button" class="btn btn-primary-sm" id="tpl-import-local">Importar al servidor compartido</button></div>'
@@ -198,7 +326,8 @@
     host.innerHTML = '' +
       '<section class="page" data-testid="gemba-templates-panel">' +
         '<h3 class="section-title">Plantillas de recorrido</h3>' +
-        '<p class="muted">Compartidas para todo el equipo (Supabase). T\u00edtulo y zona usan el mismo cat\u00e1logo que conserjer\u00eda en <strong>Iniciar recorrido</strong>.</p>' +
+        '<p class="muted">Compartidas para todo el equipo. T\u00edtulo y zona usan el mismo cat\u00e1logo que conserjer\u00eda en <strong>Iniciar recorrido</strong>.</p>' +
+        storeBanner +
         importBanner +
         '<div id="tpl-list">' + tplListHtml() + '</div>' +
         '<hr style="margin:1rem 0;border:none;border-top:1px solid var(--border);"/>' +
@@ -222,16 +351,12 @@
         return;
       }
       var fd = new FormData(form);
-      var bid = window.APROVIVA_SUITE_CONFIG.BUILDING_ID;
       try {
-        await window.SB.insert('gemba_round_templates', {
-          building_id: bid,
+        await createTemplateShared({
           name: String(fd.get('name') || '').trim(),
           title: String(fd.get('title') || '').trim(),
           area: String(fd.get('area') || '').trim(),
           round_type: fd.get('round_type') || 'ad_hoc',
-          sort_order: 0,
-          is_active: true,
         });
         window.UI.toast('Plantilla guardada.', 'success');
         await fetchTemplates();
@@ -247,7 +372,7 @@
       var id = btn.getAttribute('data-del-tpl');
       if (!id || !confirm('\u00bfEliminar esta plantilla para todos?')) return;
       try {
-        await window.SB.remove('gemba_round_templates', { id: 'eq.' + id });
+        await deleteTemplateShared(id);
         window.UI.toast('Plantilla eliminada.', 'info');
         await fetchTemplates();
         document.getElementById('tpl-list').innerHTML = tplListHtml();
@@ -496,7 +621,7 @@
             '<div class="form-field"><label>Programado (opcional)</label>' +
               '<input type="datetime-local" name="scheduled_for"></div>' +
             '<div class="btn-row" style="grid-column:1/-1;">' +
-              '<button class="btn btn-primary-sm" type="submit">Iniciar</button>' +
+              '<button class="btn btn-primary-sm" type="submit" id="round-submit">Iniciar</button>' +
               '<button class="btn btn-ghost" type="button" id="round-cancel">Cancelar</button>' +
             '</div>' +
           '</form>' +
@@ -520,7 +645,7 @@
             '<div class="form-field"><label>Programado para</label>' +
               '<input type="datetime-local" name="scheduled_for"></div>' +
             '<div class="btn-row" style="grid-column:1/-1;">' +
-              '<button class="btn btn-primary-sm" type="submit">Iniciar</button>' +
+              '<button class="btn btn-primary-sm" type="submit" id="round-submit">Iniciar</button>' +
               '<button class="btn btn-ghost" type="button" id="round-cancel">Cancelar</button>' +
             '</div>' +
           '</form>' +
@@ -528,14 +653,30 @@
     }
     host.innerHTML = inner;
     attachTemplatePicker(host, staff);
+    var sched = document.querySelector('#round-form [name="scheduled_for"]');
+    if (sched && !sched.value) {
+      // datetime-local expects local time without timezone suffix.
+      var now = new Date();
+      var pad = function (n) { return String(n).padStart(2, '0'); };
+      sched.value =
+        now.getFullYear() + '-' +
+        pad(now.getMonth() + 1) + '-' +
+        pad(now.getDate()) + 'T' +
+        pad(now.getHours()) + ':' +
+        pad(now.getMinutes());
+    }
     document.getElementById('round-cancel').addEventListener('click', closeSuiteModal);
-    document.getElementById('round-form').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      var formEl = this;
+    var roundForm = document.getElementById('round-form');
+    var roundSubmit = document.getElementById('round-submit');
+    var submittingRound = false;
+    async function submitRoundForm(formEl, e) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      if (submittingRound) return;
       if (!formEl.checkValidity()) {
         formEl.reportValidity();
         return;
       }
+      submittingRound = true;
       window.UI.toast('Iniciando recorrido...', 'info');
       var sess = window.AUTH.readSession();
       var fd = new FormData(formEl);
@@ -556,8 +697,14 @@
         await loadAll();
       } catch (err) {
         window.UI.toast('Error: ' + insertErrorMessage(err), 'error');
+      } finally {
+        submittingRound = false;
       }
-    });
+    }
+    roundForm.addEventListener('submit', function (e) { submitRoundForm(roundForm, e); });
+    if (roundSubmit) {
+      roundSubmit.addEventListener('click', function (e) { submitRoundForm(roundForm, e); });
+    }
   }
 
   function findingTypeLabel(code) {

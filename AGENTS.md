@@ -30,3 +30,7 @@ Anchor on `../../docs/ml-collaborator-brief.md` (canonical) and `../../docs/stra
 - For ad-hoc previews, QA links, or shareable static artifacts, default to `here.now`.
 - Prefer `here.now` for agent-led sharing to minimize Vercel spend.
 - Keep the live Villa Valencia production runtime on its current infrastructure unless explicit migration approval is given.
+
+## AI tooling (Claude Code)
+
+For Oh-My-ClaudeCode, PM-Skills Marketplace, and Compound Engineering install order and usage, see [`../../docs/ai-tooling-stack.md`](../../docs/ai-tooling-stack.md).

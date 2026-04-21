@@ -10,6 +10,7 @@ The APROVIVA suite uses the **anon publishable key** in the browser with **no Su
 
 - **`pqrs_cases`** — insert limited to the Villa Valencia `building_id`; select/update blocked for anon (see migrations `20260422120000_pqrs_cases.sql` and align script).
 - **`recorrido_map_waypoints`**, **`site_place_geo`** — policies exist in migrations; verify in Supabase Dashboard after apply.
+- **`gemba_round_templates`** — permissive anon policies (same POC model as other suite tables); UI restricts edits to roles with `maestros`.
 
 ## Recommended path for full F6
 

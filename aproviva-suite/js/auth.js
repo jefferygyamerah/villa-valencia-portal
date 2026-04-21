@@ -5,6 +5,13 @@
 (function () {
   var cfg = window.APROVIVA_SUITE_CONFIG;
   var SESSION_KEY = 'aproviva_session_v1';
+  var DEFAULT_PINS = {
+    '2026': { role: 'conserje', label: 'Personal / Conserjería', modules: ['inventario', 'gemba', 'incidencias'] },
+    CONS26: { role: 'conserje', label: 'Personal / Conserjería', modules: ['inventario', 'gemba', 'incidencias'] },
+    SUP26: { role: 'supervisor', label: 'Supervisión operativa', modules: ['inventario', 'gemba', 'incidencias', 'reportes', 'proyectos'] },
+    GER26: { role: 'gerencia', label: 'Gerencia / Administración', modules: ['inventario', 'gemba', 'incidencias', 'proyectos', 'maestros', 'reportes'] },
+    JD26: { role: 'junta', label: 'Junta directiva', modules: ['reportes', 'junta', 'proyectos'] },
+  };
 
   function readSession() {
     try {
@@ -22,7 +29,10 @@
   }
 
   function loginWithPin(pin) {
-    var entry = cfg.PINS[String(pin || '').trim()];
+    var raw = String(pin || '').trim().replace(/\s+/g, '');
+    var key = raw.toUpperCase();
+    var pins = (cfg && cfg.PINS) || {};
+    var entry = pins[raw] || pins[key] || DEFAULT_PINS[raw] || DEFAULT_PINS[key];
     if (!entry) return null;
     var session = {
       role: entry.role,

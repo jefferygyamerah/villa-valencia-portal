@@ -29,7 +29,7 @@
 | 1 | Conserje routine inventory count | inventario | LIVE | Conteo cíclico + varianza ubicación; ver checklist [19-apics](../suite-checks/19-apics-verification-checklist.md) |
 | 2 | Conserje reports low/missing/damaged | inventario "Reportar novedad" | LIVE | Creates `incident_tickets` row with category=Inventory |
 | 3 | Admin reviews/routes inventory exception | incidencias | LIVE | Triage list + advance/escalate buttons present (junta only) |
-| 4 | Admin configures recorrido templates | gemba | LIVE | Plantillas guardadas en navegador + modal "Nueva plantilla"; selector al iniciar recorrido |
+| 4 | Admin configures recorrido templates | gemba | LIVE | Plantillas en Supabase `gemba_round_templates` (compartidas); import opcional desde localStorage legacy; selector al iniciar recorrido |
 | 5 | Conserje executes recorrido | gemba | LIVE | Round creation + completion UI |
 | 6 | Conserje reports issue during recorrido | gemba "+ Hallazgo" | LIVE | Creates `inspection_findings` row tied to round |
 | 7 | Admin validates/routes recorrido issue | incidencias + gemba | LIVE | Botón "Derivar a incidencia" en hallazgos abiertos crea `incident_tickets` con vínculo en metadata |
