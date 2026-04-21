@@ -3,7 +3,37 @@
  * Scenarios 4 (configure), 5 (execute), 6 (report issue), 7 (route), 10 (missed).
  */
 (function () {
-  var STATE = { rounds: [], findings: [], locations: [], templates: [], templateStore: 'table', templateBuilding: null };
+  var STATE = {
+    rounds: [],
+    findings: [],
+    locations: [],
+    templates: [],
+    templateStore: 'table',
+    templateBuilding: null,
+    /** Cached `admin_users.id` for inserts (DB requires inspector_admin_user_id). */
+    inspectorAdminUserId: null,
+  };
+
+  async function resolveInspectorAdminUserId() {
+    if (STATE.inspectorAdminUserId) return STATE.inspectorAdminUserId;
+    try {
+      var rows = await window.SB.select('admin_users', {
+        select: 'id',
+        is_active: 'eq.true',
+        limit: '1',
+      });
+      var id = rows && rows[0] && rows[0].id;
+      if (!id) {
+        rows = await window.SB.select('admin_users', { select: 'id', limit: '1' });
+        id = rows && rows[0] && rows[0].id;
+      }
+      if (id) STATE.inspectorAdminUserId = id;
+      return id || null;
+    } catch (e) {
+      console.warn('resolveInspectorAdminUserId', e);
+      return null;
+    }
+  }
   /** Legacy browser-only presets (Sc. 4) — one-time import to shared storage. */
   var TEMPLATES_KEY = 'vv_gemba_round_templates_v1';
   var TEMPLATE_METADATA_KEY = 'gemba_templates';
@@ -418,13 +448,14 @@
     try {
       var results = await Promise.all([
         fetchTemplates(),
+        resolveInspectorAdminUserId(),
         window.SB.select('inspection_rounds', { select: '*', order: 'scheduled_for.desc.nullslast', limit: '40' }),
         window.SB.select('inspection_findings', { select: '*', order: 'created_at.desc', limit: '40' }),
         window.SB.select('inventory_locations', { select: '*', is_active: 'eq.true', order: 'name.asc' }),
       ]);
-      STATE.rounds = results[1] || [];
-      STATE.findings = results[2] || [];
-      STATE.locations = results[3] || [];
+      STATE.rounds = results[2] || [];
+      STATE.findings = results[3] || [];
+      STATE.locations = results[4] || [];
       renderKpis();
       renderActive();
       renderRecent();
@@ -667,7 +698,6 @@
     }
     document.getElementById('round-cancel').addEventListener('click', closeSuiteModal);
     var roundForm = document.getElementById('round-form');
-    var roundSubmit = document.getElementById('round-submit');
     var submittingRound = false;
     async function submitRoundForm(formEl, e) {
       if (e && typeof e.preventDefault === 'function') e.preventDefault();
@@ -679,7 +709,22 @@
       submittingRound = true;
       window.UI.toast('Iniciando recorrido...', 'info');
       var sess = window.AUTH.readSession();
+      if (!sess) {
+        submittingRound = false;
+        window.UI.toast('Sesión expirada. Inicia sesión nuevamente.', 'error');
+        window.location.hash = '#/login';
+        return;
+      }
       var fd = new FormData(formEl);
+      var inspectorId = await resolveInspectorAdminUserId();
+      if (!inspectorId) {
+        submittingRound = false;
+        window.UI.toast(
+          'No hay usuario administrador en el sistema. En Gerencia: Datos maestros → Administradores.',
+          'error'
+        );
+        return;
+      }
       var body = {
         round_number: 'GEM-' + Math.floor(Math.random() * 900000 + 100000),
         title: fd.get('title'),
@@ -688,6 +733,7 @@
         status: 'in_progress',
         scheduled_for: fd.get('scheduled_for') ? new Date(fd.get('scheduled_for')).toISOString() : null,
         started_at: new Date().toISOString(),
+        inspector_admin_user_id: inspectorId,
         metadata: { actorRole: sess.role, actorLabel: sess.label, source: 'aproviva-suite' },
       };
       try {
@@ -702,9 +748,6 @@
       }
     }
     roundForm.addEventListener('submit', function (e) { submitRoundForm(roundForm, e); });
-    if (roundSubmit) {
-      roundSubmit.addEventListener('click', function (e) { submitRoundForm(roundForm, e); });
-    }
   }
 
   function findingTypeLabel(code) {
