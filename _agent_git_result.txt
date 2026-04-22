@@ -1,0 +1,30 @@
+﻿## master...origin/master
+M  aproviva-suite/js/modules/gemba.js
+M  e2e/tests/gemba-supervisor-conserje.spec.ts
+M  e2e/tests/inventory-apics.spec.ts
+M  e2e/tests/suite-routes.spec.ts
+?? _agent_git_result.txt
+?? _git_commit_push.sh
+## master...origin/master
+M  aproviva-suite/js/modules/gemba.js
+M  e2e/tests/gemba-supervisor-conserje.spec.ts
+M  e2e/tests/inventory-apics.spec.ts
+M  e2e/tests/suite-routes.spec.ts
+?? _agent_git_result.txt
+?? _git_commit_push.sh
+[master 9b553b7] fix(e2e): stabilize suite tests; close gemba modal on round error
+ 4 files changed, 13 insertions(+), 6 deletions(-)
+9b553b7 fix(e2e): stabilize suite tests; close gemba modal on round error
+git : remote: Bypassed rule violations for refs/heads/master:        
+At C:\Users\jeffe\AppData\Local\Temp\ps-script-09b0a6ef-454a-44d0-846f-63e695044e02.ps1:98 char:1
++ git -C $repo push origin master 2>&1 | Out-File -FilePath (Join-Path  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (remote: Bypasse...master:        :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+remote: 
+remote: - Changes must be made through a pull request.        
+remote: 
+To https://github.com/jefferygyamerah/villa-valencia-portal.git
+   d23d8cc..9b553b7  master -> master
+DONE
