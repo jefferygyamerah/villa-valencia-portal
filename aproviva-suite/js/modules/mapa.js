@@ -7,7 +7,12 @@
   var FINDINGS_VIEW = 'v_inspection_findings_map';
   var LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
   var LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-  var GEOJSON_URL = 'data/villa-valencia-site.geojson';
+  function suiteBasePath() {
+    var p = window.location.pathname || '';
+    var m = p.match(/^(.*\/aproviva-suite)(?:\/|$)/);
+    return m ? m[1] : '/aproviva-suite';
+  }
+  var GEOJSON_URL = suiteBasePath() + '/data/villa-valencia-site.geojson';
 
   function loadCss(href) {
     return new Promise(function (resolve, reject) {
@@ -695,7 +700,14 @@
           });
           if (canManageRoute && cloudOk) {
             m.on('dragend', async function () {
+              var prevLat = w.lat;
+              var prevLng = w.lng;
               var ll = m.getLatLng();
+              if (siteBoundaryRing && !pointInSiteRing(ll.lat, ll.lng, siteBoundaryRing)) {
+                m.setLatLng([prevLat, prevLng]);
+                window.UI.toast('Marca solo dentro del límite de Villa Valencia.', 'warning');
+                return;
+              }
               try {
                 await window.SB.update(TABLE, { id: 'eq.' + w.id }, {
                   lat: ll.lat,

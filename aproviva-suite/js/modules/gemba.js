@@ -15,9 +15,12 @@
   };
 
   async function resolveInspectorAdminUserId() {
-    if (STATE.inspectorAdminUserId) return STATE.inspectorAdminUserId;
+    if (STATE.inspectorAdminUserId) {
+      return STATE.inspectorAdminUserId;
+    }
     var cfg = window.APROVIVA_SUITE_CONFIG || {};
     var fallbackCfg = cfg.DEFAULT_INSPECTOR_ADMIN_USER_ID;
+    var source = 'none';
     if (fallbackCfg) {
       STATE.inspectorAdminUserId = String(fallbackCfg).trim();
       return STATE.inspectorAdminUserId;
@@ -30,9 +33,11 @@
         limit: '1',
       });
       id = rows && rows[0] && rows[0].id;
+      if (id) source = 'admin-users-active';
       if (!id) {
         rows = await window.SB.select('admin_users', { select: 'id', limit: '1' });
         id = rows && rows[0] && rows[0].id;
+        if (id) source = 'admin-users-any';
       }
     } catch (e) {
       console.warn('resolveInspectorAdminUserId admin_users', e);
@@ -45,6 +50,7 @@
           limit: '1',
         });
         id = prev && prev[0] && prev[0].inspector_admin_user_id;
+        if (id) source = 'inspection-rounds-history';
       } catch (e2) {
         console.warn('resolveInspectorAdminUserId inspection_rounds', e2);
       }

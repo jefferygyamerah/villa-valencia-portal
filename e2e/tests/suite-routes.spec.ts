@@ -107,3 +107,59 @@ test.describe('Suite auth gate', () => {
     await expect(page).toHaveURL(/#\/login/);
   });
 });
+
+
+test.describe('APROVIVA suite vision guardrails', () => {
+  test('supervisor sees Proyectos in nav while conserjeria does not', async ({ browser }) => {
+    const sup = await browser.newContext();
+    const cons = await browser.newContext();
+    const supPage = await sup.newPage();
+    const consPage = await cons.newPage();
+
+    await loginWithPin(supPage, 'SUP26');
+    await loginWithPin(consPage, '2026');
+
+    await expect(supPage.locator('#app-nav a[href="#/proyectos"]')).toBeVisible();
+    await expect(consPage.locator('#app-nav a[href="#/proyectos"]')).toHaveCount(0);
+
+    await sup.close();
+    await cons.close();
+  });
+
+  test('mapa only allows route points inside Villa Valencia boundary', async ({ page }) => {
+    await loginWithPin(page, 'SUP26');
+    await page.goto('/aproviva-suite/index.html#/mapa');
+
+    await expect(page.getByTestId('mapa-page')).toBeVisible({ timeout: 30_000 });
+    const routeBtn = page.getByRole('button', { name: 'Punto de ruta' });
+    await expect(routeBtn).toBeVisible({ timeout: 20_000 });
+
+    await routeBtn.click();
+    await page.waitForFunction(() => !!(window as any).__vvLeafletMap && !!(window as any).L);
+
+    await page.evaluate(() => {
+      const map = (window as any).__vvLeafletMap;
+      const L = (window as any).L;
+      map.fire('click', { latlng: L.latLng(9.0318, -79.4223) });
+    });
+
+    await expect(page.locator('#mapa-new-save')).toBeVisible({ timeout: 10_000 });
+
+    await page.evaluate(() => {
+      const map = (window as any).__vvLeafletMap;
+      map.closePopup();
+    });
+
+    await page.evaluate(() => {
+      const map = (window as any).__vvLeafletMap;
+      const L = (window as any).L;
+      map.fire('click', { latlng: L.latLng(9.0345, -79.425) });
+    });
+
+    await expect(page.locator('#toast')).toContainText(/Marca solo dentro del l.mite de Villa Valencia\./);
+    await expect(page.locator('#mapa-new-save')).toHaveCount(0);
+  });
+});
+
+
+

@@ -1044,7 +1044,7 @@
       return;
     }
 
-    fetch(config.APPS_SCRIPT_URL + '?action=budget')
+    fetch(config.APPS_SCRIPT_URL + '?action=budget&_ts=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         budgetData = data.budget || [];

@@ -77,29 +77,104 @@ function getReportingSpreadsheet() {
 }
 
 /**
+ * Parse informe month/year from first rows of "Estado de Presupuesto" (col A).
+ * Header text is usually like "Al 31 de Enero de 2026".
+ */
+function readInformePeriodFromHeaderData(data) {
+  var monthRe = new RegExp(
+    '(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Setiembre|Septiembre|Octubre|Noviembre|Diciembre)',
+    'i'
+  );
+  var defaultY = (new Date()).getFullYear();
+  for (var h = 0; h < Math.min(5, data.length); h++) {
+    var headerText = String(data[h][0] || '');
+    var monthMatch = headerText.match(monthRe);
+    if (!monthMatch) continue;
+    var yearMatch = headerText.match(/\b(20\d{2})\b/);
+    var y = yearMatch ? parseInt(yearMatch[1], 10) : defaultY;
+    var m = monthToNumber(monthMatch[1]);
+    if (m > 0) {
+      return { y: y, m: m, monthLabel: monthMatch[1] };
+    }
+  }
+  return null;
+}
+
+/**
+ * Pick the .xlsx whose *contents* (informe period) is latest — not the file with
+ * the newest Drive create date. That was causing re-uploads of an older month
+ * to overwrite the dashboard while newer months were already in the folder.
+ */
+function pickBestInformeXlsx(folder) {
+  var list = [];
+  var it = folder.getFiles();
+  while (it.hasNext()) {
+    var f = it.next();
+    if (/\.xlsx$/i.test(f.getName())) {
+      list.push(f);
+    }
+  }
+  if (list.length === 0) return null;
+
+  var best = null;
+  var bestScore = -1;
+  var bestTie = 0;
+
+  for (var i = 0; i < list.length; i++) {
+    var file = list[i];
+    var converted = null;
+    try {
+      var blob = file.getBlob();
+      converted = Drive.Files.insert(
+        { title: 'temp-informe-scan-' + Date.now() + '-' + i, mimeType: 'application/vnd.google-apps.spreadsheet' },
+        blob, { convert: true }
+      );
+      var tempSs = SpreadsheetApp.openById(converted.id);
+      var presSheet = tempSs.getSheetByName('Estado de Presupuesto');
+      if (!presSheet) {
+        DriveApp.getFileById(converted.id).setTrashed(true);
+        continue;
+      }
+      var sample = presSheet.getRange(1, 1, 5, 1).getValues();
+      var period = readInformePeriodFromHeaderData(sample);
+      DriveApp.getFileById(converted.id).setTrashed(true);
+      if (!period) {
+        continue;
+      }
+      var score = period.y * 12 + period.m;
+      var tie = file.getLastUpdated().getTime();
+      if (score > bestScore || (score === bestScore && tie > bestTie)) {
+        bestScore = score;
+        bestTie = tie;
+        best = file;
+      }
+    } catch (e) {
+      if (converted && converted.id) {
+        try { DriveApp.getFileById(converted.id).setTrashed(true); } catch (ignore) {}
+      }
+    }
+  }
+  if (!best && list.length > 0) {
+    list.sort(function (a, b) {
+      return b.getLastUpdated().getTime() - a.getLastUpdated().getTime();
+    });
+    best = list[0];
+  }
+  return best;
+}
+
+/**
  * Find and read the latest monthly informe XLSX.
  * Returns array of {concepto, presupuestoAnual, mesActual, realAcumulado, pctEjecucion, saldo, categoria}
  */
 function readLatestInforme() {
   var folder = DriveApp.getFolderById(ENTREGA_FOLDER_ID);
-  var files = folder.getFiles();
-  var latestXlsx = null;
-  var latestDate = new Date(0);
-
-  while (files.hasNext()) {
-    var file = files.next();
-    var name = file.getName();
-    if (name.indexOf('.xlsx') !== -1 || name.indexOf('.XLSX') !== -1) {
-      var created = file.getDateCreated();
-      if (created > latestDate) {
-        latestDate = created;
-        latestXlsx = file;
-      }
-    }
+  var latestXlsx = pickBestInformeXlsx(folder);
+  if (!latestXlsx) {
+    return { rows: [], month: '', fileDate: null, fileId: '', fileName: '' };
   }
 
-  if (!latestXlsx) return { rows: [], month: '', fileDate: null, fileId: '', fileName: '' };
-
+  var fileLastUpdated = latestXlsx.getLastUpdated();
   // Convert XLSX to Google Sheets temporarily
   var blob = latestXlsx.getBlob();
   var converted = Drive.Files.insert(
@@ -112,7 +187,7 @@ function readLatestInforme() {
   var result = {
     rows: [],
     month: '',
-    fileDate: latestDate,
+    fileDate: fileLastUpdated,
     fileId: latestXlsx.getId(),
     fileName: latestXlsx.getName()
   };
@@ -123,7 +198,9 @@ function readLatestInforme() {
     // Extract month from header (row 2 typically: "Al 31 de Enero de 2026")
     for (var h = 0; h < Math.min(5, data.length); h++) {
       var headerText = String(data[h][0] || '');
-      var monthMatch = headerText.match(/(?:Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)/i);
+      var monthMatch = headerText.match(
+        /(?:Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Setiembre|Septiembre|Octubre|Noviembre|Diciembre)/i
+      );
       if (monthMatch) {
         result.month = monthMatch[0];
         break;
