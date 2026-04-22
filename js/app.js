@@ -381,8 +381,8 @@
         }
         var arr = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
         var caseRef = '';
-        if (arr[0] && arr[0].case_reference) {
-          caseRef = String(arr[0].case_reference);
+        if (arr[0] && (arr[0].case_reference || arr[0].case_ref)) {
+          caseRef = String(arr[0].case_reference || arr[0].case_ref);
         }
         if (!caseRef) {
           caseRef = getCaseIdFromResponse(parsed, rawText);
@@ -665,7 +665,7 @@
             }
             var row = rows[0];
             renderLookupStatusSuccess({
-              caseReference: row.case_reference || caseId,
+              caseReference: row.case_reference || row.case_ref || caseId,
               status: row.status || 'recibido',
               lastUpdatedAt: row.updated_at || row.created_at || ''
             });

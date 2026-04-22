@@ -24,7 +24,7 @@ module.exports = defineConfig({
     ? undefined
     : {
         // cwd = e2e/ so local `serve` devDependency resolves; `..` = portal root
-        command: `npx serve .. -l ${PORT}`,
+        command: `npx serve .. -l tcp://127.0.0.1:${PORT} --single --no-clipboard`,
         cwd: __dirname,
         // Wait for suite entry (most e2e traffic); resident `index.html` alone can race with cold start.
         url: `${baseURL}/aproviva-suite/index.html`,

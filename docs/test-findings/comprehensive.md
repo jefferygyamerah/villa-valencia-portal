@@ -17,6 +17,17 @@
 - **`playwright.config.js` webServer** waits on `/aproviva-suite/index.html` (not only `/index.html`) so cold `serve` does not race suite tests; bump `webServer.timeout` when CI is slow.
 - **Verify before push:** from repo root, `cd e2e && npm ci && npx playwright install chromium && npm test` — expect **30 passed** (current suite count).
 
+## Supabase E2E recovery (2026-04-21)
+
+- **Production repro (villavalencia.vercel.app/aproviva-suite):** login and core module bootstrap load, but Gemba requests `GET /rest/v1/gemba_round_templates` return `404` (`PGRST205`, table missing from schema cache/project). UI remains usable because templates can fall back to `buildings.metadata.gemba_templates`.
+- **Live schema drift found:** project currently returns PQRS rows with `case_ref` (legacy column shape still visible in RPC output), while portal submit/lookup flow expects `case_reference` first.
+- **Fixes applied in repo:**  
+  - `aproviva-suite/js/modules/gemba.js` now treats `PGRST205`/missing-table responses as expected drift and quietly falls back to metadata templates (no noisy console false-alarms).  
+  - `js/app.js` now accepts both `case_reference` and `case_ref` in VV Supabase submit/lookup responses, preventing missing-reference UX when the project is mid-alignment.  
+  - `e2e/tests/helpers.ts` now retries suite-login boot before failing, reducing cold-start / transient server-race flakes.  
+  - `e2e/playwright.config.js` now starts `serve` bound to `127.0.0.1` with SPA fallback (`--single`) for more stable local hash-route tests.
+- **Operational note:** to remove the remaining production contract drift, apply the pending VV SQL bundle/migration that creates `public.gemba_round_templates` and completes PQRS alignment (`case_reference` canonical).
+
 ## Test summary
 
 | Surface | State | Evidence |

@@ -161,7 +161,13 @@
       STATE.templateBuilding = null;
       return;
     } catch (e) {
-      if (!e || e.status !== 404) console.warn('gemba_round_templates:', e);
+      var missingTable =
+        !!(e && (
+          e.status === 404 ||
+          (e.body && e.body.code === 'PGRST205') ||
+          (e.body && e.body.message && String(e.body.message).indexOf('gemba_round_templates') !== -1)
+        ));
+      if (!missingTable) console.warn('gemba_round_templates:', e);
     }
     try {
       await fetchTemplatesFromBuildingMetadata();
