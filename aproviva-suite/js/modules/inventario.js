@@ -29,12 +29,16 @@
   }
 
   async function render(container, session) {
+    var invSub = 'Conteo c\u00edclico, alertas y registro de novedades.';
+    if (session && (session.role === 'supervisor' || session.role === 'gerencia')) {
+      invSub += ' Este portal opera solo <strong>Villa Valencia</strong>; los movimientos <strong>replenished</strong> son compras/ingreso para <strong>este</strong> conjunto. Quien hace de <strong>admin de planta</strong> en sitio coordina insumos aqu\u00ed; la <strong>supervisi\u00f3n</strong> puede ver varios edificios u HOAs en otros entornos.';
+    }
     container.innerHTML = '' +
       '<section class="page" data-testid="inventario-page">' +
         '<div class="row between wrap">' +
           '<div>' +
             '<h2 class="page-title">Inventario</h2>' +
-            '<p class="page-subtitle">Conteo c\u00edclico, alertas y registro de novedades.</p>' +
+            '<p class="page-subtitle">' + invSub + '</p>' +
             apicsHelpPanel() +
           '</div>' +
           '<div class="row wrap" style="gap:0.5rem;">' +

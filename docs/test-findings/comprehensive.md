@@ -8,6 +8,15 @@
 - **Tester:** Cursor agent via cursor-ide-browser MCP
 - **Schema:** Live Supabase project `tgoitmwdpdkhlpqpwrvs` (47 tables, already migrated)
 
+## Compound — pre-push E2E (2026-04-21)
+
+- **`e2e/package-lock.json`** must include every `devDependency` from `e2e/package.json` or `npm ci` fails in CI; run `npm install` in `e2e/` after changing devDependencies.
+- **Suite nav test:** the visible label for the governance route is **Junta**, not “Gobernanza”; role-based nav assertions must match `router.js` labels.
+- **Playwright:** local pre-push runs use `workers: 1` and a 90s test timeout to avoid `serve` contention; use `CI=1` for parallel workers in automation if desired.
+- **Portal PQRS:** prefer `getByRole('button', { name: /Radicar PQRS/i })` over the first `[data-action="open-pqrs"]` match (acceso rápido uses `<a href="#">`).
+- **`playwright.config.js` webServer** waits on `/aproviva-suite/index.html` (not only `/index.html`) so cold `serve` does not race suite tests; bump `webServer.timeout` when CI is slow.
+- **Verify before push:** from repo root, `cd e2e && npm ci && npx playwright install chromium && npm test` — expect **30 passed** (current suite count).
+
 ## Test summary
 
 | Surface | State | Evidence |

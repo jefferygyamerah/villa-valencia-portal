@@ -12,7 +12,8 @@ test.describe('Portal residentes (index.html)', () => {
 
   test('opens PQRS modal from Radicar button', async ({ page }) => {
     await page.goto('/index.html');
-    await page.locator('[data-action="open-pqrs"]').click();
+    // Prefer the panel button; the acceso rápido card is an <a href="#"> and is flaky under parallel runs.
+    await page.getByRole('button', { name: /Radicar PQRS/i }).click();
     await expect(page.getByTestId('portal-pqrs-modal')).toBeVisible();
     await expect(page.locator('#pqrs-resumen')).toBeVisible();
   });

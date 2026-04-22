@@ -1,7 +1,9 @@
 # APROVIVA Operations Suite
 
 Single-page operations app for Villa Valencia / APROVIVA, covering the 19 business
-scenarios across 5 roles (conserje, admin de planta, supervisor, gerencia, junta).
+scenarios across **four PIN roles** (conserje, supervisor, gerencia, junta). **Admin de planta**
+is the on-site, single-building operational view (here: only Villa Valencia); **supervision**
+can span multiple buildings or HOAs in other APROVIVA deployments — not a separate PIN here.
 
 - **Live (production):** https://villavalencia.vercel.app/aproviva-suite/
 - **Preview (here.now):** https://whole-crystal-6gt7.here.now/

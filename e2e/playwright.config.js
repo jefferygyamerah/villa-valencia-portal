@@ -5,9 +5,13 @@ const baseURL = process.env.BASE_URL || `http://127.0.0.1:${PORT}`;
 
 module.exports = defineConfig({
   testDir: './tests',
-  fullyParallel: true,
+  /** One worker avoids static `serve` + session races during local pre-push runs. */
+  workers: process.env.CI ? 2 : 1,
+  fullyParallel: !!process.env.CI,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  timeout: 90_000,
+  expect: { timeout: 20_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL,
@@ -22,8 +26,9 @@ module.exports = defineConfig({
         // cwd = e2e/ so local `serve` devDependency resolves; `..` = portal root
         command: `npx serve .. -l ${PORT}`,
         cwd: __dirname,
-        url: `${baseURL}/index.html`,
+        // Wait for suite entry (most e2e traffic); resident `index.html` alone can race with cold start.
+        url: `${baseURL}/aproviva-suite/index.html`,
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        timeout: 180_000,
       },
 });

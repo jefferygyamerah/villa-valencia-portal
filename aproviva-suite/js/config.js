@@ -30,13 +30,21 @@
     BUILDING_CODE: 'VV-001',
     BUILDING_NAME: 'Villa Valencia',
 
+    /**
+     * Required by DB for new recorridos (inspection_rounds.inspector_admin_user_id).
+     * Set to a real admin_users.id from Supabase if automatic resolution fails (e.g. RLS hides admin_users).
+     */
+    DEFAULT_INSPECTOR_ADMIN_USER_ID: null,
+
     /** Cat\u00e1logo de puntos del conjunto con clasificaci\u00f3n edificio / \u00e1rea. */
     SITE_PLACES: SITE_PLACES,
 
     /**
-     * Four operational roles (session.role). Legacy PIN aliases:
-     * - 2026 \u2192 conserjer\u00eda (same as CONS26)
-     * - JD26 \u2192 junta directiva (governance + backlog intake; not day-to-day ops)
+     * Roles (session.role). This deployment is tied to BUILDING_* (solo Villa Valencia).
+     * - **Admin de planta** (copy / operations): mirada operativa de **un solo conjunto** \u2014 aqu\u00ed, VV. No es un rol distinto en el PIN; es c\u00f3mo se describe quien lleva el d\u00eda a d\u00eda en sitio.
+     * - **Supervisor**: en el producto puede abarcar **varios edificios u HOAs** cuando el despliegue lo permite; en **este** portal los datos siguen filtrados a Villa Valencia.
+     * - **Gerencia** y **supervisor** pueden ser la misma persona seg\u00fan la organizaci\u00f3n.
+     * Legacy PIN aliases: 2026/CONS26 conserjer\u00eda; JD26 junta.
      */
     PINS: {
       '2026': {

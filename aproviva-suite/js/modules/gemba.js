@@ -16,23 +16,41 @@
 
   async function resolveInspectorAdminUserId() {
     if (STATE.inspectorAdminUserId) return STATE.inspectorAdminUserId;
+    var cfg = window.APROVIVA_SUITE_CONFIG || {};
+    var fallbackCfg = cfg.DEFAULT_INSPECTOR_ADMIN_USER_ID;
+    if (fallbackCfg) {
+      STATE.inspectorAdminUserId = String(fallbackCfg).trim();
+      return STATE.inspectorAdminUserId;
+    }
+    var id = null;
     try {
       var rows = await window.SB.select('admin_users', {
         select: 'id',
         is_active: 'eq.true',
         limit: '1',
       });
-      var id = rows && rows[0] && rows[0].id;
+      id = rows && rows[0] && rows[0].id;
       if (!id) {
         rows = await window.SB.select('admin_users', { select: 'id', limit: '1' });
         id = rows && rows[0] && rows[0].id;
       }
-      if (id) STATE.inspectorAdminUserId = id;
-      return id || null;
     } catch (e) {
-      console.warn('resolveInspectorAdminUserId', e);
-      return null;
+      console.warn('resolveInspectorAdminUserId admin_users', e);
     }
+    if (!id) {
+      try {
+        var prev = await window.SB.select('inspection_rounds', {
+          select: 'inspector_admin_user_id',
+          order: 'created_at.desc',
+          limit: '1',
+        });
+        id = prev && prev[0] && prev[0].inspector_admin_user_id;
+      } catch (e2) {
+        console.warn('resolveInspectorAdminUserId inspection_rounds', e2);
+      }
+    }
+    if (id) STATE.inspectorAdminUserId = id;
+    return id || null;
   }
   /** Legacy browser-only presets (Sc. 4) — one-time import to shared storage. */
   var TEMPLATES_KEY = 'vv_gemba_round_templates_v1';

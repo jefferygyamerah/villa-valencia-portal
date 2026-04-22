@@ -39,7 +39,7 @@ test.describe('APROVIVA suite (PIN JD26 — Junta)', () => {
     const nav = page.locator('#app-nav');
     await expect(nav.getByRole('link', { name: 'Proyectos' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Reportes' })).toBeVisible();
-    await expect(nav.getByRole('link', { name: 'Gobernanza' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Junta' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Inventario' })).toHaveCount(0);
     await expect(nav.getByRole('link', { name: 'Mapa' })).toHaveCount(0);
   });

@@ -52,15 +52,137 @@
     localStorage.setItem(storageKey(), JSON.stringify(arr));
   }
 
+  function reporterFromWaypoint(w) {
+    var m = w.metadata || {};
+    if (m.actor) return String(m.actor);
+    if (m.vv_reported_by_label) return String(m.vv_reported_by_label);
+    var cs = w.comments;
+    if (cs && cs.length && cs[0].label) return String(cs[0].label);
+    return '';
+  }
+
+  function observationSnippet(w, maxLen) {
+    maxLen = maxLen || 160;
+    var cs = w.comments;
+    if (!cs || !cs.length) return '';
+    var last = cs[cs.length - 1];
+    var t = String(last.text || '').trim();
+    if (t.length > maxLen) return t.slice(0, maxLen - 1) + '\u2026';
+    return t;
+  }
+
+  function hasWaypointPhoto(w) {
+    var cs = w.comments;
+    if (!cs) return false;
+    for (var i = 0; i < cs.length; i++) {
+      if (cs[i].photo_url) return true;
+    }
+    return false;
+  }
+
+  function lastActivityIso(w) {
+    var cs = w.comments;
+    if (cs && cs.length) {
+      var last = cs[cs.length - 1];
+      if (last.at) return last.at;
+    }
+    return w.updatedAt || w.createdAt || '';
+  }
+
+  function roleLabelEs(role) {
+    var m = {
+      conserje: 'Conserjer\u00eda',
+      supervisor: 'Supervisi\u00f3n',
+      gerencia: 'Gerencia',
+      junta: 'Junta',
+    };
+    return m[role] || (role ? String(role) : '');
+  }
+
+  function reporterRoleFromWaypoint(w) {
+    var m = w.metadata || {};
+    if (m.vv_reported_by_role) return roleLabelEs(m.vv_reported_by_role);
+    var cs = w.comments;
+    if (cs && cs.length && cs[0].role) return roleLabelEs(cs[0].role);
+    return '\u2014';
+  }
+
   function normalizeRow(row) {
     if (!row || !row.id) return null;
+    var meta = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+    var st = meta.vv_point_status === 'conserje_resolved' ? 'conserje_resolved' : 'open';
+    var comments = Array.isArray(meta.vv_comments) ? meta.vv_comments : [];
     return {
       id: row.id,
       lat: Number(row.lat),
       lng: Number(row.lng),
       zonaLabel: row.zona_label || '',
       order: Number(row.sort_order) || 0,
+      metadata: meta,
+      pointStatus: st,
+      comments: comments,
+      createdAt: row.created_at || null,
+      updatedAt: row.updated_at || null,
     };
+  }
+
+  async function patchWaypointMetadata(id, updater) {
+    var rows = await window.SB.select(TABLE, { select: 'metadata', id: 'eq.' + id, limit: '1' });
+    var meta = (rows && rows[0] && rows[0].metadata && typeof rows[0].metadata === 'object')
+      ? Object.assign({}, rows[0].metadata)
+      : {};
+    var next = updater(meta) || meta;
+    await window.SB.update(TABLE, { id: 'eq.' + id }, { metadata: next, updated_at: new Date().toISOString() });
+  }
+
+  /** HTML attribute for URLs (do not use esc() — it breaks & in query strings). */
+  function escUrlAttr(u) {
+    return String(u || '').replace(/"/g, '&quot;');
+  }
+
+  function appendCommentToMeta(meta, text, sess, photoUrl) {
+    var m = meta && typeof meta === 'object' ? meta : {};
+    var t = String(text || '').trim();
+    var p = photoUrl ? String(photoUrl).trim() : '';
+    if (!t && !p) return m;
+    var arr = Array.isArray(m.vv_comments) ? m.vv_comments.slice() : [];
+    arr.push({
+      text: t || (p ? '(Foto en sitio)' : ''),
+      role: sess.role,
+      label: sess.label,
+      at: new Date().toISOString(),
+      photo_url: p || undefined,
+    });
+    m.vv_comments = arr;
+    return m;
+  }
+
+  function extractSiteRingFromGeo(geo) {
+    var feats = geo && geo.features;
+    if (!feats) return null;
+    for (var i = 0; i < feats.length; i++) {
+      var f = feats[i];
+      if (f.properties && f.properties.kind === 'site_boundary' && f.geometry && f.geometry.type === 'Polygon') {
+        return f.geometry.coordinates[0];
+      }
+    }
+    return null;
+  }
+
+  function pointInSiteRing(lat, lng, ring) {
+    if (!ring || ring.length < 3) return true;
+    var x = lng;
+    var y = lat;
+    var inside = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var xi = ring[i][0];
+      var yi = ring[i][1];
+      var xj = ring[j][0];
+      var yj = ring[j][1];
+      var inter = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (inter) inside = !inside;
+    }
+    return inside;
   }
 
   async function fetchWaypointsFromApi() {
@@ -109,6 +231,9 @@
           source: 'aproviva-suite',
           migratedFromLocalStorage: true,
           actor: session ? session.label : null,
+          vv_reported_by_role: session ? session.role : null,
+          vv_point_status: 'open',
+          vv_comments: [],
         },
       });
     }
@@ -149,8 +274,13 @@
   }
 
   async function render(container, session) {
-    var canEditWaypoints = window.AUTH.canAccess('maestros');
-    var canMarkFinding = window.AUTH.canAccess('gemba');
+    var role = session && session.role;
+    var canGemba = window.AUTH.canAccess('gemba');
+    /** Supervisor + gerencia: drag waypoints, bulk clear, force delete. */
+    var canManageRoute = role === 'supervisor' || window.AUTH.canAccess('maestros');
+    /** Supervisión o gerencia colocan observaciones del recorrido en el mapa (alcance: solo este conjunto en este portal). */
+    var canPlaceRoutePoints = canGemba && (role === 'supervisor' || role === 'gerencia');
+    var canMarkFinding = canGemba;
     var cloudOk = true;
     var waypoints = [];
     var mapFindings = [];
@@ -175,19 +305,21 @@
     mapFindings = await fetchFindingsForMap();
 
     var toolbarHtml = '';
-    if (canEditWaypoints || canMarkFinding) {
+    if (canPlaceRoutePoints || canMarkFinding) {
       toolbarHtml = '<div class="mapa-toolbar row wrap mt-2">';
       if (canMarkFinding && cloudOk) {
         toolbarHtml += '<button type="button" class="btn btn-primary-sm" id="mapa-hallazgo-btn"' + (cloudOk ? '' : ' disabled') + '>Marcar hallazgo</button>';
       }
-      if (canEditWaypoints && cloudOk) {
+      if (canPlaceRoutePoints && cloudOk) {
         toolbarHtml +=
-          '<button type="button" class="btn btn-ghost" id="mapa-mode-btn"' + (cloudOk ? '' : ' disabled') + '>Punto de ruta</button>' +
-          '<button type="button" class="btn btn-ghost" id="mapa-clear-btn"' + (cloudOk ? '' : ' disabled') + '>Borrar puntos de ruta</button>';
+          '<button type="button" class="btn btn-ghost" id="mapa-mode-btn"' + (cloudOk ? '' : ' disabled') + '>Punto de ruta</button>';
+      }
+      if (canManageRoute && cloudOk) {
+        toolbarHtml += '<button type="button" class="btn btn-ghost" id="mapa-clear-btn"' + (cloudOk ? '' : ' disabled') + '>Borrar puntos de ruta</button>';
       }
       toolbarHtml += '<span class="muted" id="mapa-mode-hint" style="display:none;"></span></div>';
     } else {
-      toolbarHtml = '<p class="muted mt-1">Vista de consulta. La edici\u00f3n la hace quien tenga acceso a <strong>Recorridos</strong> o <strong>Datos maestros</strong>.</p>';
+      toolbarHtml = '<p class="muted mt-1">Vista de consulta. La edici\u00f3n la hace quien tenga acceso a <strong>Recorridos</strong>.</p>';
     }
 
     container.innerHTML = '' +
@@ -195,7 +327,7 @@
         '<div class="row between wrap">' +
           '<div>' +
             '<h2 class="page-title">Mapa del sitio</h2>' +
-            '<p class="page-subtitle">L\u00edmite del conjunto, ruta, puntos de recorrido y hallazgos Gemba' + (cloudOk ? ' (Supabase).' : ' (modo local hasta conectar tablas).') + '</p>' +
+            '<p class="page-subtitle">Recorrido matutino: quien hace de <strong>admin de planta</strong> en <strong>Villa Valencia</strong> registra en el mapa lo observado (punto, comentario, foto a Drive). Este portal es <strong>solo este conjunto</strong>; la <strong>supervisi\u00f3n</strong> puede gestionar varios edificios u HOAs en otros despliegues. Conserjer\u00eda ve el mismo mapa, cierra con foto opcional y marca resuelto; supervisi\u00f3n o gerencia confirman y retiran el punto. Hallazgos Gemba y l\u00edmite' + (cloudOk ? ' (Supabase).' : ' (modo local hasta conectar tablas).') + '</p>' +
           '</div>' +
         '</div>' +
         cloudBanner +
@@ -208,7 +340,8 @@
           '<div id="vv-map" class="vv-map" role="application" aria-label="Mapa Villa Valencia"></div>' +
         '</div>' +
         '<div class="page-section">' +
-          '<h3 class="section-title">Puntos de recorrido</h3>' +
+          '<h3 class="section-title">Registro de observaciones en mapa</h3>' +
+          '<p class="muted mapa-registry-lead">Tabla de todos los puntos: qui\u00e9n report\u00f3, cu\u00e1ndo, ubicaci\u00f3n, texto m\u00e1s reciente, estado, evidencia fotogr\u00e1fica y \u00faltima actividad.</p>' +
           '<div id="mapa-waypoint-list"><div class="loading">Cargando mapa...</div></div>' +
         '</div>' +
       '</section>';
@@ -240,6 +373,8 @@
     var waypointLayer = L.layerGroup().addTo(map);
     var findingsLayer = L.layerGroup().addTo(map);
     var geoLayer = L.layerGroup().addTo(map);
+    /** GeoJSON polygon ring [[lng,lat],...] for Villa Valencia boundary (new marks inside only). */
+    var siteBoundaryRing = null;
 
     var layerWp = document.getElementById('mapa-layer-wp');
     var layerFind = document.getElementById('mapa-layer-find');
@@ -254,28 +389,232 @@
       });
     }
 
+    function statusLabelWp(st) {
+      if (st === 'conserje_resolved') return 'Pendiente supervisi\u00f3n';
+      return 'Abierto';
+    }
+
+    function openWaypointDetailModal(wp) {
+      if (!cloudOk) return;
+      var host = document.getElementById('suite-modal-host');
+      if (!host) return;
+      var st = wp.pointStatus || 'open';
+      var comments = wp.comments || [];
+      var htmlComments = comments.map(function (c) {
+        var img = c.photo_url
+          ? '<div class="mapa-wp-photo"><a href="' + escUrlAttr(c.photo_url) + '" target="_blank" rel="noopener">Ver foto en Drive</a>' +
+            '<img src="' + escUrlAttr(c.photo_url) + '" alt="" class="mapa-wp-photo__img" loading="lazy" /></div>'
+          : '';
+        return '<div class="mapa-wp-comment">' +
+          '<span class="muted">' + window.UI.esc(c.label || c.role || '') + ' \u00b7 ' + window.UI.esc(window.UI.fmtDate(c.at) || '') + '</span>' +
+          (c.text ? '<p>' + window.UI.esc(c.text) + '</p>' : '') +
+          img +
+          '</div>';
+      }).join('');
+      host.innerHTML = '' +
+        '<section class="page mapa-wp-modal" data-testid="mapa-wp-detail">' +
+          '<h3 class="section-title">' + window.UI.esc(wp.zonaLabel || 'Punto') + '</h3>' +
+          '<p class="muted">Estado: <strong>' + window.UI.esc(statusLabelWp(st)) + '</strong></p>' +
+          '<div class="mapa-wp-comments">' + (htmlComments || '<p class="muted">Sin comentarios a\u00fan.</p>') + '</div>' +
+          (canGemba
+            ? '<div class="form-field"><label>Comentario</label>' +
+                '<textarea id="mapa-wp-new-cmt" class="mapa-wp-textarea" rows="3" placeholder="Observaci\u00f3n del recorrido (Villa Valencia)"></textarea></div>' +
+                '<div class="form-field"><label>Foto (opcional, Google Drive)</label>' +
+                '<input type="file" id="mapa-wp-new-photo" class="mapa-wp-file" accept="image/*" /></div>' +
+                '<div class="btn-row"><button type="button" class="btn btn-primary-sm" id="mapa-wp-send-cmt">Publicar comentario</button></div>'
+            : '') +
+          (role === 'conserje' && st === 'open'
+            ? '<div class="form-field"><label>Foto de cierre (opcional, Drive)</label>' +
+                '<input type="file" id="mapa-wp-resolve-photo" class="mapa-wp-file" accept="image/*" /></div>' +
+                '<div class="btn-row"><button type="button" class="btn btn-secondary" id="mapa-wp-conserje-done">Marcar resuelto en sitio</button></div>'
+            : '') +
+          ((role === 'supervisor' || window.AUTH.canAccess('maestros')) && st === 'conserje_resolved'
+            ? '<div class="btn-row"><button type="button" class="btn btn-primary-sm" id="mapa-wp-sup-confirm">Confirmar cierre y quitar del mapa</button></div>'
+            : '') +
+          ((role === 'supervisor' || window.AUTH.canAccess('maestros')) && st === 'open'
+            ? '<div class="btn-row"><button type="button" class="btn btn-ghost btn-sm" id="mapa-wp-force-del">Quitar sin esperar conserjer\u00eda</button></div>'
+            : '') +
+          '<div class="btn-row"><button type="button" class="btn btn-ghost" id="mapa-wp-close">Cerrar</button></div>' +
+        '</section>';
+      document.getElementById('mapa-wp-close').addEventListener('click', function () { host.innerHTML = ''; });
+      var sendCmt = document.getElementById('mapa-wp-send-cmt');
+      if (sendCmt) {
+        sendCmt.addEventListener('click', async function () {
+          var ta = document.getElementById('mapa-wp-new-cmt');
+          var txt = ta ? ta.value : '';
+          var fileEl = document.getElementById('mapa-wp-new-photo');
+          var file = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+          try {
+            var photoUrl = null;
+            if (file && window.UI.uploadPhotoToDrive) {
+              sendCmt.disabled = true;
+              var up = await window.UI.uploadPhotoToDrive(file, { caseRef: 'MAPWP-' + String(wp.id) });
+              photoUrl = up && up.url ? up.url : null;
+              sendCmt.disabled = false;
+            }
+            if (!String(txt || '').trim() && !photoUrl) {
+              window.UI.toast('Escribe un comentario o adjunta una foto.', 'warning');
+              return;
+            }
+            await patchWaypointMetadata(wp.id, function (meta) {
+              return appendCommentToMeta(meta, txt, session, photoUrl);
+            });
+            waypoints = await fetchWaypointsFromApi();
+            renderWaypointMarkers();
+            window.UI.toast('Comentario guardado.', 'success');
+            host.innerHTML = '';
+          } catch (e) {
+            sendCmt.disabled = false;
+            window.UI.toast('Error: ' + (e.message || e), 'error');
+          }
+        });
+      }
+      var conserjeDone = document.getElementById('mapa-wp-conserje-done');
+      if (conserjeDone) {
+        conserjeDone.addEventListener('click', async function () {
+          var fileEl = document.getElementById('mapa-wp-resolve-photo');
+          var file = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+          try {
+            var photoUrl = null;
+            if (file && window.UI.uploadPhotoToDrive) {
+              conserjeDone.disabled = true;
+              var up = await window.UI.uploadPhotoToDrive(file, { caseRef: 'MAPWP-RES-' + String(wp.id) });
+              photoUrl = up && up.url ? up.url : null;
+              conserjeDone.disabled = false;
+            }
+            await patchWaypointMetadata(wp.id, function (meta) {
+              var m = meta && typeof meta === 'object' ? Object.assign({}, meta) : {};
+              m.vv_point_status = 'conserje_resolved';
+              var line = 'Marcado resuelto en sitio por conserjer\u00eda.' + (photoUrl ? ' Foto de verificaci\u00f3n adjunta.' : '');
+              return appendCommentToMeta(m, line, session, photoUrl);
+            });
+            waypoints = await fetchWaypointsFromApi();
+            renderWaypointMarkers();
+            window.UI.toast('Pendiente confirmaci\u00f3n de supervisi\u00f3n.', 'success');
+            host.innerHTML = '';
+          } catch (e) {
+            conserjeDone.disabled = false;
+            window.UI.toast('Error: ' + (e.message || e), 'error');
+          }
+        });
+      }
+      var supConf = document.getElementById('mapa-wp-sup-confirm');
+      if (supConf) {
+        supConf.addEventListener('click', async function () {
+          if (!confirm('\u00bfQuitar este punto del mapa?')) return;
+          try {
+            await window.SB.remove(TABLE, { id: 'eq.' + wp.id });
+            waypoints = await fetchWaypointsFromApi();
+            renderWaypointMarkers();
+            window.UI.toast('Punto cerrado y eliminado del mapa.', 'success');
+            host.innerHTML = '';
+          } catch (e) {
+            window.UI.toast('Error: ' + (e.message || e), 'error');
+          }
+        });
+      }
+      var forceDel = document.getElementById('mapa-wp-force-del');
+      if (forceDel) {
+        forceDel.addEventListener('click', async function () {
+          if (!confirm('\u00bfEliminar este punto sin resoluci\u00f3n formal?')) return;
+          try {
+            await window.SB.remove(TABLE, { id: 'eq.' + wp.id });
+            waypoints = await fetchWaypointsFromApi();
+            renderWaypointMarkers();
+            window.UI.toast('Punto eliminado.', 'info');
+            host.innerHTML = '';
+          } catch (e) {
+            window.UI.toast('Error: ' + (e.message || e), 'error');
+          }
+        });
+      }
+    }
+
     function renderList() {
       var box = document.getElementById('mapa-waypoint-list');
       if (!waypoints.length) {
-        box.innerHTML = '<p class="empty">Sin puntos de ruta' + (canEditWaypoints && cloudOk ? '. Usa <strong>Punto de ruta</strong> y toca el mapa, o <strong>Marcar hallazgo</strong> para un hallazgo Gemba.' : '.') + '</p>';
+        box.innerHTML = '<p class="empty">Sin puntos en el registro' + (canPlaceRoutePoints && cloudOk
+          ? '. Coloca <strong>Punto de ruta</strong> en el mapa (dentro del l\u00edmite) o <strong>Marcar hallazgo</strong> para Gemba.'
+          : (canGemba && cloudOk
+            ? '. Supervisi\u00f3n o gerencia colocan las observaciones en este conjunto; t\u00fa puedes abrir cada punto para comentar o marcar resuelto en sitio.'
+            : '.')) + '</p>';
         return;
       }
-      var sorted = waypoints.slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-      box.innerHTML = '<ul class="mapa-wp-list">' + sorted.map(function (w) {
+      var byRecency = waypoints.slice().sort(function (a, b) {
+        var ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        var tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
+      var rowsHtml = byRecency.map(function (w, idx) {
         var zl = w.zonaLabel || 'Punto';
-        return '<li class="mapa-wp-item">' +
-          '<span class="mapa-wp-labelwrap">' +
-            '<span class="mapa-wp-label">' + window.UI.esc(zl) + '</span>' +
-            kindBadgeForLabel(zl) +
-          '</span>' +
-          '<span class="muted mapa-wp-coord">' + Number(w.lat).toFixed(5) + ', ' + Number(w.lng).toFixed(5) + '</span>' +
-          (canEditWaypoints && cloudOk
-            ? '<button type="button" class="btn btn-ghost" data-wp-del="' + window.UI.esc(w.id) + '">Quitar</button>'
-            : '') +
-        '</li>';
-      }).join('') + '</ul>';
+        var st = w.pointStatus || 'open';
+        var rep = reporterFromWaypoint(w) || '\u2014';
+        var roleCol = reporterRoleFromWaypoint(w);
+        var obs = observationSnippet(w, 200);
+        if (!obs) obs = '\u2014';
+        var created = w.createdAt ? window.UI.fmtDate(w.createdAt) : '\u2014';
+        var lastAct = lastActivityIso(w);
+        var lastActStr = lastAct ? window.UI.fmtDate(lastAct) : '\u2014';
+        var photoMark = hasWaypointPhoto(w)
+          ? '<span class="badge badge-info">S\u00ed</span>'
+          : '<span class="muted">\u2014</span>';
+        var nNotes = (w.comments && w.comments.length) ? w.comments.length : 0;
+        var orderMap = waypoints.slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+        var mapIdx = orderMap.findIndex(function (x) { return String(x.id) === String(w.id); });
+        var numOnMap = mapIdx >= 0 ? mapIdx + 1 : idx + 1;
+        return '<tr data-wp-row="' + window.UI.esc(w.id) + '">' +
+          '<td data-label="# mapa"><span class="mapa-wp-num">' + String(numOnMap) + '</span></td>' +
+          '<td data-label="Report\u00f3">' + window.UI.esc(rep) + '</td>' +
+          '<td data-label="Rol (reporte)">' + window.UI.esc(roleCol) + '</td>' +
+          '<td data-label="Fecha y hora (registro)">' + window.UI.esc(created) + '</td>' +
+          '<td data-label="Ubicaci\u00f3n">' + window.UI.esc(zl) + ' ' + kindBadgeForLabel(zl) + '</td>' +
+          '<td data-label="Coordenadas" class="mapa-registry-coords">' + Number(w.lat).toFixed(5) + ', ' + Number(w.lng).toFixed(5) + '</td>' +
+          '<td data-label="Observaci\u00f3n (m\u00e1s reciente)" class="mapa-registry-obs">' + window.UI.esc(obs) + '</td>' +
+          '<td data-label="Notas (n\u00ba)">' + String(nNotes) + '</td>' +
+          '<td data-label="Estado">' + window.UI.esc(statusLabelWp(st)) + '</td>' +
+          '<td data-label="Evidencia foto">' + photoMark + '</td>' +
+          '<td data-label="\u00daltima actividad">' + window.UI.esc(lastActStr) + '</td>' +
+          '<td data-label="Acciones" class="mapa-registry-actions">' +
+            (canGemba && cloudOk
+              ? '<button type="button" class="btn btn-ghost btn-sm" data-wp-open="' + window.UI.esc(w.id) + '">Detalle</button> '
+              : '') +
+            (canManageRoute && cloudOk
+              ? '<button type="button" class="btn btn-ghost btn-sm" data-wp-del="' + window.UI.esc(w.id) + '">Quitar</button>'
+              : '') +
+          '</td>' +
+        '</tr>';
+      }).join('');
+      box.innerHTML = '' +
+        '<div class="table-wrap mapa-registry-wrap">' +
+          '<table class="data-table mapa-wp-registry" data-testid="mapa-waypoint-registry">' +
+            '<thead><tr>' +
+              '<th># mapa</th>' +
+              '<th>Report\u00f3</th>' +
+              '<th>Rol</th>' +
+              '<th>Fecha y hora</th>' +
+              '<th>Ubicaci\u00f3n</th>' +
+              '<th>Coordenadas</th>' +
+              '<th>Observaci\u00f3n</th>' +
+              '<th>Notas</th>' +
+              '<th>Estado</th>' +
+              '<th>Fotos</th>' +
+              '<th>\u00daltima actividad</th>' +
+              '<th></th>' +
+            '</tr></thead>' +
+            '<tbody>' + rowsHtml + '</tbody>' +
+          '</table>' +
+        '</div>';
 
-      if (canEditWaypoints && cloudOk) {
+      if (canGemba && cloudOk) {
+        box.querySelectorAll('[data-wp-open]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-wp-open');
+            var w = waypoints.filter(function (x) { return String(x.id) === String(id); })[0];
+            if (w) openWaypointDetailModal(w);
+          });
+        });
+      }
+      if (canManageRoute && cloudOk) {
         box.querySelectorAll('[data-wp-del]').forEach(function (btn) {
           btn.addEventListener('click', async function () {
             var id = btn.getAttribute('data-wp-del');
@@ -316,6 +655,16 @@
       });
     }
 
+    function waypointMarkerIcon(idx, pointStatus) {
+      var bg = pointStatus === 'conserje_resolved' ? '#d97706' : '#1d4ed8';
+      return L.divIcon({
+        className: 'mapa-wp-marker',
+        html: '<span class="mapa-wp-marker__badge" style="background:' + bg + '">' + String(idx + 1) + '</span>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+    }
+
     function renderWaypointMarkers() {
       waypointLayer.clearLayers();
       waypoints
@@ -324,14 +673,17 @@
           var lat = Number(w.lat);
           var lng = Number(w.lng);
           if (isNaN(lat) || isNaN(lng)) return;
-          var m = L.marker([lat, lng], { draggable: canEditWaypoints && cloudOk, title: w.zonaLabel || '' });
-          var kb = kindBadgeForLabel(w.zonaLabel || '');
-          m.bindPopup(
-            '<strong>' + window.UI.esc(w.zonaLabel || 'Punto') + '</strong>' +
-            (kb ? '<br>' + kb : '') +
-            '<br>#' + (idx + 1)
-          );
-          if (canEditWaypoints && cloudOk) {
+          var st = w.pointStatus || 'open';
+          var icon = waypointMarkerIcon(idx, st);
+          var m = L.marker([lat, lng], {
+            draggable: canManageRoute && cloudOk,
+            title: (w.zonaLabel || '') + ' · ' + statusLabelWp(st),
+            icon: icon,
+          });
+          m.on('click', function () {
+            openWaypointDetailModal(w);
+          });
+          if (canManageRoute && cloudOk) {
             m.on('dragend', async function () {
               var ll = m.getLatLng();
               try {
@@ -357,6 +709,7 @@
     var res = await fetch(GEOJSON_URL);
     if (!res.ok) throw new Error('No se encontr\u00f3 ' + GEOJSON_URL);
     var geo = await res.json();
+    siteBoundaryRing = extractSiteRingFromGeo(geo);
 
     var gj = L.geoJSON(geo, {
       style: function (feat) {
@@ -419,6 +772,10 @@
         saveBtn.addEventListener('click', async function () {
           var zonaEl = document.getElementById('mapa-new-zona');
           var zona = zonaEl ? zonaEl.value : '';
+          if (siteBoundaryRing && !pointInSiteRing(lat, lng, siteBoundaryRing)) {
+            window.UI.toast('Coloca el punto dentro del l\u00edmite de Villa Valencia.', 'warning');
+            return;
+          }
           var maxOrder = waypoints.reduce(function (m, x) { return Math.max(m, x.order || 0); }, 0);
           try {
             var inserted = await window.SB.insert(TABLE, {
@@ -427,7 +784,13 @@
               lat: lat,
               lng: lng,
               sort_order: maxOrder + 1,
-              metadata: { source: 'aproviva-suite', actor: session.label },
+              metadata: {
+                source: 'aproviva-suite',
+                actor: session.label,
+                vv_reported_by_role: session.role,
+                vv_point_status: 'open',
+                vv_comments: [],
+              },
             });
             var raw = Array.isArray(inserted) ? inserted[0] : inserted;
             var nw = normalizeRow(raw);
@@ -461,7 +824,7 @@
       }, 0);
     }
 
-    if (canEditWaypoints && cloudOk) {
+    if (canPlaceRoutePoints && cloudOk && document.getElementById('mapa-mode-btn')) {
       document.getElementById('mapa-mode-btn').addEventListener('click', function () {
         var btn = this;
         if (placeMode === 'route') {
@@ -471,14 +834,20 @@
         clearMapClickMode();
         placeMode = 'route';
         var hint = document.getElementById('mapa-mode-hint');
-        hint.style.display = '';
-        hint.textContent = 'Toca el mapa para colocar un punto de ruta.';
+        if (hint) {
+          hint.style.display = '';
+          hint.textContent = 'Toca el mapa para colocar un punto de ruta.';
+        }
         btn.textContent = 'Cancelar punto de ruta';
         btn.classList.remove('btn-ghost');
         btn.classList.add('btn-primary-sm');
         clickHandler = function (ev) {
           var lat = ev.latlng.lat;
           var lng = ev.latlng.lng;
+          if (siteBoundaryRing && !pointInSiteRing(lat, lng, siteBoundaryRing)) {
+            window.UI.toast('Marca solo dentro del l\u00edmite de Villa Valencia.', 'warning');
+            return;
+          }
           var wrap = document.createElement('div');
           wrap.className = 'mapa-popup-form';
           wrap.innerHTML = '' +
@@ -491,7 +860,9 @@
         };
         map.on('click', clickHandler);
       });
+    }
 
+    if (canManageRoute && cloudOk && document.getElementById('mapa-clear-btn')) {
       document.getElementById('mapa-clear-btn').addEventListener('click', async function () {
         if (!confirm('\u00bfBorrar todos los puntos de recorrido en Supabase para este edificio?')) return;
         try {
@@ -517,14 +888,20 @@
           clearMapClickMode();
           placeMode = 'finding';
           var hint = document.getElementById('mapa-mode-hint');
-          hint.style.display = '';
-          hint.textContent = 'Toca el mapa; elige zona y contin\u00faa al formulario de hallazgo.';
+          if (hint) {
+            hint.style.display = '';
+            hint.textContent = 'Toca el mapa; elige zona y contin\u00faa al formulario de hallazgo.';
+          }
           btn.textContent = 'Cancelar hallazgo';
           btn.classList.remove('btn-primary-sm');
           btn.classList.add('btn-ghost');
           clickHandler = function (ev) {
             var lat = ev.latlng.lat;
             var lng = ev.latlng.lng;
+            if (siteBoundaryRing && !pointInSiteRing(lat, lng, siteBoundaryRing)) {
+              window.UI.toast('Marca solo dentro del l\u00edmite de Villa Valencia.', 'warning');
+              return;
+            }
             var wrap = document.createElement('div');
             wrap.className = 'mapa-popup-form';
             wrap.innerHTML = '' +
