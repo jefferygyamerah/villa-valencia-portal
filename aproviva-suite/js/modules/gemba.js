@@ -767,6 +767,7 @@
         await loadAll();
       } catch (err) {
         window.UI.toast('Error: ' + insertErrorMessage(err), 'error');
+        closeSuiteModal();
       } finally {
         submittingRound = false;
       }

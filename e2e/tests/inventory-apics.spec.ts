@@ -28,7 +28,8 @@ test.describe('Inventario — APICS-style UI', () => {
   });
 
   test('catalog shows vs reorden column when data loads', async ({ page }) => {
-    await expect(page.locator('.data-table thead')).toContainText('vs reorden', { timeout: 25_000 });
+    // Catalog and movements can each render a .data-table; scope to the stock grid.
+    await expect(page.locator('#inv-catalog .data-table thead')).toContainText('vs reorden', { timeout: 25_000 });
   });
 
   test('open count modal and cancel', async ({ page }) => {

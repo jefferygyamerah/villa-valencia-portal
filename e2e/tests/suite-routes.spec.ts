@@ -37,9 +37,14 @@ test.describe('APROVIVA suite (PIN JD26 — Junta)', () => {
   test('nav links exclude inventario and mapa', async ({ page }) => {
     await loginWithPin(page, 'JD26');
     const nav = page.locator('#app-nav');
-    await expect(nav.getByRole('link', { name: 'Proyectos' })).toBeVisible();
-    await expect(nav.getByRole('link', { name: 'Reportes' })).toBeVisible();
-    await expect(nav.getByRole('link', { name: 'Junta' })).toBeVisible();
+    // Hash links + scroll: bottom tab bar on narrow viewports can keep items off-screen until brought into view.
+    const proy = nav.locator('a[href="#/proyectos"]');
+    const rep = nav.locator('a[href="#/reportes"]');
+    const jta = nav.locator('a[href="#/junta"]');
+    for (const link of [proy, rep, jta]) {
+      await link.scrollIntoViewIfNeeded();
+      await expect(link).toBeVisible();
+    }
     await expect(nav.getByRole('link', { name: 'Inventario' })).toHaveCount(0);
     await expect(nav.getByRole('link', { name: 'Mapa' })).toHaveCount(0);
   });
