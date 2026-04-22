@@ -1014,6 +1014,26 @@ body {
   width: 100%;
   z-index: 0;
 }
+/* Deja espacio para ver el registro tabular sin scroll excesivo */
+.mapa-page .vv-map {
+  height: min(56vh, 500px);
+}
+.mapa-registry-jump {
+  margin: 0.45rem 0 0;
+  padding: 0 0.35rem 0.25rem;
+  text-align: center;
+  font-size: 0.88rem;
+}
+.mapa-registry-jump a {
+  font-weight: 600;
+}
+.mapa-registry-section {
+  scroll-margin-top: 5.5rem;
+}
+.mapa-registry-empty-cell {
+  vertical-align: top;
+  padding: 1rem 0.85rem !important;
+}
 .leaflet-container { font-family: inherit; }
 .mapa-toolbar .muted { align-self: center; }
 .mapa-wp-list {

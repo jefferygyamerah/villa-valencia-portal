@@ -338,8 +338,9 @@
         toolbarHtml +
         '<div class="vv-map-wrap mt-2">' +
           '<div id="vv-map" class="vv-map" role="application" aria-label="Mapa Villa Valencia"></div>' +
+          '<p class="muted mapa-registry-jump"><a href="#mapa-registro-tabla">\u2193 Ver tabla de registro debajo del mapa</a></p>' +
         '</div>' +
-        '<div class="page-section">' +
+        '<div class="page-section mapa-registry-section" id="mapa-registro-tabla">' +
           '<h3 class="section-title">Registro de observaciones en mapa</h3>' +
           '<p class="muted mapa-registry-lead">Tabla de todos los puntos: qui\u00e9n report\u00f3, cu\u00e1ndo, ubicaci\u00f3n, texto m\u00e1s reciente, estado, evidencia fotogr\u00e1fica y \u00faltima actividad.</p>' +
           '<div id="mapa-waypoint-list"><div class="loading">Cargando mapa...</div></div>' +
@@ -530,14 +531,42 @@
       }
     }
 
+    function registryTableShell(theadHtml, tbodyInner) {
+      return '' +
+        '<div class="table-wrap mapa-registry-wrap">' +
+          '<table class="data-table mapa-wp-registry" data-testid="mapa-waypoint-registry">' +
+            theadHtml +
+            '<tbody>' + tbodyInner + '</tbody>' +
+          '</table>' +
+        '</div>';
+    }
+
     function renderList() {
       var box = document.getElementById('mapa-waypoint-list');
+      var thead = '<thead><tr>' +
+        '<th># mapa</th>' +
+        '<th>Report\u00f3</th>' +
+        '<th>Rol</th>' +
+        '<th>Fecha y hora</th>' +
+        '<th>Ubicaci\u00f3n</th>' +
+        '<th>Coordenadas</th>' +
+        '<th>Observaci\u00f3n</th>' +
+        '<th>Notas</th>' +
+        '<th>Estado</th>' +
+        '<th>Fotos</th>' +
+        '<th>\u00daltima actividad</th>' +
+        '<th></th>' +
+      '</tr></thead>';
       if (!waypoints.length) {
-        box.innerHTML = '<p class="empty">Sin puntos en el registro' + (canPlaceRoutePoints && cloudOk
+        var emptyMsg = 'Sin puntos en el registro' + (canPlaceRoutePoints && cloudOk
           ? '. Coloca <strong>Punto de ruta</strong> en el mapa (dentro del l\u00edmite) o <strong>Marcar hallazgo</strong> para Gemba.'
           : (canGemba && cloudOk
             ? '. Supervisi\u00f3n o gerencia colocan las observaciones en este conjunto; t\u00fa puedes abrir cada punto para comentar o marcar resuelto en sitio.'
-            : '.')) + '</p>';
+            : '.'));
+        box.innerHTML = registryTableShell(thead,
+          '<tr class="mapa-registry-empty-row"><td colspan="12" class="mapa-registry-empty-cell">' +
+            '<p class="empty" style="margin:0;">' + emptyMsg + '</p>' +
+          '</td></tr>');
         return;
       }
       var byRecency = waypoints.slice().sort(function (a, b) {
@@ -584,26 +613,7 @@
           '</td>' +
         '</tr>';
       }).join('');
-      box.innerHTML = '' +
-        '<div class="table-wrap mapa-registry-wrap">' +
-          '<table class="data-table mapa-wp-registry" data-testid="mapa-waypoint-registry">' +
-            '<thead><tr>' +
-              '<th># mapa</th>' +
-              '<th>Report\u00f3</th>' +
-              '<th>Rol</th>' +
-              '<th>Fecha y hora</th>' +
-              '<th>Ubicaci\u00f3n</th>' +
-              '<th>Coordenadas</th>' +
-              '<th>Observaci\u00f3n</th>' +
-              '<th>Notas</th>' +
-              '<th>Estado</th>' +
-              '<th>Fotos</th>' +
-              '<th>\u00daltima actividad</th>' +
-              '<th></th>' +
-            '</tr></thead>' +
-            '<tbody>' + rowsHtml + '</tbody>' +
-          '</table>' +
-        '</div>';
+      box.innerHTML = registryTableShell(thead, rowsHtml);
 
       if (canGemba && cloudOk) {
         box.querySelectorAll('[data-wp-open]').forEach(function (btn) {
