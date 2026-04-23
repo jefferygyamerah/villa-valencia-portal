@@ -8,37 +8,44 @@ Digital portal for Villa Valencia HOA (APROVIVA), Costa Sur, Don Bosco, Panama.
 - This portal is the end-user runtime, not the PH Management vanilla product site.
 - Keep this repo client-specific and operational.
 
-**PQRS backend:** Submit + lookup currently call **ph-management** (`https://ph-management.vercel.app/api/pqrs/{submit,lookup}`) as a temporary cutover. **Target:** bring PQRS storage and APIs **into the Villa Valencia stack** (this repo + VV Supabase) so production identity stays **`villavalencia.vercel.app`** without depending on the ph-management deployment for VV cases. **Canon:** Villa Valencia (`here`) is the live HOA deployment; **ph-management** is the reusable product â€” migrating PQRS home clarifies that boundary; see `docs/PQRS-MIGRATION-PH-TO-VV.md`. The transparency dashboard, budget, and provider directory remain on Google Apps Script + Sheets until those are unified separately.
+**PQRS backend:** Submit + lookup currently call **ph-management** (`https://ph-management.vercel.app/api/pqrs/{submit,lookup}`) as a temporary cutover. **Target:** bring PQRS storage and APIs **into the Villa Valencia stack** (this repo + VV Supabase) so production identity stays **`villavalencia.vercel.app`** without depending on the ph-management deployment for VV cases. **Canon:** Villa Valencia (`here`) is the live HOA deployment; **ph-management** is the reusable product — migrating PQRS home clarifies that boundary; see `docs/PQRS-MIGRATION-PH-TO-VV.md`. The transparency dashboard, budget, and provider directory remain on Google Apps Script + Sheets until those are unified separately.
 
 ## Overview
 
-Community portal for 118 homeowners providing transparency into HOA operations, finances, and maintenance. Static site hosted on GitHub Pages.
+Community portal for 118 homeowners providing transparency into HOA operations, finances, and maintenance. Production runs at `villavalencia.vercel.app` as a static Vercel deployment backed by Apps Script, PH Management APIs, and the APROVIVA suite.
 
 ## Structure
 
 ```
-index.html          Main portal (dashboard, comunicados, PQRS, financials)
-proveedores.html    Provider directory with search and filtering
-css/styles.css      Shared styles
-js/config.js        Configuration (Google Client ID, form URLs, Drive links)
-js/auth.js          Google Sign-In + demo mode
-js/app.js           Portal page logic
-js/proveedores.js   Provider directory logic
-docs/               Reference documents and prototypes
+index.html               Canonical resident portal entrypoint
+proveedores.html         Canonical provider directory page
+aproviva-suite/          Canonical operations suite (PIN roles) + public map surfaces
+css/styles.css           Shared portal styles
+js/config.js             Portal config: URLs, feature flags, Drive links, role handoff links
+js/app.js                Portal page logic (dashboard, PQRS, budget, resident actions)
+js/proveedores.js        Provider directory logic
+docs/                    Reference documents and migration notes
 ```
+
+## Canonical vs legacy pages
+
+- Maintain `index.html`, `proveedores.html`, and `aproviva-suite/` as the canonical user-facing surfaces.
+- `aproviva-portal.html`, `aproviva-proveedores.html`, and `mock-finanzas-dashboard.html` are legacy / alternate HTML pages kept for reference and smoke coverage. They should not be treated as the primary production experience.
 
 ## Configuration
 
 Edit `js/config.js` with your values:
 
-- `GOOGLE_CLIENT_ID` â€” OAuth 2.0 client ID from Google Cloud Console
-- `PQRS_FORM_URL` â€” Published Google Form URL
-- `DRIVE_LINKS` â€” Google Drive folder URLs for each document section
+- `PH_MANAGEMENT_API_BASE` — fallback PQRS backend while VV Supabase PQRS remains disabled
+- `PQRS_USE_VV_SUPABASE` — flips resident PQRS to Villa Valencia Supabase after required SQL is applied
+- `APPS_SCRIPT_URL` — Apps Script endpoint for dashboard, budget, and supporting automation
+- `DRIVE_LINKS` — Google Drive folder URLs for each document section
+- `ROLE_LOGIN_LINKS` — resident-facing auth handoff links; staff/junta currently land in the local suite
 
 ## Deployment
 
-Historical static hosting can still use GitHub Pages from the `master` branch root with `.nojekyll`.
 Production identity remains `villavalencia.vercel.app`.
+Historical GitHub Pages references are legacy only; if Pages is used for ad-hoc hosting, treat it as non-canonical unless explicitly reactivated.
 
 ## End-to-end tests (Playwright)
 
@@ -56,9 +63,9 @@ Canonical finance automation path:
 
 Executive summary includes:
 
-- Ãšltimo informe detectado
+- Último informe detectado
 - Ingresos y gastos acumulados
 - Resultado neto acumulado
 - Presupuesto YTD vs gasto real YTD
-- DesviaciÃ³n y % ejecuciÃ³n
-- Top conceptos por nivel de ejecuciÃ³n
+- Desviación y % ejecución
+- Top conceptos por nivel de ejecución

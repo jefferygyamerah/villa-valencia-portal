@@ -174,6 +174,18 @@
     return null;
   }
 
+  function getSiteBoundaryFeature(geo) {
+    var feats = geo && geo.features;
+    if (!feats) return null;
+    for (var i = 0; i < feats.length; i++) {
+      var f = feats[i];
+      if (f.properties && f.properties.kind === 'site_boundary' && f.geometry) {
+        return f;
+      }
+    }
+    return null;
+  }
+
   function pointInSiteRing(lat, lng, ring) {
     if (!ring || ring.length < 3) return true;
     var x = lng;
@@ -737,11 +749,21 @@
       style: function (feat) {
         var k = feat && feat.properties && feat.properties.kind;
         if (k === 'site_boundary') {
-          return { color: '#1e3a8a', weight: 2, fillColor: '#3b82f6', fillOpacity: 0.12 };
+          return {
+            color: '#1e3a8a',
+            weight: 2,
+            fillColor: '#3b82f6',
+            fillOpacity: 0.12,
+            interactive: false,
+          };
         }
         return { color: '#0ea5e9', weight: 4, opacity: 0.85 };
       },
       onEachFeature: function (feat, layer) {
+        var k = feat && feat.properties && feat.properties.kind;
+        if (k === 'site_boundary') {
+          return;
+        }
         if (feat.properties && feat.properties.name) {
           layer.bindPopup(window.UI.esc(feat.properties.name));
         }
@@ -749,7 +771,18 @@
     }).addTo(geoLayer);
 
     try {
-      map.fitBounds(gj.getBounds(), { padding: [24, 24], maxZoom: 18 });
+      var bfeat = getSiteBoundaryFeature(geo);
+      if (bfeat) {
+        var bLayer = L.geoJSON(bfeat);
+        var bb = bLayer.getBounds();
+        if (bb && bb.isValid && bb.isValid()) {
+          map.fitBounds(bb, { padding: [40, 40], maxZoom: 19 });
+        } else {
+          map.fitBounds(gj.getBounds(), { padding: [24, 24], maxZoom: 18 });
+        }
+      } else {
+        map.fitBounds(gj.getBounds(), { padding: [24, 24], maxZoom: 18 });
+      }
     } catch (e3) {
       map.setView([9.032, -79.422], 17);
     }

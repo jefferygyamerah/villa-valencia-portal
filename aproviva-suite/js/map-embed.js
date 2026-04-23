@@ -15,6 +15,19 @@
       .replace(/"/g, '&quot;');
   }
 
+  /** Perimeter only (not the recorrido line) — used to frame the map. */
+  function getSiteBoundaryFeature(geo) {
+    var feats = geo && geo.features;
+    if (!feats) return null;
+    for (var i = 0; i < feats.length; i++) {
+      var f = feats[i];
+      if (f.properties && f.properties.kind === 'site_boundary' && f.geometry) {
+        return f;
+      }
+    }
+    return null;
+  }
+
   function loadCss(href) {
     return new Promise(function (resolve, reject) {
       if (document.querySelector('link[href="' + href + '"]')) return resolve();
@@ -92,11 +105,21 @@
         style: function (feat) {
           var k = feat && feat.properties && feat.properties.kind;
           if (k === 'site_boundary') {
-            return { color: '#1e3a8a', weight: 2, fillColor: '#3b82f6', fillOpacity: 0.12 };
+            return {
+              color: '#1e3a8a',
+              weight: 2,
+              fillColor: '#3b82f6',
+              fillOpacity: 0.12,
+              interactive: false,
+            };
           }
           return { color: '#0ea5e9', weight: 4, opacity: 0.85 };
         },
         onEachFeature: function (feat, layer) {
+          var k = feat && feat.properties && feat.properties.kind;
+          if (k === 'site_boundary') {
+            return;
+          }
           if (feat.properties && feat.properties.name) {
             layer.bindPopup(esc(feat.properties.name));
           }
@@ -104,7 +127,18 @@
       }).addTo(geoLayer);
 
       try {
-        map.fitBounds(gj.getBounds(), { padding: [20, 20], maxZoom: 18 });
+        var bf = getSiteBoundaryFeature(geo);
+        if (bf) {
+          var bLay = L.geoJSON(bf);
+          var bb = bLay.getBounds();
+          if (bb && bb.isValid && bb.isValid()) {
+            map.fitBounds(bb, { padding: [40, 40], maxZoom: 19 });
+          } else {
+            map.fitBounds(gj.getBounds(), { padding: [20, 20], maxZoom: 18 });
+          }
+        } else {
+          map.fitBounds(gj.getBounds(), { padding: [20, 20], maxZoom: 18 });
+        }
       } catch (e) {
         map.setView([9.032, -79.422], 17);
       }
