@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-REPO="/home/jeffery/company-portfolio/apps/villa-valencia-portal"
+REPO="/home/jeffery/Adwen-Tech/apps/villa-valencia-portal"
 cd "$REPO"
 OUT="$REPO/_commit_push_result.txt"
 {
