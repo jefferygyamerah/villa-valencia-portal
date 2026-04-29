@@ -482,6 +482,40 @@ body {
     color: #9ca3af;
   }
 
+  .app-shell--authed .rp-decision,
+  .app-shell--authed .junta-decision,
+  .app-shell--authed .rp-next-item {
+    background: #22252f;
+    border-color: #2e3140;
+  }
+
+  .app-shell--authed .rp-decision span,
+  .app-shell--authed .junta-decision span {
+    color: #9ca3af;
+  }
+
+  .app-shell--authed .rp-decision strong,
+  .app-shell--authed .junta-decision strong,
+  .app-shell--authed .rp-next-item.is-active {
+    color: #e8e8ee;
+  }
+
+  .app-shell--authed .rp-decision-success,
+  .app-shell--authed .junta-decision-success {
+    border-color: rgba(0, 184, 148, 0.35);
+  }
+
+  .app-shell--authed .rp-decision-warning,
+  .app-shell--authed .junta-decision-warning,
+  .app-shell--authed .rp-next-item.is-active {
+    border-color: rgba(253, 203, 110, 0.45);
+  }
+
+  .app-shell--authed .rp-decision-danger,
+  .app-shell--authed .junta-decision-danger {
+    border-color: rgba(225, 112, 85, 0.45);
+  }
+
   .app-shell--authed .table-wrap {
     border: 0;
     overflow: visible;
@@ -878,6 +912,89 @@ body {
 .btn-ghost { background: transparent; color: var(--text-soft); border-color: var(--border); }
 .btn-ghost:hover:not(:disabled) { background: var(--surface-soft); }
 .btn-danger { background: var(--danger); color: white; }
+
+/* ── Reportes + Junta executive summaries ── */
+.rp-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.rp-action-bar .btn {
+  flex: 1 1 8.5rem;
+}
+
+.rp-privacy,
+.junta-privacy {
+  margin-top: 0.85rem;
+}
+
+.rp-decision,
+.junta-decision {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.rp-decision span,
+.junta-decision span {
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.rp-decision strong,
+.junta-decision strong {
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.rp-decision-success,
+.junta-decision-success {
+  background: var(--success-soft);
+  border-color: transparent;
+}
+
+.rp-decision-warning,
+.junta-decision-warning {
+  background: var(--warning-soft);
+  border-color: transparent;
+}
+
+.rp-decision-danger,
+.junta-decision-danger {
+  background: var(--danger-soft);
+  border-color: transparent;
+}
+
+.rp-next-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.rp-next-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+.rp-next-item.is-active {
+  border-color: var(--warning);
+  color: var(--text);
+}
 
 /* ── Loading / empty / error ── */
 .loading {

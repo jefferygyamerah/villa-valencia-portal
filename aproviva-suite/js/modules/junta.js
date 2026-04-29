@@ -6,8 +6,8 @@
   async function render(container, session) {
     container.innerHTML = '' +
       '<section class="page" data-testid="junta-page">' +
-        '<h2 class="page-title">Gobernanza &mdash; Junta</h2>' +
-        '<p class="page-subtitle">Visi\u00f3n ejecutiva multi-edificio: KPIs, escalaciones, accountability.</p>' +
+        '<h2 class="page-title">Junta</h2>' +
+        '<p class="page-subtitle">Vista ejecutiva para decidir: excepciones abiertas, patrones repetidos y reportes listos para revisi\u00f3n.</p>' +
         '<div id="junta-body"><div class="loading">Cargando vista ejecutiva...</div></div>' +
       '</section>';
     await loadAll();
@@ -63,12 +63,10 @@
 
       var openWO = wo.filter(function (r) { return r.status !== 'completed' && r.status !== 'closed' && r.status !== 'cancelled'; });
       var lateWO = openWO.filter(function (r) { return r.due_at && new Date(r.due_at).getTime() < Date.now(); });
-
-      var singleBuildingNote = buildings.length <= 1
-        ? '<div class="page-section" style="padding:0.75rem 1rem;background:var(--surface-2,#f1f5f9);border-radius:var(--radius,12px);border:1px solid var(--border,#e2e8f0);margin-bottom:1rem;">' +
-          '<strong>Multi-edificio (Sc. 16):</strong> en datos maestros hay <strong>' + buildings.length + '</strong> edificio(s). ' +
-          'Cuando existan m\u00e1s filas en <code>buildings</code>, la tabla inferior mostrar\u00e1 comparaci\u00f3n real multi-sitio.</div>'
-        : '';
+      var decisionLevel = criticalEsc.length || lateWO.length ? 'danger' : (openEsc.length || chronicPatterns.length ? 'warning' : 'success');
+      var decisionText = criticalEsc.length
+        ? 'Resolver due\u00f1o, fecha y pr\u00f3xima acci\u00f3n de escalaciones cr\u00edticas/altas.'
+        : (lateWO.length ? 'Revisar \u00f3rdenes atrasadas y confirmar capacidad operativa.' : (chronicPatterns.length ? 'Convertir patrones repetidos en plan de mejora.' : 'Sin bloqueos ejecutivos visibles.'));
 
       var complianceRows = compliance.slice(0, 25).map(function (c) {
         return {
@@ -79,48 +77,50 @@
       });
 
       box.innerHTML = '' +
-        singleBuildingNote +
+        decisionBox(decisionText, decisionLevel) +
+        '<div class="vv-privacy-card junta-privacy">' +
+          '<div class="vv-eyebrow">Lectura segura</div>' +
+          '<p>Esta pantalla resume estados operativos para Junta. No muestra datos de contacto, bancos, residentes ni detalles libres de casos.</p>' +
+        '</div>' +
         '<div class="kpi-grid">' +
-          kpi('Edificios', buildings.length) +
           kpi('Escalaciones abiertas', openEsc.length) +
-          kpi('Cr\u00edticas / altas', criticalEsc.length) +
+          kpi('Altas / cr\u00edticas', criticalEsc.length) +
           kpi('Patrones cr\u00f3nicos', chronicPatterns.length) +
           kpi('\u00d3rdenes atrasadas', lateWO.length) +
           kpi('Casos compliance', compliance.length) +
+          kpi('Edificios activos', buildings.filter(function (b) { return b.status === 'active'; }).length || buildings.length) +
         '</div>' +
 
-        '<div class="page-section"><h3 class="section-title">Desempe\u00f1o por edificio</h3>' +
+        '<div class="page-section"><h3 class="section-title">Estado por edificio</h3>' +
           window.UI.table(Object.values(byBuilding), [
             { key: 'name', label: 'Edificio', render: function (r) { return r.building.name; } },
-            { key: 'code', label: 'C\u00f3digo', render: function (r) { return r.building.code; } },
             { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.building.status, r.building.status === 'active' ? 'success' : 'neutral'); }, html: true },
-            { key: 'openIncidents', label: 'Inc. abiertas' },
-            { key: 'criticalIncidents', label: 'Inc. cr\u00edticas' },
+            { key: 'openIncidents', label: 'Incidentes abiertos' },
+            { key: 'criticalIncidents', label: 'Altos/cr\u00edticos' },
           ]) +
         '</div>' +
 
-        '<div class="page-section"><h3 class="section-title">Escalaciones cr\u00edticas / altas (Sc. 18)</h3>' +
-          (criticalEsc.length ? window.UI.table(criticalEsc, [
-            { key: 'severity', label: 'Sev', render: function (r) { return window.UI.badge(r.severity, 'danger'); }, html: true },
-            { key: 'title', label: 'T\u00edtulo' },
+        '<div class="page-section"><h3 class="section-title">Decisiones pendientes</h3>' +
+          (criticalEsc.length ? window.UI.table(criticalEsc.slice(0, 10), [
+            { key: 'severity', label: 'Nivel', render: function (r) { return window.UI.badge(r.severity, severityKind(r.severity)); }, html: true },
+            { key: 'title', label: 'Caso' },
             { key: 'source_type', label: 'Origen' },
             { key: 'created_at', label: 'Creado', render: function (r) { return window.UI.fmtDate(r.created_at); } },
           ]) : '<p class="empty">Sin escalaciones cr\u00edticas/altas abiertas.</p>') +
         '</div>' +
 
-        '<div class="page-section"><h3 class="section-title">Patrones cr\u00f3nicos detectados (Sc. 19)</h3>' +
+        '<div class="page-section"><h3 class="section-title">Patrones repetidos</h3>' +
           (chronicPatterns.length ? window.UI.table(chronicPatterns, [
-            { key: 'pattern', label: 'Patr\u00f3n (ubicaci\u00f3n | categor\u00eda)' },
+            { key: 'pattern', label: 'Ubicaci\u00f3n | categor\u00eda' },
             { key: 'count', label: 'Repeticiones', render: function (r) { return window.UI.badge(r.count + '\u00d7', 'warning'); }, html: true },
           ]) : '<p class="empty">Sin patrones cr\u00f3nicos detectados (umbral: 3+ repeticiones).</p>') +
         '</div>' +
 
-        '<div class="page-section"><h3 class="section-title">Compliance (lectura)</h3>' +
-          '<p class="muted" style="margin:0 0 0.75rem;font-size:0.88rem;">Listado de filas en <code>compliance_cases</code>. Alta y cierre formal depender\u00e1n del flujo definido con gobierno.</p>' +
+        '<div class="page-section"><h3 class="section-title">Compliance</h3>' +
           (complianceRows.length
             ? window.UI.table(complianceRows, [
-              { key: 'status', label: 'Estado' },
-              { key: 'summary', label: 'Resumen / tipo' },
+              { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusKind(r.status)); }, html: true },
+              { key: 'summary', label: 'Tipo / resumen' },
               { key: 'opened', label: 'Fecha', render: function (r) { return r.opened ? window.UI.fmtDate(r.opened) : ''; } },
             ])
             : '<p class="empty">Sin casos de compliance registrados.</p>') +
@@ -132,7 +132,7 @@
             { key: 'inventory_snapshot_label', label: 'Inventario' },
             { key: 'incidents_label', label: 'Incidentes' },
             { key: 'inspections_label', label: 'Inspecciones' },
-            { key: 'vendor_attendance_label', label: 'Vendor' },
+            { key: 'vendor_attendance_label', label: 'Proveedores' },
             { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, r.status === 'submitted' ? 'success' : (r.status === 'approved' ? 'success' : 'warning')); }, html: true },
             { key: 'submitted_at', label: 'Enviado', render: function (r) { return r.submitted_at ? window.UI.fmtDate(r.submitted_at) : ''; } },
           ]) +
@@ -145,6 +145,19 @@
   function kpi(label, value) {
     return '<div class="kpi-card"><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
            '<div class="kpi-value">' + window.UI.esc(value) + '</div></div>';
+  }
+
+  function decisionBox(text, kind) {
+    return '<div class="junta-decision junta-decision-' + kind + '">' +
+      '<span>Pr\u00f3xima decisi\u00f3n</span><strong>' + window.UI.esc(text) + '</strong></div>';
+  }
+
+  function severityKind(severity) {
+    return severity === 'critical' || severity === 'high' ? 'danger' : (severity === 'medium' ? 'warning' : 'neutral');
+  }
+
+  function statusKind(status) {
+    return status === 'resolved' || status === 'closed' || status === 'approved' ? 'success' : (status === 'open' || status === 'pending' ? 'warning' : 'info');
   }
 
   window.ROUTER.register('junta', { render: render, requiredModule: 'junta' });
