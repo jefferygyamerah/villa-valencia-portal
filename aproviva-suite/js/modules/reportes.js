@@ -7,15 +7,19 @@
     container.innerHTML = '' +
       '<section class="page" data-testid="reportes-page">' +
         '<h2 class="page-title">Reportes</h2>' +
-        '<p class="page-subtitle">Resumen diario, semanal, escalaciones y exportaci\u00f3n de KPIs.</p>' +
-        '<div class="row wrap" style="gap:0.5rem; margin-top:0.85rem;">' +
+        '<p class="page-subtitle">Lectura ejecutiva de operaci\u00f3n sin datos personales: qu\u00e9 est\u00e1 pendiente, qu\u00e9 requiere decisi\u00f3n y qu\u00e9 se puede compartir.</p>' +
+        '<div class="rp-action-bar" aria-label="Tipos de reporte">' +
           '<button class="btn btn-primary-sm" id="rp-daily">Resumen diario</button>' +
-          '<button class="btn btn-primary-sm" id="rp-weekly">Reporte semanal</button>' +
-          '<button class="btn btn-primary-sm" id="rp-esc">Resumen escalaciones</button>' +
-          '<button class="btn btn-primary-sm" id="rp-kpi">KPI export (CSV)</button>' +
+          '<button class="btn btn-ghost" id="rp-weekly">Semanal</button>' +
+          '<button class="btn btn-ghost" id="rp-esc">Escalaciones</button>' +
+          '<button class="btn btn-ghost" id="rp-kpi">Exportar KPIs</button>' +
           '<button class="btn btn-ghost" id="rp-print">Imprimir</button>' +
         '</div>' +
-        '<div id="rp-output" class="page-section"><p class="muted">Selecciona un reporte arriba.</p></div>' +
+        '<div class="vv-privacy-card rp-privacy">' +
+          '<div class="vv-eyebrow">Privacidad</div>' +
+          '<p>Los reportes muestran conteos, estados y categor\u00edas operativas. Evitan contactos, residentes, cuentas, bancos y notas libres sensibles.</p>' +
+        '</div>' +
+        '<div id="rp-output" class="page-section"><p class="empty">Selecciona un reporte para ver el siguiente paso.</p></div>' +
       '</section>';
 
     document.getElementById('rp-daily').addEventListener('click', renderDaily);
@@ -57,31 +61,35 @@
       var openCritical = incidents.filter(function (r) { return r.status !== 'resolved' && r.status !== 'closed' && (r.severity === 'critical' || r.severity === 'high'); });
       var countsToday = moves.filter(function (m) { return inWindow(m.movement_at, DAY) && m.movement_type === 'counted'; });
       var newEsc = esc.filter(function (r) { return inWindow(r.created_at, DAY); });
+      var nextStep = openCritical.length
+        ? 'Atender incidentes cr\u00edticos/altos abiertos antes de distribuir el cierre diario.'
+        : (roundsMissed.length ? 'Reprogramar recorridos atrasados y confirmar responsable.' : 'Compartir cierre diario; no hay bloqueos cr\u00edticos visibles.');
 
       box.innerHTML = '' +
         '<h3 class="section-title">Resumen diario &mdash; ' + window.UI.fmtDate(new Date().toISOString(), { dateOnly: true }) + '</h3>' +
+        decisionBox(nextStep, openCritical.length ? 'danger' : (roundsMissed.length ? 'warning' : 'success')) +
         '<div class="kpi-grid">' +
-          kpi('Recorridos completados (24h)', roundsToday.length) +
+          kpi('Recorridos 24h', roundsToday.length) +
           kpi('Recorridos atrasados', roundsMissed.length) +
-          kpi('Incidentes nuevos (24h)', newIncidents.length) +
-          kpi('Cr\u00edticos / altos abiertos', openCritical.length) +
+          kpi('Incidentes 24h', newIncidents.length) +
+          kpi('Altos abiertos', openCritical.length) +
           kpi(
-            'Conteos (24h)',
+            'Conteos 24h',
             countsToday.length,
             'Solo movimientos inventory con tipo conteo (counted) en las \u00faltimas 24 horas.'
           ) +
-          kpi('Escalaciones nuevas', newEsc.length) +
+          kpi('Escalaciones 24h', newEsc.length) +
         '</div>' +
-        '<div class="page-section"><h4>Incidentes cr\u00edticos abiertos</h4>' + window.UI.table(openCritical.slice(0, 10), [
+        '<div class="page-section"><h4 class="section-title">Excepciones que bloquean cierre</h4>' + window.UI.table(openCritical.slice(0, 8), [
           { key: 'ticket_number', label: '#' },
-          { key: 'title', label: 'T\u00edtulo' },
-          { key: 'severity', label: 'Sev' },
-          { key: 'status', label: 'Estado' },
-          { key: 'created_at', label: 'Reportado', render: function (r) { return window.UI.fmtDate(r.created_at); } },
+          { key: 'title', label: 'Caso' },
+          { key: 'severity', label: 'Nivel', render: function (r) { return window.UI.badge(r.severity, severityKind(r.severity)); }, html: true },
+          { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusKind(r.status)); }, html: true },
+          { key: 'created_at', label: 'Fecha', render: function (r) { return window.UI.fmtDate(r.created_at); } },
         ]) + '</div>' +
-        '<div class="page-section"><h4>Recorridos atrasados</h4>' + window.UI.table(roundsMissed.slice(0, 10), [
+        '<div class="page-section"><h4 class="section-title">Recorridos por recuperar</h4>' + window.UI.table(roundsMissed.slice(0, 8), [
           { key: 'round_number', label: '#' },
-          { key: 'title', label: 'T\u00edtulo' },
+          { key: 'title', label: 'Recorrido' },
           { key: 'scheduled_for', label: 'Programado', render: function (r) { return window.UI.fmtDate(r.scheduled_for); } },
         ]) + '</div>';
     } catch (e) {
@@ -105,10 +113,15 @@
       var byCategory = {};
       incidentsWeek.forEach(function (i) { byCategory[i.category || 'Sin categor\u00eda'] = (byCategory[i.category || 'Sin categor\u00eda'] || 0) + 1; });
       var escWeek = esc.filter(function (r) { return inWindow(r.created_at, WEEK); });
+      var backlogDelta = incidentsWeek.length - resolvedWeek.length;
+      var nextStep = compliance < 80
+        ? 'Priorizar cobertura de recorridos; cumplimiento semanal bajo 80%.'
+        : (backlogDelta > 10 ? 'Reasignar atenci\u00f3n a incidentes; el backlog creci\u00f3 esta semana.' : 'Listo para revisi\u00f3n semanal de Junta.');
 
       box.innerHTML = '' +
         '<h3 class="section-title">Reporte semanal de desempe\u00f1o</h3>' +
         '<p class="muted">Periodo: \u00faltimos 7 d\u00edas</p>' +
+        decisionBox(nextStep, compliance < 80 || backlogDelta > 10 ? 'warning' : 'success') +
         '<div class="kpi-grid">' +
           kpi('Cumplimiento recorridos', compliance + '%') +
           kpi('Recorridos completados', roundsCompleted.length) +
@@ -116,18 +129,18 @@
           kpi('Incidentes resueltos', resolvedWeek.length) +
           kpi('Escalaciones', escWeek.length) +
         '</div>' +
-        '<div class="page-section"><h4>Incidentes por categor\u00eda</h4>' +
+        '<div class="page-section"><h4 class="section-title">Incidentes por categor\u00eda</h4>' +
           window.UI.table(Object.keys(byCategory).map(function (k) { return { categoria: k, total: byCategory[k] }; }), [
             { key: 'categoria', label: 'Categor\u00eda' },
             { key: 'total', label: 'Total' },
           ]) + '</div>' +
-        '<div class="page-section"><h4>Recomendaciones autom\u00e1ticas</h4>' +
-          '<ul>' +
-            (compliance < 80 ? '<li>Cumplimiento de recorridos por debajo del 80%. Revisar asignaciones y disponibilidad.</li>' : '') +
-            (escWeek.length > 5 ? '<li>Volumen elevado de escalaciones (' + escWeek.length + '). Revisar causas ra\u00edz.</li>' : '') +
-            (incidentsWeek.length - resolvedWeek.length > 10 ? '<li>Backlog de incidentes creciendo. Reasignar recursos.</li>' : '') +
-            '<li>Revisar art\u00edculos sin conteo reciente en Inventario.</li>' +
-          '</ul></div>';
+        '<div class="page-section"><h4 class="section-title">Acciones sugeridas</h4>' +
+          '<div class="rp-next-list">' +
+            actionItem(compliance < 80, 'Revisar asignaciones de recorridos y disponibilidad de personal.') +
+            actionItem(escWeek.length > 5, 'Revisar causas ra\u00edz de escalaciones recurrentes.') +
+            actionItem(backlogDelta > 10, 'Reasignar recursos a incidentes abiertos.') +
+            actionItem(true, 'Validar art\u00edculos sin conteo reciente en Inventario.') +
+          '</div></div>';
     } catch (e) {
       window.UI.errorBox(box, e);
     }
@@ -140,25 +153,28 @@
       var rows = await window.SB.select('escalation_events', { select: '*', order: 'created_at.desc', limit: '50' });
       var open = rows.filter(function (r) { return r.status !== 'resolved' && r.status !== 'closed'; });
       var critical = open.filter(function (r) { return r.severity === 'critical' || r.severity === 'high'; });
+      var nextStep = critical.length
+        ? 'Asignar due\u00f1o y fecha de decisi\u00f3n para escalaciones cr\u00edticas/altas.'
+        : 'Monitorear escalaciones abiertas; no hay cr\u00edticas/altas pendientes.';
 
       box.innerHTML = '' +
         '<h3 class="section-title">Resumen de escalaciones</h3>' +
+        decisionBox(nextStep, critical.length ? 'danger' : (open.length ? 'warning' : 'success')) +
         '<div class="kpi-grid">' +
-          kpi('Total', rows.length) +
+          kpi('Recientes', rows.length) +
           kpi('Abiertas', open.length) +
-          kpi('Cr\u00edticas/Altas abiertas', critical.length) +
+          kpi('Altas abiertas', critical.length) +
         '</div>' +
-        '<div class="page-section"><h4>Escalaciones cr\u00edticas / altas abiertas</h4>' + window.UI.table(critical, [
-          { key: 'severity', label: 'Sev' },
-          { key: 'title', label: 'T\u00edtulo' },
+        '<div class="page-section"><h4 class="section-title">Para decisi\u00f3n</h4>' + window.UI.table(critical.slice(0, 10), [
+          { key: 'severity', label: 'Nivel', render: function (r) { return window.UI.badge(r.severity, severityKind(r.severity)); }, html: true },
+          { key: 'title', label: 'Caso' },
           { key: 'source_type', label: 'Origen' },
           { key: 'created_at', label: 'Creado', render: function (r) { return window.UI.fmtDate(r.created_at); } },
-          { key: 'details', label: 'Detalle' },
         ]) + '</div>' +
-        '<div class="page-section"><h4>Todas las escalaciones recientes</h4>' + window.UI.table(rows.slice(0, 25), [
-          { key: 'severity', label: 'Sev' },
-          { key: 'status', label: 'Estado' },
-          { key: 'title', label: 'T\u00edtulo' },
+        '<div class="page-section"><h4 class="section-title">Bit\u00e1cora reciente</h4>' + window.UI.table(rows.slice(0, 15), [
+          { key: 'severity', label: 'Nivel', render: function (r) { return window.UI.badge(r.severity, severityKind(r.severity)); }, html: true },
+          { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusKind(r.status)); }, html: true },
+          { key: 'title', label: 'Caso' },
           { key: 'source_type', label: 'Origen' },
           { key: 'created_at', label: 'Fecha', render: function (r) { return window.UI.fmtDate(r.created_at); } },
         ]) + '</div>';
@@ -205,6 +221,25 @@
     var tip = title ? ' title="' + window.UI.esc(title) + '"' : '';
     return '<div class="kpi-card"' + tip + '><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
            '<div class="kpi-value">' + window.UI.esc(value) + '</div></div>';
+  }
+
+  function decisionBox(text, kind) {
+    return '<div class="rp-decision rp-decision-' + kind + '">' +
+      '<span>Siguiente paso</span><strong>' + window.UI.esc(text) + '</strong></div>';
+  }
+
+  function actionItem(active, text) {
+    return '<div class="rp-next-item' + (active ? ' is-active' : '') + '">' +
+      window.UI.badge(active ? 'Revisar' : 'Rutina', active ? 'warning' : 'neutral') +
+      '<span>' + window.UI.esc(text) + '</span></div>';
+  }
+
+  function severityKind(severity) {
+    return severity === 'critical' || severity === 'high' ? 'danger' : (severity === 'medium' ? 'warning' : 'neutral');
+  }
+
+  function statusKind(status) {
+    return status === 'resolved' || status === 'closed' || status === 'completed' ? 'success' : (status === 'open' || status === 'pending' ? 'warning' : 'info');
   }
 
   window.ROUTER.register('reportes', { render: render, requiredModule: 'reportes' });
