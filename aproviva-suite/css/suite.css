@@ -1899,6 +1899,117 @@ body {
   box-shadow: 0 30px 80px -38px rgba(0,0,0,0.72);
 }
 
+/* Incidencias */
+.inc-next-step,
+.inc-ticket-card,
+.inc-privacy-note {
+  border: 1px solid rgba(203, 213, 225, 0.78);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 30px -28px rgba(15, 23, 42, 0.5);
+}
+
+.inc-next-step {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+}
+
+.inc-next-label {
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inc-next-copy {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.inc-card-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.inc-ticket-card {
+  padding: 0.9rem;
+}
+
+.inc-ticket-top,
+.inc-ticket-detail,
+.inc-ticket-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.inc-ticket-num {
+  color: var(--primary);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.inc-ticket-date,
+.inc-ticket-detail {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.inc-ticket-title {
+  margin-top: 0.45rem;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.inc-ticket-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.inc-ticket-detail {
+  align-items: flex-start;
+  margin-top: 0.6rem;
+}
+
+.inc-ticket-detail span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.inc-ticket-detail span:last-child {
+  text-align: right;
+}
+
+.inc-ticket-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.inc-ticket-actions .btn {
+  flex: 1 1 8rem;
+}
+
+.inc-privacy-note {
+  padding: 0.7rem 0.8rem;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.inc-form-actions .btn {
+  flex: 1 1 9rem;
+}
+
 @media (max-width: 767px) {
   .app-shell--authed {
     background:
@@ -2002,5 +2113,36 @@ body {
   .app-shell--authed .inv-stock-meta {
     justify-content: flex-start;
     text-align: left;
+  }
+
+  .app-shell--authed .inc-next-step,
+  .app-shell--authed .inc-ticket-card,
+  .app-shell--authed .inc-privacy-note {
+    background:
+      radial-gradient(circle at 0% 0%, rgba(162, 155, 254, 0.08), transparent 30%),
+      #22252f;
+    border-color: #2e3140;
+    box-shadow: none;
+  }
+
+  .app-shell--authed .inc-next-label,
+  .app-shell--authed .inc-ticket-date,
+  .app-shell--authed .inc-ticket-detail,
+  .app-shell--authed .inc-privacy-note {
+    color: #9ca3af;
+  }
+
+  .app-shell--authed .inc-next-copy,
+  .app-shell--authed .inc-ticket-title {
+    color: #e8e8ee;
+  }
+
+  .app-shell--authed .inc-ticket-num {
+    color: #a29bfe;
+  }
+
+  .app-shell--authed .inc-ticket-actions .btn {
+    min-height: 42px;
+  }
   }
 }
