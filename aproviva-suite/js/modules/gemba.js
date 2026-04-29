@@ -159,6 +159,17 @@
     return tpls.filter(function (t) { return String(t.id) === String(id); })[0] || null;
   }
 
+  function nextRound(openRounds) {
+    return openRounds.slice().sort(function (a, b) {
+      var ad = a.scheduled_for ? new Date(a.scheduled_for).getTime() : 0;
+      var bd = b.scheduled_for ? new Date(b.scheduled_for).getTime() : 0;
+      if (ad && bd && ad !== bd) return ad - bd;
+      if (ad && !bd) return -1;
+      if (!ad && bd) return 1;
+      return String(a.round_number || '').localeCompare(String(b.round_number || ''), 'es');
+    })[0] || null;
+  }
+
   function sortedTemplates(rows) {
     return rows.slice().sort(function (a, b) {
       var ao = Number((a && a.sort_order) || 0);
@@ -335,14 +346,7 @@
           '</div>' +
         '</div>' +
         '<div class="kpi-grid" id="gemba-kpis"><div class="loading">...</div></div>' +
-        '<div class="page-section" data-testid="gemba-demo-flow">' +
-          '<h3 class="section-title">Flujo operativo APROVIVA</h3>' +
-          '<p class="muted">1) Selecciona Plan Maestro. 2) Ejecuta Puntos de Inspecci\u00f3n. 3) Registra Hallazgos solo como excepciones.</p>' +
-          '<div class="btn-row">' +
-            '<button class="btn btn-primary-sm" id="gemba-flow-start" type="button">Iniciar flujo operativo</button>' +
-            '<a class="btn btn-ghost" href="#/mapa">Abrir mapa</a>' +
-          '</div>' +
-        '</div>' +
+        '<div id="gemba-next-action" data-testid="gemba-demo-flow"></div>' +
         '<div class="page-section">' +
           '<h3 class="section-title">Ejecuciones en curso o atrasadas</h3>' +
           '<div id="gemba-active"></div>' +
@@ -359,9 +363,6 @@
 
     document.getElementById('gemba-start-btn').addEventListener('click', function () {
       openStartModal({ openFindingAfter: false }).catch(function (e) { window.UI.toast('Error: ' + (e.message || e), 'error'); });
-    });
-    document.getElementById('gemba-flow-start').addEventListener('click', function () {
-      openStartModal({ openFindingAfter: true }).catch(function (e) { window.UI.toast('Error: ' + (e.message || e), 'error'); });
     });
     var newTpl = document.getElementById('gemba-new-tpl');
     if (newTpl) {
@@ -622,6 +623,7 @@
       STATE.findings = results[3] || [];
       STATE.locations = results[4] || [];
       renderKpis();
+      renderNextAction();
       renderActive();
       renderRecent();
       renderFindings();
@@ -645,31 +647,81 @@
       kpi('Hallazgos abiertos', STATE.findings.filter(function (f) { return f.status !== 'resolved' && f.status !== 'closed'; }).length);
   }
 
+  function renderNextAction() {
+    var open = STATE.rounds.filter(function (r) { return r.status !== 'completed' && r.status !== 'closed'; });
+    var next = nextRound(open);
+    var host = document.getElementById('gemba-next-action');
+    if (!host) return;
+    if (!next) {
+      host.innerHTML = '' +
+        '<div class="page-section vv-workspace">' +
+          '<div class="row between wrap" style="gap:0.75rem;align-items:center;">' +
+            '<div>' +
+              '<h3 class="section-title">Siguiente paso</h3>' +
+              '<p class="muted">No hay recorrido abierto. Inicia un plan y pasa directo a sus puntos.</p>' +
+            '</div>' +
+            '<button class="btn btn-primary-sm" id="gemba-flow-start" type="button">Iniciar recorrido</button>' +
+          '</div>' +
+        '</div>';
+    } else {
+      var p = pointProgress(next);
+      host.innerHTML = '' +
+        '<div class="page-section vv-workspace">' +
+          '<div class="row between wrap" style="gap:0.75rem;align-items:center;">' +
+            '<div>' +
+              '<h3 class="section-title">Siguiente paso</h3>' +
+              '<p class="muted"><strong>' + window.UI.esc(next.title || next.round_number || 'Recorrido') + '</strong> · ' +
+                window.UI.esc(next.area || 'Villa Valencia') + ' · ' + p.done + '/' + p.total + ' puntos.</p>' +
+            '</div>' +
+            '<div class="btn-row">' +
+              '<button class="btn btn-primary-sm" data-act="execute" data-id="' + window.UI.esc(next.id) + '" type="button">Continuar puntos</button>' +
+              '<a class="btn btn-ghost" href="#/mapa">Mapa</a>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }
+    if (!host._gembaActionBound) {
+      host._gembaActionBound = true;
+      host.addEventListener('click', onTableAction);
+    }
+    var flowStart = document.getElementById('gemba-flow-start');
+    if (flowStart && !flowStart._gembaBound) {
+      flowStart._gembaBound = true;
+      flowStart.addEventListener('click', function () {
+        openStartModal({ openFindingAfter: true }).catch(function (e) { window.UI.toast('Error: ' + (e.message || e), 'error'); });
+      });
+    }
+  }
+
   function renderActive() {
     var rows = STATE.rounds.filter(function (r) { return r.status !== 'completed' && r.status !== 'closed'; });
     if (!rows.length) {
       document.getElementById('gemba-active').innerHTML = '<p class="empty">Sin recorridos abiertos.</p>';
       return;
     }
-    document.getElementById('gemba-active').innerHTML = window.UI.table(rows, [
-      { key: 'round_number', label: '#' },
-      { key: 'title', label: 'T\u00edtulo' },
-      { key: 'area', label: '\u00c1rea' },
-      { key: 'round_type', label: 'Tipo' },
-      { key: 'points', label: 'Puntos', render: function (r) {
-        var p = pointProgress(r);
-        return p.done + '/' + p.total;
-      } },
-      { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusBadgeKind(r.status)); }, html: true },
-      { key: 'scheduled_for', label: 'Programado', render: function (r) { return r.scheduled_for ? window.UI.fmtDate(r.scheduled_for) : ''; } },
-      { key: 'actions', label: '', render: function (r) {
-        return '<button class="btn btn-primary-sm" data-act="execute" data-id="' + window.UI.esc(r.id) + '">Ejecutar puntos</button> ' +
-               '<button class="btn btn-ghost" data-act="complete" data-id="' + window.UI.esc(r.id) + '">Completar</button> ' +
-               '<button class="btn btn-ghost" data-act="finding" data-id="' + window.UI.esc(r.id) + '">+ Hallazgo</button> ' +
-               '<a class="btn btn-ghost" href="#/mapa">Mapa</a>';
-      }, html: true },
-    ]);
-    document.getElementById('gemba-active').addEventListener('click', onTableAction);
+    document.getElementById('gemba-active').innerHTML = '<div class="vv-row-list">' + rows.map(function (r) {
+      var p = pointProgress(r);
+      var scheduled = r.scheduled_for ? ' · ' + window.UI.fmtDate(r.scheduled_for) : '';
+      return '' +
+        '<article class="vv-op-row gemba-round-card" data-testid="gemba-active-card">' +
+          '<div>' +
+            '<strong>' + window.UI.esc(r.title || r.round_number || 'Recorrido') + '</strong>' +
+            '<span>' + window.UI.esc(r.area || 'Villa Valencia') + scheduled + '</span>' +
+            '<span>Puntos: ' + p.done + '/' + p.total + ' · ' + window.UI.esc(r.round_type || 'ad_hoc') + '</span>' +
+          '</div>' +
+          '<div class="btn-row gemba-round-actions">' +
+            window.UI.badge(r.status || 'in_progress', statusBadgeKind(r.status)) +
+            '<button class="btn btn-primary-sm" data-act="execute" data-id="' + window.UI.esc(r.id) + '">Ejecutar puntos</button>' +
+            '<button class="btn btn-ghost btn-sm" data-act="finding" data-id="' + window.UI.esc(r.id) + '">Hallazgo</button>' +
+            '<button class="btn btn-ghost btn-sm" data-act="complete" data-id="' + window.UI.esc(r.id) + '">Completar</button>' +
+          '</div>' +
+        '</article>';
+    }).join('') + '</div>';
+    var activeHost = document.getElementById('gemba-active');
+    if (activeHost && !activeHost._gembaActionBound) {
+      activeHost._gembaActionBound = true;
+      activeHost.addEventListener('click', onTableAction);
+    }
   }
 
   function renderRecent() {
@@ -845,7 +897,7 @@
     host.innerHTML = '' +
       '<section class="page" data-testid="gemba-execution-panel">' +
         '<h3 class="section-title">Ejecuci\u00f3n de Recorrido</h3>' +
-        '<p class="muted">Plan Maestro: <strong>' + window.UI.esc(round.title || '') + '</strong>. Avance requerido: ' + progress.done + '/' + progress.total + ' puntos.</p>' +
+        '<p class="muted">Marca cada punto. Si hay excepci\u00f3n, registra hallazgo y evidencia desde el mismo punto. Avance: <strong>' + progress.done + '/' + progress.total + '</strong>.</p>' +
         '<div data-testid="gemba-plan-points">' + rows + '</div>' +
         '<div class="btn-row mt-2">' +
           '<button type="button" class="btn btn-primary-sm" id="exec-complete">Completar recorrido</button>' +

@@ -1201,6 +1201,25 @@ body {
   user-select: none;
 }
 
+.gemba-round-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .gemba-round-card {
+    align-items: stretch;
+  }
+
+  .gemba-round-card > div:first-child {
+    min-width: 0;
+  }
+
+  .gemba-round-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
 /* ── Inventario (APICS-style helpers) ── */
 .inv-apics-help {
   margin-top: 0.65rem;
