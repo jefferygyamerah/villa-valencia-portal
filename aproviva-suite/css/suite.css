@@ -2391,3 +2391,158 @@ body {
     border-color: rgba(225, 112, 85, 0.45);
   }
 }
+
+/* Maestros maintenance panels */
+.m-next,
+.m-panel {
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.9rem;
+}
+
+.m-next {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.m-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.m-catalog-grid .page-section,
+.m-panel.page-section {
+  margin-top: 0;
+}
+
+.m-card-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.m-card {
+  border: 1px solid rgba(203, 213, 225, 0.78);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.84);
+  padding: 0.75rem;
+}
+
+.m-card strong {
+  color: var(--text);
+}
+
+.m-card-meta {
+  margin-top: 0.55rem;
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+
+.m-card-note {
+  margin: 0.45rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.m-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(203, 213, 225, 0.72);
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+
+#m-modal-host:not(:empty) {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(15, 23, 42, 0.48);
+  overflow: auto;
+  padding: 1rem;
+  padding-bottom: calc(1rem + var(--nav-bottom-h, 0px));
+  -webkit-overflow-scrolling: touch;
+}
+
+#m-modal-host:not(:empty) .m-form-sheet {
+  max-width: 720px;
+  margin: 0.5rem auto 2rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.1rem;
+}
+
+@media (max-width: 767px) {
+  .m-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .m-next {
+    display: block;
+  }
+
+  .m-catalog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell--authed .m-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-shell--authed .m-next,
+  .app-shell--authed .m-panel,
+  .app-shell--authed .m-card {
+    background:
+      radial-gradient(circle at 0% 0%, rgba(162, 155, 254, 0.08), transparent 30%),
+      #22252f;
+    border-color: #2e3140;
+  }
+
+  .app-shell--authed .m-next .btn-row {
+    margin-top: 0.8rem;
+  }
+
+  .app-shell--authed .m-card strong {
+    color: #e8e8ee;
+  }
+
+  .app-shell--authed .m-card-meta {
+    color: #9ca3af;
+  }
+
+  .app-shell--authed .m-card-note {
+    color: #6b7280;
+  }
+
+  .app-shell--authed .m-card-footer {
+    border-color: #2e3140;
+    color: #9ca3af;
+  }
+
+  .app-shell--authed #m-modal-host:not(:empty) {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.65);
+  }
+
+  .app-shell--authed #m-modal-host:not(:empty) .m-form-sheet {
+    width: min(430px, 100vw);
+    max-width: none;
+    margin: 0;
+    border: 1px solid #2e3140;
+    border-bottom: 0;
+    border-radius: 16px 16px 0 0;
+    background: #1a1d27;
+    padding: 1rem 0.95rem calc(1rem + var(--safe-bottom));
+  }
+}
