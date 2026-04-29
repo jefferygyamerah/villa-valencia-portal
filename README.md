@@ -8,11 +8,25 @@ Digital portal for Villa Valencia HOA (APROVIVA), Costa Sur, Don Bosco, Panama.
 - This portal is the end-user runtime, not the PH Management vanilla product site.
 - Keep this repo client-specific and operational.
 
-**PQRS backend:** Submit + lookup currently call **ph-management** (`https://ph-management.vercel.app/api/pqrs/{submit,lookup}`) as a temporary cutover. **Target:** bring PQRS storage and APIs **into the Villa Valencia stack** (this repo + VV Supabase) so production identity stays **`villavalencia.vercel.app`** without depending on the ph-management deployment for VV cases. **Canon:** Villa Valencia (`here`) is the live HOA deployment; **ph-management** is the reusable product — migrating PQRS home clarifies that boundary; see `docs/PQRS-MIGRATION-PH-TO-VV.md`. The transparency dashboard, budget, and provider directory remain on Google Apps Script + Sheets until those are unified separately.
+**PQRS backend:** Submit + lookup currently call **ph-management** (`https://ph-management.vercel.app/api/pqrs/{submit,lookup}`) as a temporary cutover. **Target:** bring PQRS storage and APIs **into the Villa Valencia stack** (this repo + VV Supabase) so production identity stays **`villavalencia.vercel.app`** without depending on the ph-management deployment for VV cases. **Canon:** Villa Valencia (`here`) is the live HOA deployment; **ph-management** is the reusable product ï¿½ migrating PQRS home clarifies that boundary; see `docs/PQRS-MIGRATION-PH-TO-VV.md`. The transparency dashboard, budget, and provider directory remain on Google Apps Script + Sheets until those are unified separately.
 
 ## Overview
 
 Community portal for 118 homeowners providing transparency into HOA operations, finances, and maintenance. Production runs at `villavalencia.vercel.app` as a static Vercel deployment backed by Apps Script, PH Management APIs, and the APROVIVA suite.
+
+## Active production operations direction â€” 2026-04-29
+
+Villa Valencia is production, not a disposable demo. The recorrido/operations suite now follows a SAP-inspired backbone:
+
+- supervisor/admin creates Plan Maestro / inspection plan;
+- plan contains Puntos de InspecciÃ³n;
+- conserje executes scheduled recorrido instance;
+- hallazgos/findings attach to inspection context;
+- operations should see MD04-lite exceptions: due, overdue, missing, blocked, critical, vendor, inventory, and follow-up items.
+
+Runbook: `docs/RECORRIDOS-DATA-BACKBONE-RUNBOOK.md`.
+
+Latest known shipped commit for this correction: `068854b fix(vv): stabilize recorrido plan gate`.
 
 ## Structure
 
@@ -36,11 +50,11 @@ docs/                    Reference documents and migration notes
 
 Edit `js/config.js` with your values:
 
-- `PH_MANAGEMENT_API_BASE` — fallback PQRS backend while VV Supabase PQRS remains disabled
-- `PQRS_USE_VV_SUPABASE` — flips resident PQRS to Villa Valencia Supabase after required SQL is applied
-- `APPS_SCRIPT_URL` — Apps Script endpoint for dashboard, budget, and supporting automation
-- `DRIVE_LINKS` — Google Drive folder URLs for each document section
-- `ROLE_LOGIN_LINKS` — resident-facing auth handoff links; staff/junta currently land in the local suite
+- `PH_MANAGEMENT_API_BASE` ï¿½ fallback PQRS backend while VV Supabase PQRS remains disabled
+- `PQRS_USE_VV_SUPABASE` ï¿½ flips resident PQRS to Villa Valencia Supabase after required SQL is applied
+- `APPS_SCRIPT_URL` ï¿½ Apps Script endpoint for dashboard, budget, and supporting automation
+- `DRIVE_LINKS` ï¿½ Google Drive folder URLs for each document section
+- `ROLE_LOGIN_LINKS` ï¿½ resident-facing auth handoff links; staff/junta currently land in the local suite
 
 ## Deployment
 
@@ -63,9 +77,9 @@ Canonical finance automation path:
 
 Executive summary includes:
 
-- Último informe detectado
+- ï¿½ltimo informe detectado
 - Ingresos y gastos acumulados
 - Resultado neto acumulado
 - Presupuesto YTD vs gasto real YTD
-- Desviación y % ejecución
-- Top conceptos por nivel de ejecución
+- Desviaciï¿½n y % ejecuciï¿½n
+- Top conceptos por nivel de ejecuciï¿½n
