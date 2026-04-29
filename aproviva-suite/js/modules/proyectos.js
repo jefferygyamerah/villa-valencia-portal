@@ -229,38 +229,32 @@
   async function render(container, session) {
     var junta = isJunta(session);
     var csvBlock = canImportCsv(session)
-      ? '<button class="btn btn-ghost" type="button" id="proj-csv-template">Descargar plantilla CSV</button>' +
-        '<button class="btn btn-ghost" type="button" id="proj-csv-upload">Importar CSV</button>' +
+      ? '<button class="btn btn-ghost" type="button" id="proj-csv-template">Plantilla CSV</button>' +
+        '<button class="btn btn-ghost" type="button" id="proj-csv-upload">Importar</button>' +
         '<input type="file" id="proj-csv-input" accept=".csv,text/csv" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;" />'
       : '';
 
     var intro = junta
-      ? '<p class="page-subtitle">Solicitudes al equipo operativo (backlog). La supervisi\u00f3n y gerencia ejecutan y avanzan el estado.</p>' +
-        '<p class="muted mt-1" style="max-width:42rem;line-height:1.45;">' +
-          'Registra una tarea con t\u00edtulo, \u00e1rea y descripci\u00f3n. Las solicitudes quedan en cola (<code>open</code>) para asignaci\u00f3n en campo. ' +
-          'Aqu\u00ed solo ves las solicitudes que cre\u00f3 la junta desde este m\u00f3dulo.' +
-        '</p>'
-      : '<p class="page-subtitle">\u00d3rdenes de trabajo, intervenciones y seguimiento.</p>' +
-        '<p class="muted mt-1" style="max-width:42rem;line-height:1.45;">' +
-          (canImportCsv(session)
-            ? 'Mantenimiento masivo: descarga la plantilla CSV, compl\u00e9tala en Excel o LibreOffice y sube el archivo. ' +
-              'Columnas obligatorias: <code>title</code>, <code>area</code>, <code>assignee_name</code>, <code>description</code>. ' +
-              'Opcionales: <code>task_type</code> (corrective|preventive|inspection|project), <code>priority</code>, <code>due_at</code> (YYYY-MM-DD), ' +
-              '<code>assignment_number</code> (vac\u00edo = se genera), <code>status</code>.'
-            : 'Cre\u00e1 ordenes manualmente o avanz\u00e1 el estado de las existentes. La importaci\u00f3n CSV est\u00e1 reservada a gerencia.') +
-        '</p>';
+      ? '<p class="page-subtitle">Backlog de solicitudes para que operaciones priorice y ejecute.</p>'
+      : '<p class="page-subtitle">\u00d3rdenes de trabajo, responsables y seguimiento operativo.</p>';
 
     var title = junta ? 'Backlog operativo' : 'Proyectos / Acciones';
-    var newBtnLabel = junta ? '+ Nueva tarea (backlog)' : '+ Nueva orden';
+    var newBtnLabel = junta ? 'Enviar solicitud' : 'Nueva orden';
+    var actionTitle = junta ? 'Siguiente paso para junta' : (canImportCsv(session) ? 'Siguiente paso para gerencia' : 'Siguiente paso operativo');
+    var actionCopy = junta
+      ? 'Registra una solicitud breve. Queda abierta para asignaci\u00f3n sin exponer datos privados.'
+      : (canImportCsv(session)
+        ? 'Crea una orden puntual o importa una tanda desde CSV cuando ya tengas responsables y \u00e1reas definidos.'
+        : 'Revisa tus abiertas y usa Avanzar cuando una orden pase a ejecuci\u00f3n o quede completada.');
 
     container.innerHTML = '' +
       '<section class="page" data-testid="proyectos-page">' +
-        '<div class="row between wrap">' +
+        '<div class="row between wrap proj-head">' +
           '<div>' +
             '<h2 class="page-title">' + title + '</h2>' +
             intro +
           '</div>' +
-          '<div class="row wrap" style="gap:0.5rem;">' +
+          '<div class="row wrap proj-toolbar">' +
             '<select id="proj-filter" class="btn btn-ghost">' +
               '<option value="open">Abiertos</option>' +
               '<option value="all">Todos</option>' +
@@ -269,6 +263,13 @@
             csvBlock +
             '<button class="btn btn-primary-sm" id="proj-new" type="button" data-testid="' + (junta ? 'proj-backlog-form' : 'proj-new-order') + '">' + newBtnLabel + '</button>' +
           '</div>' +
+        '</div>' +
+        '<div class="page-section proj-next">' +
+          '<div>' +
+            '<span class="vv-eyebrow">' + actionTitle + '</span>' +
+            '<p>' + actionCopy + '</p>' +
+          '</div>' +
+          '<span class="vv-status vv-status-info"><i></i>' + (junta ? 'Backlog' : 'Ejecuci\u00f3n') + '</span>' +
         '</div>' +
         '<div class="kpi-grid" id="proj-kpis"><div class="loading">...</div></div>' +
         '<div class="page-section">' +
@@ -322,28 +323,69 @@
     if (!rows.length) {
       document.getElementById('proj-list').innerHTML = '<p class="empty">Sin \u00f3rdenes.</p>';
     } else {
-      document.getElementById('proj-list').innerHTML = window.UI.table(rows, [
-        { key: 'assignment_number', label: '#' },
-        { key: 'title', label: 'T\u00edtulo' },
-        { key: 'area', label: '\u00c1rea' },
-        { key: 'task_type', label: 'Tipo' },
-        { key: 'assignee_name', label: 'Asignado' },
-        { key: 'priority', label: 'Prioridad', render: function (r) { return window.UI.badge(r.priority || 'normal', priKind(r.priority)); }, html: true },
-        { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusKind(r.status)); }, html: true },
-        { key: 'due_at', label: 'Vence', render: function (r) {
-          if (!r.due_at) return '';
-          var due = new Date(r.due_at);
-          var late = due.getTime() < Date.now() && r.status !== 'completed' && r.status !== 'closed';
-          return (late ? '<span class="badge badge-danger">' : '<span>') + window.UI.fmtDate(r.due_at, { dateOnly: true }) + '</span>';
-        }, html: true },
-        { key: 'actions', label: '', render: function (r) {
-          if (r.status === 'completed' || r.status === 'closed') return '<span class="muted">Cerrada</span>';
-          if (!showAdvance) return '<span class="muted">\u2014</span>';
-          return '<button class="btn btn-ghost" data-act="advance" data-id="' + window.UI.esc(r.id) + '" data-current="' + window.UI.esc(r.status) + '">Avanzar</button>';
-        }, html: true },
-      ]);
+      document.getElementById('proj-list').innerHTML = '<div class="proj-work-list">' + rows.map(function (r) {
+        return workCard(r, showAdvance);
+      }).join('') + '</div>';
     }
     document.getElementById('proj-list').onclick = function (e) { onAction(e); };
+  }
+
+  function labelForStatus(s) {
+    if (s === 'open' || !s) return 'Abierta';
+    if (s === 'in_progress') return 'En curso';
+    if (s === 'blocked') return 'Bloqueada';
+    if (s === 'completed') return 'Completada';
+    if (s === 'closed') return 'Cerrada';
+    if (s === 'cancelled') return 'Cancelada';
+    return s;
+  }
+
+  function labelForPriority(p) {
+    if (p === 'critical') return 'Cr\u00edtica';
+    if (p === 'high') return 'Alta';
+    if (p === 'low') return 'Baja';
+    return 'Normal';
+  }
+
+  function labelForType(t) {
+    if (t === 'preventive') return 'Preventiva';
+    if (t === 'inspection') return 'Inspecci\u00f3n';
+    if (t === 'project') return 'Proyecto';
+    return 'Correctiva';
+  }
+
+  function workCard(r, showAdvance) {
+    var isClosed = r.status === 'completed' || r.status === 'closed';
+    var due = r.due_at ? new Date(r.due_at) : null;
+    var late = due && due.getTime() < Date.now() && !isClosed;
+    var next = r.status === 'open' || !r.status ? 'Iniciar' : (r.status === 'in_progress' ? 'Completar' : 'Avanzar');
+    var dueHtml = r.due_at
+      ? '<span class="' + (late ? 'proj-due is-late' : 'proj-due') + '">' + (late ? 'Vencida ' : 'Vence ') + window.UI.esc(window.UI.fmtDate(r.due_at, { dateOnly: true })) + '</span>'
+      : '<span class="muted">Sin fecha</span>';
+    var action = isClosed
+      ? '<span class="muted">Cerrada</span>'
+      : (showAdvance
+        ? '<button class="btn btn-ghost btn-sm" data-act="advance" data-id="' + window.UI.esc(r.id) + '" data-current="' + window.UI.esc(r.status) + '">' + next + '</button>'
+        : '');
+    return '<article class="proj-work-card">' +
+      '<div class="proj-card-main">' +
+        '<div class="proj-card-top">' +
+          '<span class="muted">' + window.UI.esc(r.assignment_number || 'WO') + '</span>' +
+          window.UI.badge(labelForStatus(r.status), statusKind(r.status)) +
+        '</div>' +
+        '<h3>' + window.UI.esc(r.title || 'Orden sin t\u00edtulo') + '</h3>' +
+        '<p>' + window.UI.esc(r.area || 'Sin \u00e1rea') + ' \u00b7 ' + window.UI.esc(labelForType(r.task_type)) + '</p>' +
+        '<div class="proj-card-meta">' +
+          window.UI.badge(labelForPriority(r.priority || 'normal'), priKind(r.priority)) +
+          dueHtml +
+        '</div>' +
+      '</div>' +
+      '<div class="proj-card-side">' +
+        '<span class="muted">Responsable</span>' +
+        '<strong>' + window.UI.esc(r.assignee_name || 'Por asignar') + '</strong>' +
+        action +
+      '</div>' +
+    '</article>';
   }
 
   function priKind(p) {
@@ -389,6 +431,7 @@
     host.innerHTML = '' +
       '<section class="page" data-testid="proj-junta-backlog-modal">' +
         '<h3 class="section-title">Nueva tarea para operaciones</h3>' +
+        '<p class="muted">Usa datos operativos: \u00e1rea, prioridad y contexto. Evita incluir datos personales.</p>' +
         '<form id="proj-form" class="form-grid cols-2" novalidate>' +
           '<div class="form-field"><label>T\u00edtulo</label>' +
             '<input type="text" name="title" required></div>' +
@@ -403,8 +446,8 @@
             '</select></div>' +
           '<div class="form-field"><label>Vence (opcional)</label>' +
             '<input type="date" name="due_at"></div>' +
-          '<div class="form-field" style="grid-column:1/-1;"><label>Descripci\u00f3n</label>' +
-            '<textarea name="description" rows="4" required></textarea></div>' +
+          '<div class="form-field" style="grid-column:1/-1;"><label>Contexto operativo</label>' +
+            '<textarea name="description" rows="3" required></textarea></div>' +
           '<div class="btn-row" style="grid-column:1/-1;">' +
             '<button class="btn btn-primary-sm" type="submit">Enviar al backlog</button>' +
             '<button class="btn btn-ghost" type="button" id="proj-cancel">Cancelar</button>' +
@@ -458,6 +501,7 @@
     host.innerHTML = '' +
       '<section class="page" data-testid="proj-new-form">' +
         '<h3 class="section-title">Nueva orden de trabajo</h3>' +
+        '<p class="muted">Define responsable, \u00e1rea y siguiente fecha objetivo. Mant\u00e9n la descripci\u00f3n accionable.</p>' +
         '<form id="proj-form" class="form-grid cols-2" novalidate>' +
           '<div class="form-field"><label>T\u00edtulo</label>' +
             '<input type="text" name="title" required></div>' +
@@ -481,7 +525,7 @@
             '</select></div>' +
           '<div class="form-field"><label>Vence</label>' +
             '<input type="date" name="due_at"></div>' +
-          '<div class="form-field" style="grid-column:1/-1;"><label>Descripci\u00f3n</label>' +
+          '<div class="form-field" style="grid-column:1/-1;"><label>Trabajo requerido</label>' +
             '<textarea name="description" rows="3" required></textarea></div>' +
           '<div class="btn-row" style="grid-column:1/-1;">' +
             '<button class="btn btn-primary-sm" type="submit">Crear</button>' +
