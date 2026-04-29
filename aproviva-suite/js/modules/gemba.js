@@ -1,5 +1,5 @@
 /**
- * Gemba (Recorridos) - templates, execution, finding logs, exception detection.
+ * Gemba (Recorridos) - inspection plans, point execution, finding logs, exception detection.
  * Scenarios 4 (configure), 5 (execute), 6 (report issue), 7 (route), 10 (missed).
  */
 (function () {
@@ -90,7 +90,73 @@
       round_type: normalizeRoundType(raw && raw.round_type),
       sort_order: Number((raw && raw.sort_order) || 0),
       is_active: raw && raw.is_active !== false,
+      points: normalizePlanPoints((raw && raw.points) || (raw && raw.metadata && raw.metadata.plan_points), area, title),
     };
+  }
+
+  function newPointId(idx) {
+    return 'pt-' + String(idx + 1);
+  }
+
+  function normalizePlanPoints(rawPoints, area, title) {
+    var points = Array.isArray(rawPoints) ? rawPoints : [];
+    var mapped = points.map(function (p, idx) {
+      var label = String((p && (p.label || p.name || p.title)) || '').trim();
+      if (!label) return null;
+      return {
+        id: String((p && p.id) || newPointId(idx)),
+        label: label,
+        area: String((p && (p.area || p.zona_label)) || area || '').trim(),
+        required: p && p.required === false ? false : true,
+        check_type: String((p && p.check_type) || 'visual'),
+      };
+    }).filter(Boolean);
+    if (mapped.length) return mapped;
+    var fallbackLabel = title ? ('Verificar ' + title) : 'Punto de inspección';
+    return [{
+      id: 'pt-1',
+      label: fallbackLabel,
+      area: String(area || 'Zona general'),
+      required: true,
+      check_type: 'visual',
+    }];
+  }
+
+  function parsePlanPointsText(text, area, title) {
+    var lines = String(text || '').split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+    if (!lines.length) return normalizePlanPoints(null, area, title);
+    return normalizePlanPoints(lines.map(function (label, idx) {
+      return { id: newPointId(idx), label: label, area: area, required: true, check_type: 'visual' };
+    }), area, title);
+  }
+
+  function roundPlanPoints(round) {
+    return normalizePlanPoints(round && round.metadata && round.metadata.plan_points, round && round.area, round && round.title);
+  }
+
+  function roundPointResults(round) {
+    var results = round && round.metadata && round.metadata.point_results;
+    return results && typeof results === 'object' ? results : {};
+  }
+
+  function pointProgress(round) {
+    var points = roundPlanPoints(round);
+    var results = roundPointResults(round);
+    var required = points.filter(function (p) { return p.required !== false; });
+    var done = required.filter(function (p) { return !!(results[p.id] && results[p.id].status); });
+    return { done: done.length, total: required.length, points: points, results: results };
+  }
+
+  function pointStatusLabel(status) {
+    if (status === 'ok') return 'OK';
+    if (status === 'na') return 'No aplica';
+    if (status === 'finding') return 'Hallazgo';
+    return 'Pendiente';
+  }
+
+  function selectedTemplateById(id) {
+    var tpls = templatesForPicker();
+    return tpls.filter(function (t) { return String(t.id) === String(id); })[0] || null;
   }
 
   function sortedTemplates(rows) {
@@ -145,8 +211,10 @@
         title: t.title,
         area: t.area,
         round_type: t.round_type,
+        points: t.points,
         sort_order: idx,
         is_active: true,
+        metadata: { plan_points: t.points },
       };
     }).filter(Boolean);
     await window.SB.update('buildings', { id: 'eq.' + bid }, { metadata: metadata });
@@ -204,19 +272,22 @@
         return '<option value="' + window.UI.esc(z) + '">' + window.UI.esc(z) + '</option>';
       }).join('');
     return '' +
-      '<div class="form-field"><label>Nombre corto</label>' +
+      '<div class="form-field"><label>Nombre del Plan Maestro</label>' +
         '<input name="name" required placeholder="Ej. Matutina piscina"></div>' +
-      '<div class="form-field"><label>T\u00edtulo del recorrido</label>' +
+      '<div class="form-field"><label>Clase de ejecuci\u00f3n</label>' +
         '<select name="title" required>' + titOpts + '</select></div>' +
-      '<div class="form-field"><label>Zona / \u00e1rea</label>' +
+      '<div class="form-field"><label>\u00c1rea base del plan</label>' +
         '<select name="area" required>' + zonaOpts + '</select></div>' +
-      '<div class="form-field"><label>Tipo de ronda</label>' +
+      '<div class="form-field"><label>Frecuencia</label>' +
         '<select name="round_type">' +
           '<option value="daily">Diario</option>' +
           '<option value="weekly">Semanal</option>' +
           '<option value="monthly">Mensual</option>' +
           '<option value="ad_hoc" selected>Ad-hoc / puntual</option>' +
-        '</select></div>';
+        '</select></div>' +
+      '<div class="form-field" style="grid-column:1/-1;"><label>Puntos de Inspecci\u00f3n requeridos</label>' +
+        '<textarea name="points_text" rows="4" placeholder="Un punto por l\u00ednea. Ej. Revisar cerradura de garita"></textarea>' +
+        '<div class="hint">Estos puntos definen la ruta del recorrido; los hallazgos se registran contra un punto.</div></div>';
   }
 
   function getModalHost() {
@@ -250,36 +321,36 @@
       '<section class="page" data-testid="gemba-page">' +
         '<div class="row between wrap">' +
           '<div>' +
-            '<h2 class="page-title">Recorridos (Gemba)</h2>' +
-            '<p class="page-subtitle">Inspecciones programadas, ejecuci\u00f3n y hallazgos.</p>' +
+            '<h2 class="page-title">Recorridos de inspecci\u00f3n</h2>' +
+            '<p class="page-subtitle">Plan Maestro, Puntos de Inspecci\u00f3n, Ejecuci\u00f3n y Hallazgos.</p>' +
           '</div>' +
           '<div class="row wrap" style="gap:0.5rem;">' +
             '<a class="btn btn-ghost" href="#/mapa">Mapa del sitio</a>' +
             (window.AUTH.canAccess('maestros')
-              ? '<button class="btn btn-ghost" id="gemba-new-tpl" type="button">Nueva plantilla</button>'
+              ? '<button class="btn btn-ghost" id="gemba-new-tpl" type="button">Nuevo Plan Maestro</button>'
               : '') +
-            '<button class="btn btn-primary-sm" id="gemba-start-btn" type="button">Iniciar recorrido</button>' +
+            '<button class="btn btn-primary-sm" id="gemba-start-btn" type="button">Iniciar Ejecuci\u00f3n</button>' +
           '</div>' +
         '</div>' +
         '<div class="kpi-grid" id="gemba-kpis"><div class="loading">...</div></div>' +
         '<div class="page-section" data-testid="gemba-demo-flow">' +
-          '<h3 class="section-title">Flujo rápido para demo APROVIVA</h3>' +
-          '<p class="muted">1) Inicia recorrido con plantilla. 2) Registra hallazgo con foto opcional. 3) Deriva a incidencia o revisa en mapa.</p>' +
+          '<h3 class="section-title">Flujo operativo APROVIVA</h3>' +
+          '<p class="muted">1) Selecciona Plan Maestro. 2) Ejecuta Puntos de Inspecci\u00f3n. 3) Registra Hallazgos solo como excepciones.</p>' +
           '<div class="btn-row">' +
-            '<button class="btn btn-primary-sm" id="gemba-flow-start" type="button">Iniciar + hallazgo</button>' +
+            '<button class="btn btn-primary-sm" id="gemba-flow-start" type="button">Iniciar flujo operativo</button>' +
             '<a class="btn btn-ghost" href="#/mapa">Abrir mapa</a>' +
           '</div>' +
         '</div>' +
         '<div class="page-section">' +
-          '<h3 class="section-title">Recorridos en curso o atrasados</h3>' +
+          '<h3 class="section-title">Ejecuciones en curso o atrasadas</h3>' +
           '<div id="gemba-active"></div>' +
         '</div>' +
         '<div class="page-section">' +
-          '<h3 class="section-title">Recorridos recientes</h3>' +
+          '<h3 class="section-title">Ejecuciones recientes</h3>' +
           '<div id="gemba-recent"></div>' +
         '</div>' +
         '<div class="page-section">' +
-          '<h3 class="section-title">Hallazgos abiertos</h3>' +
+          '<h3 class="section-title">Hallazgos abiertos por Punto de Inspecci\u00f3n</h3>' +
           '<div id="gemba-findings"></div>' +
         '</div>' +
       '</section>';
@@ -302,11 +373,12 @@
 
   function tplListHtml() {
     var tpls = STATE.templates || [];
-    if (!tpls.length) return '<p class="empty">Sin plantillas a\u00fan. Crea una abajo.</p>';
+    if (!tpls.length) return '<p class="empty">Sin Planes Maestros a\u00fan. Crea uno abajo.</p>';
     return tpls.map(function (t) {
       return '<div class="row between" style="padding:0.45rem 0;border-bottom:1px solid var(--border);align-items:center;gap:0.5rem;">' +
         '<div><strong>' + window.UI.esc(t.name) + '</strong><br><span class="muted" style="font-size:0.82rem">' +
-        window.UI.esc(t.title) + ' \u00b7 ' + window.UI.esc(t.area) + ' \u00b7 ' + window.UI.esc(t.round_type || 'ad_hoc') + '</span></div>' +
+        window.UI.esc(t.title) + ' \u00b7 ' + window.UI.esc(t.area) + ' \u00b7 ' + window.UI.esc(t.round_type || 'ad_hoc') +
+        ' \u00b7 ' + window.UI.esc((t.points || []).length) + ' punto(s)</span></div>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-del-tpl="' + window.UI.esc(String(t.id)) + '">Eliminar</button></div>';
     }).join('');
   }
@@ -337,6 +409,7 @@
       round_type: t.round_type,
       sort_order: 0,
       is_active: true,
+      metadata: { plan_points: t.points },
     });
   }
 
@@ -363,6 +436,7 @@
           title: String(t.title || '').trim(),
           area: String(t.area || '').trim(),
           round_type: t.round_type || 'ad_hoc',
+          points: t.points,
         });
         n++;
       } catch (e) {
@@ -396,17 +470,17 @@
       : '';
     host.innerHTML = '' +
       '<section class="page" data-testid="gemba-templates-panel">' +
-        '<h3 class="section-title">Plantillas de recorrido</h3>' +
-        '<p class="muted">Compartidas para todo el equipo. T\u00edtulo y zona usan el mismo cat\u00e1logo que conserjer\u00eda en <strong>Iniciar recorrido</strong>.</p>' +
+        '<h3 class="section-title">Planes Maestros de Recorrido</h3>' +
+        '<p class="muted">Compartidos para todo el equipo. Cada plan define los Puntos de Inspecci\u00f3n que conserjer\u00eda debe ejecutar.</p>' +
         storeBanner +
         importBanner +
         '<div id="tpl-list">' + tplListHtml() + '</div>' +
         '<hr style="margin:1rem 0;border:none;border-top:1px solid var(--border);"/>' +
-        '<h4 class="section-title" style="font-size:1rem;">Nueva plantilla</h4>' +
+        '<h4 class="section-title" style="font-size:1rem;">Nuevo Plan Maestro</h4>' +
         '<form id="tpl-form" class="form-grid cols-2" novalidate>' +
         templateFormFieldsHtml() +
           '<div class="btn-row" style="grid-column:1/-1;">' +
-            '<button type="submit" class="btn btn-primary-sm">Guardar plantilla</button>' +
+            '<button type="submit" class="btn btn-primary-sm">Guardar Plan Maestro</button>' +
             '<button type="button" class="btn btn-ghost" id="tpl-modal-close">Cerrar</button>' +
           '</div>' +
         '</form>' +
@@ -428,8 +502,9 @@
           title: String(fd.get('title') || '').trim(),
           area: String(fd.get('area') || '').trim(),
           round_type: fd.get('round_type') || 'ad_hoc',
+          points: parsePlanPointsText(fd.get('points_text'), fd.get('area'), fd.get('title')),
         });
-        window.UI.toast('Plantilla guardada.', 'success');
+        window.UI.toast('Plan Maestro guardado.', 'success');
         await fetchTemplates();
         document.getElementById('tpl-list').innerHTML = tplListHtml();
         form.reset();
@@ -471,6 +546,7 @@
         area: t.area || zones[0],
         round_type: t.round_type || 'ad_hoc',
         is_fallback: true,
+        points: normalizePlanPoints(null, t.area || zones[0], t.title || titles[0]),
       };
     });
   }
@@ -490,7 +566,7 @@
     wrap.className = 'form-field';
     wrap.style.gridColumn = '1/-1';
     wrap.setAttribute('data-testid', 'gemba-template-picker');
-    wrap.innerHTML = '<label>Plantilla rápida</label>' +
+    wrap.innerHTML = '<label>Plan Maestro</label>' +
       '<select id="gemba-tpl-pick">' +
         '<option value="">\u2014 Manual \u2014</option>' +
         tpls.map(function (t) {
@@ -498,7 +574,7 @@
           return '<option value="' + window.UI.esc(String(t.id)) + '">' + window.UI.esc(t.name + suffix) + '</option>';
         }).join('') +
       '</select>' +
-      '<div class="hint">' + (sharedCount ? 'Aplica una plantilla guardada por administración.' : 'Usa plantillas sugeridas para demo hasta cargar plantillas compartidas.') + ' Título, zona y frecuencia se rellenan automáticamente.</div>';
+      '<div class="hint">' + (sharedCount ? 'Aplica un Plan Maestro guardado por administraci\u00f3n.' : 'Usa planes sugeridos hasta cargar planes compartidos.') + ' La ruta sale de sus Puntos de Inspecci\u00f3n.</div>';
     form.insertBefore(wrap, form.firstChild);
     host.querySelector('#gemba-tpl-pick').addEventListener('change', function () {
       var id = this.value;
@@ -511,6 +587,8 @@
       if (areaEl) areaEl.value = t.area;
       var rt = form.querySelector('[name=round_type]');
       if (rt && t.round_type) rt.value = t.round_type;
+      var tplId = form.querySelector('[name=template_id]');
+      if (tplId) tplId.value = String(t.id);
     });
   }
 
@@ -561,10 +639,15 @@
       { key: 'title', label: 'T\u00edtulo' },
       { key: 'area', label: '\u00c1rea' },
       { key: 'round_type', label: 'Tipo' },
+      { key: 'points', label: 'Puntos', render: function (r) {
+        var p = pointProgress(r);
+        return p.done + '/' + p.total;
+      } },
       { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusBadgeKind(r.status)); }, html: true },
       { key: 'scheduled_for', label: 'Programado', render: function (r) { return r.scheduled_for ? window.UI.fmtDate(r.scheduled_for) : ''; } },
       { key: 'actions', label: '', render: function (r) {
-        return '<button class="btn btn-ghost" data-act="complete" data-id="' + window.UI.esc(r.id) + '">Marcar completado</button> ' +
+        return '<button class="btn btn-primary-sm" data-act="execute" data-id="' + window.UI.esc(r.id) + '">Ejecutar puntos</button> ' +
+               '<button class="btn btn-ghost" data-act="complete" data-id="' + window.UI.esc(r.id) + '">Completar</button> ' +
                '<button class="btn btn-ghost" data-act="finding" data-id="' + window.UI.esc(r.id) + '">+ Hallazgo</button> ' +
                '<a class="btn btn-ghost" href="#/mapa">Mapa</a>';
       }, html: true },
@@ -576,7 +659,7 @@
     var rows = STATE.rounds.filter(function (r) { return r.status === 'completed' || r.status === 'closed'; }).slice(0, 10);
     document.getElementById('gemba-recent').innerHTML = window.UI.table(rows, [
       { key: 'round_number', label: '#' },
-      { key: 'title', label: 'T\u00edtulo' },
+      { key: 'title', label: 'Plan Maestro' },
       { key: 'round_type', label: 'Tipo' },
       { key: 'completed_at', label: 'Completado', render: function (r) { return r.completed_at ? window.UI.fmtDate(r.completed_at) : ''; } },
     ]);
@@ -634,6 +717,7 @@
       { key: 'finding_type', label: 'Tipo' },
       { key: 'severity', label: 'Severidad', render: function (r) { return window.UI.badge(r.severity || 'low', sevBadgeKind(r.severity)); }, html: true },
       { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status || 'open', statusBadgeKind(r.status)); }, html: true },
+      { key: 'point', label: 'Punto', render: function (r) { return (r.metadata && r.metadata.inspection_point_label) || r.zona_label || ''; } },
       { key: 'round', label: 'Recorrido', render: function (r) { return byRound[r.inspection_round_id] ? byRound[r.inspection_round_id].round_number : '?'; } },
       { key: 'created_at', label: 'Creado', render: function (r) { return window.UI.fmtDate(r.created_at); } },
       { key: 'actions', label: '', render: function (r) {
@@ -671,18 +755,109 @@
     if (!btn) return;
     var act = btn.getAttribute('data-act');
     var id = btn.getAttribute('data-id');
+    if (act === 'execute') return openExecuteModal(id);
     if (act === 'complete') return completeRound(id);
     if (act === 'finding') return openFindingModal(id, null);
   }
 
   async function completeRound(id) {
     try {
-      await window.SB.update('inspection_rounds', { id: 'eq.' + id }, { status: 'completed', completed_at: new Date().toISOString() });
+      var round = STATE.rounds.filter(function (r) { return r.id === id; })[0];
+      var progress = pointProgress(round);
+      var canOverride = window.AUTH.canAccess('reportes') || window.AUTH.canAccess('maestros');
+      if (progress.done < progress.total) {
+        if (!canOverride) {
+          window.UI.toast('Completa todos los Puntos de Inspecci\u00f3n requeridos antes de cerrar.', 'error');
+          return;
+        }
+        if (!confirm('Faltan Puntos de Inspecci\u00f3n requeridos. \u00bfCerrar con override de supervisor?')) return;
+      }
+      var metadata = {};
+      var base = round && round.metadata && typeof round.metadata === 'object' ? round.metadata : {};
+      for (var k in base) metadata[k] = base[k];
+      if (progress.done < progress.total) {
+        metadata.supervisor_override = {
+          at: new Date().toISOString(),
+          actor: (window.AUTH.readSession() || {}).label || 'Supervisor',
+          reason: 'Cierre con puntos requeridos pendientes',
+        };
+      }
+      await window.SB.update('inspection_rounds', { id: 'eq.' + id }, { status: 'completed', completed_at: new Date().toISOString(), metadata: metadata });
       window.UI.toast('Recorrido completado.', 'success');
       await loadAll();
     } catch (e) {
       window.UI.toast('Error: ' + insertErrorMessage(e), 'error');
     }
+  }
+
+  async function recordPointResult(round, pointId, status) {
+    var metadata = {};
+    var base = round && round.metadata && typeof round.metadata === 'object' ? round.metadata : {};
+    for (var k in base) metadata[k] = base[k];
+    metadata.plan_points = roundPlanPoints(round);
+    metadata.point_results = {};
+    var prev = roundPointResults(round);
+    for (var pk in prev) metadata.point_results[pk] = prev[pk];
+    metadata.point_results[pointId] = {
+      status: status,
+      recorded_at: new Date().toISOString(),
+      actor: (window.AUTH.readSession() || {}).label || '',
+    };
+    await window.SB.update('inspection_rounds', { id: 'eq.' + round.id }, { metadata: metadata });
+  }
+
+  function openExecuteModal(roundId) {
+    var round = STATE.rounds.filter(function (r) { return r.id === roundId; })[0];
+    if (!round) return;
+    var host = getModalHost();
+    if (!host) return;
+    var progress = pointProgress(round);
+    var rows = progress.points.map(function (p) {
+      var res = progress.results[p.id] || {};
+      var badge = window.UI.badge(pointStatusLabel(res.status), res.status === 'finding' ? 'warning' : (res.status ? 'success' : 'neutral'));
+      return '<div class="row between wrap" style="padding:0.7rem 0;border-bottom:1px solid var(--border);gap:0.75rem;align-items:center;">' +
+        '<div style="min-width:220px;"><strong>' + window.UI.esc(p.label) + '</strong><br>' +
+        '<span class="muted">' + window.UI.esc(p.area || round.area || '') + (p.required === false ? ' · opcional' : ' · requerido') + '</span></div>' +
+        '<div>' + badge + '</div>' +
+        '<div class="btn-row">' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-point-status="ok" data-point-id="' + window.UI.esc(p.id) + '">OK</button>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-point-status="na" data-point-id="' + window.UI.esc(p.id) + '">No aplica</button>' +
+          '<button type="button" class="btn btn-primary-sm" data-point-finding="' + window.UI.esc(p.id) + '">Hallazgo</button>' +
+        '</div></div>';
+    }).join('');
+    host.innerHTML = '' +
+      '<section class="page" data-testid="gemba-execution-panel">' +
+        '<h3 class="section-title">Ejecuci\u00f3n de Recorrido</h3>' +
+        '<p class="muted">Plan Maestro: <strong>' + window.UI.esc(round.title || '') + '</strong>. Avance requerido: ' + progress.done + '/' + progress.total + ' puntos.</p>' +
+        '<div data-testid="gemba-plan-points">' + rows + '</div>' +
+        '<div class="btn-row mt-2">' +
+          '<button type="button" class="btn btn-primary-sm" id="exec-complete">Completar recorrido</button>' +
+          '<button type="button" class="btn btn-ghost" id="exec-close">Cerrar</button>' +
+        '</div>' +
+      '</section>';
+    document.getElementById('exec-close').addEventListener('click', closeSuiteModal);
+    document.getElementById('exec-complete').addEventListener('click', function () {
+      closeSuiteModal();
+      completeRound(roundId);
+    });
+    host.querySelector('[data-testid="gemba-plan-points"]').addEventListener('click', async function (e) {
+      var statusBtn = e.target.closest('[data-point-status]');
+      var findingBtn = e.target.closest('[data-point-finding]');
+      try {
+        if (statusBtn) {
+          await recordPointResult(round, statusBtn.getAttribute('data-point-id'), statusBtn.getAttribute('data-point-status'));
+          window.UI.toast('Punto registrado.', 'success');
+          await loadAll();
+          openExecuteModal(roundId);
+        } else if (findingBtn) {
+          var pid = findingBtn.getAttribute('data-point-finding');
+          var point = progress.points.filter(function (p) { return p.id === pid; })[0];
+          openFindingModal(roundId, { pointId: pid, pointLabel: point && point.label, suggestedZona: point && point.area });
+        }
+      } catch (err) {
+        window.UI.toast('Error: ' + insertErrorMessage(err), 'error');
+      }
+    });
   }
 
   async function openStartModal(options) {
@@ -707,12 +882,13 @@
         }).join('');
       inner = '' +
         '<section class="page" data-testid="gemba-start-form">' +
-          '<h3 class="section-title">Iniciar recorrido</h3>' +
-          '<p class="muted">Conserjer\u00eda: elige plantillas (sin escribir).</p>' +
+          '<h3 class="section-title">Iniciar Ejecuci\u00f3n</h3>' +
+          '<p class="muted">Conserjer\u00eda ejecuta los Puntos de Inspecci\u00f3n del Plan Maestro asignado.</p>' +
           '<form id="round-form" class="form-grid cols-2" data-staff-round="1" novalidate>' +
-            '<div class="form-field"><label>Tipo de ronda</label>' +
+            '<input type="hidden" name="template_id" value="">' +
+            '<div class="form-field"><label>Plan Maestro</label>' +
               '<select name="title" required>' + titOpts + '</select></div>' +
-            '<div class="form-field"><label>Zona</label>' +
+            '<div class="form-field"><label>\u00c1rea base</label>' +
               '<select name="area" required>' + zonaOpts + '</select></div>' +
             '<div class="form-field"><label>Frecuencia</label>' +
               '<select name="round_type" required>' +
@@ -725,9 +901,9 @@
               '<input type="datetime-local" name="scheduled_for"></div>' +
             '<label class="form-field" style="grid-column:1/-1;display:flex;gap:0.55rem;align-items:flex-start;">' +
               '<input type="checkbox" name="open_finding_after" value="1"' + (options.openFindingAfter === false ? '' : ' checked') + '> ' +
-              '<span>Registrar hallazgo inmediatamente después de iniciar</span></label>' +
+              '<span>Abrir Puntos de Inspecci\u00f3n despu\u00e9s de iniciar</span></label>' +
             '<div class="btn-row" style="grid-column:1/-1;">' +
-              '<button class="btn btn-primary-sm" type="submit" id="round-submit">Iniciar</button>' +
+              '<button class="btn btn-primary-sm" type="submit" id="round-submit">Iniciar Ejecuci\u00f3n</button>' +
               '<button class="btn btn-ghost" type="button" id="round-cancel">Cancelar</button>' +
             '</div>' +
           '</form>' +
@@ -735,11 +911,12 @@
     } else {
       inner = '' +
         '<section class="page" data-testid="gemba-start-form">' +
-          '<h3 class="section-title">Iniciar nuevo recorrido</h3>' +
+          '<h3 class="section-title">Iniciar Ejecuci\u00f3n</h3>' +
           '<form id="round-form" class="form-grid cols-2" novalidate>' +
-            '<div class="form-field"><label>T\u00edtulo</label>' +
+            '<input type="hidden" name="template_id" value="">' +
+            '<div class="form-field"><label>Plan Maestro</label>' +
               '<input type="text" name="title" required placeholder="Ej: Recorrido matutino \u00e1rea social"></div>' +
-            '<div class="form-field"><label>\u00c1rea</label>' +
+            '<div class="form-field"><label>\u00c1rea base</label>' +
               '<input type="text" name="area" required placeholder="Ej: Piscina, Garita, Calles"></div>' +
             '<div class="form-field"><label>Tipo</label>' +
               '<select name="round_type" required>' +
@@ -752,9 +929,9 @@
               '<input type="datetime-local" name="scheduled_for"></div>' +
             '<label class="form-field" style="grid-column:1/-1;display:flex;gap:0.55rem;align-items:flex-start;">' +
               '<input type="checkbox" name="open_finding_after" value="1"' + (options.openFindingAfter ? ' checked' : '') + '> ' +
-              '<span>Registrar hallazgo inmediatamente después de iniciar</span></label>' +
+              '<span>Abrir Puntos de Inspecci\u00f3n despu\u00e9s de iniciar</span></label>' +
             '<div class="btn-row" style="grid-column:1/-1;">' +
-              '<button class="btn btn-primary-sm" type="submit" id="round-submit">Iniciar</button>' +
+              '<button class="btn btn-primary-sm" type="submit" id="round-submit">Iniciar Ejecuci\u00f3n</button>' +
               '<button class="btn btn-ghost" type="button" id="round-cancel">Cancelar</button>' +
             '</div>' +
           '</form>' +
@@ -803,6 +980,10 @@
         );
         return;
       }
+      var selectedTemplate = selectedTemplateById(fd.get('template_id'));
+      var planPoints = selectedTemplate
+        ? selectedTemplate.points
+        : normalizePlanPoints(null, fd.get('area'), fd.get('title'));
       var body = {
         round_number: 'GEM-' + Math.floor(Math.random() * 900000 + 100000),
         title: fd.get('title'),
@@ -812,7 +993,15 @@
         scheduled_for: fd.get('scheduled_for') ? new Date(fd.get('scheduled_for')).toISOString() : null,
         started_at: new Date().toISOString(),
         inspector_admin_user_id: inspectorId,
-        metadata: { actorRole: sess.role, actorLabel: sess.label, source: 'aproviva-suite' },
+        metadata: {
+          actorRole: sess.role,
+          actorLabel: sess.label,
+          source: 'aproviva-suite',
+          plan_template_id: selectedTemplate ? selectedTemplate.id : null,
+          plan_name: selectedTemplate ? selectedTemplate.name : fd.get('title'),
+          plan_points: planPoints,
+          point_results: {},
+        },
       };
       try {
         var inserted = await window.SB.insert('inspection_rounds', body);
@@ -826,7 +1015,7 @@
             var created = STATE.rounds.filter(function (r) { return r.round_number === body.round_number; })[0];
             newRoundId = created && created.id;
           }
-          if (newRoundId) openFindingModal(newRoundId, null);
+          if (newRoundId) openExecuteModal(newRoundId);
         }
       } catch (err) {
         window.UI.toast('Error: ' + insertErrorMessage(err), 'error');
@@ -904,9 +1093,23 @@
     if (fromMap) {
       roundField = '<div class="form-field" style="grid-column:1/-1;"><label>Recorrido</label>' +
         '<select name="round_id" required>' + roundSelectHtml(openRounds) + '</select>' +
-        '<div class="hint">El hallazgo queda asociado a este recorrido.</div></div>';
+        '<div class="hint">El hallazgo queda asociado a esta Ejecuci\u00f3n.</div></div>';
     } else {
       roundField = '<input type="hidden" name="round_id" value="' + window.UI.esc(roundId) + '">';
+    }
+    var pointField = '';
+    if (findingOpts.pointId) {
+      pointField = '<input type="hidden" name="inspection_point_id" value="' + window.UI.esc(findingOpts.pointId) + '">' +
+        '<div class="form-field" style="grid-column:1/-1;"><label>Punto de Inspecci\u00f3n</label>' +
+        '<input type="text" value="' + window.UI.esc(findingOpts.pointLabel || findingOpts.pointId) + '" readonly>' +
+        '<div class="hint">El hallazgo queda como excepci\u00f3n de este punto, no como ruta del recorrido.</div></div>';
+    } else if (!fromMap && roundId) {
+      var roundForPoints = STATE.rounds.filter(function (r) { return r.id === roundId; })[0];
+      var pts = roundPlanPoints(roundForPoints);
+      pointField = '<div class="form-field" style="grid-column:1/-1;"><label>Punto de Inspecci\u00f3n</label>' +
+        '<select name="inspection_point_id" required>' +
+          pts.map(function (p) { return '<option value="' + window.UI.esc(p.id) + '">' + window.UI.esc(p.label) + '</option>'; }).join('') +
+        '</select><div class="hint">Selecciona el punto ejecutado donde se detect\u00f3 la excepci\u00f3n.</div></div>';
     }
 
     var locOpts = STATE.locations.map(function (l) {
@@ -941,6 +1144,7 @@
           '<p class="muted">Conserjer\u00eda: tipo, punto y seguimiento (sin texto libre).</p>' +
           '<form id="finding-form" class="form-grid cols-2" data-staff-finding="1" novalidate>' +
             roundField +
+            pointField +
             '<div class="form-field"><label>Tipo</label>' +
               '<select name="finding_type" required>' +
                 '<option value="defect">Defecto</option>' +
@@ -974,6 +1178,7 @@
           '<h3 class="section-title">Registrar hallazgo</h3>' +
           '<form id="finding-form" class="form-grid cols-2">' +
             roundField +
+            pointField +
             '<div class="form-field"><label>Tipo</label>' +
               '<select name="finding_type" required>' +
                 '<option value="defect">Defecto</option>' +
@@ -1036,6 +1241,13 @@
       } else if (fd.get('ubic_fija')) {
         locName = fd.get('ubic_fija');
       }
+      var pointId = fd.get('inspection_point_id') || findingOpts.pointId || '';
+      var pointLabel = findingOpts.pointLabel || '';
+      if (!pointLabel && pointId) {
+        var selectedRoundForPoint = STATE.rounds.filter(function (r) { return r.id === fd.get('round_id'); })[0];
+        var selectedPoint = roundPlanPoints(selectedRoundForPoint).filter(function (p) { return p.id === pointId; })[0];
+        pointLabel = selectedPoint && selectedPoint.label;
+      }
       var description;
       if (formEl.getAttribute('data-staff-finding') === '1') {
         var ft = fd.get('finding_type');
@@ -1045,7 +1257,7 @@
         for (var j = 0; j < frList.length; j++) {
           if (frList[j].value === fr) { extra = frList[j].text; break; }
         }
-        description = findingTypeLabel(ft) + ' en ' + locName + (extra ? '. ' + extra : '.');
+        description = findingTypeLabel(ft) + ' en ' + (pointLabel || locName) + (extra ? '. ' + extra : '.');
       } else {
         description = fd.get('description');
       }
@@ -1077,6 +1289,8 @@
         actorRole: sess.role,
         actorLabel: sess.label,
         drive_upload: file ? true : false,
+        inspection_point_id: pointId || null,
+        inspection_point_label: pointLabel || null,
       };
       if (findingOpts.fromMap && findingOpts.mapLat != null && findingOpts.mapLng != null) {
         meta.map_lat = findingOpts.mapLat;
@@ -1102,6 +1316,10 @@
 
       try {
         await window.SB.insert('inspection_findings', body);
+        if (pointId) {
+          var roundForUpdate = STATE.rounds.filter(function (r) { return r.id === fd.get('round_id'); })[0];
+          if (roundForUpdate) await recordPointResult(roundForUpdate, pointId, 'finding');
+        }
         window.UI.toast('Hallazgo registrado.', 'success');
         closeSuiteModal();
         await loadAll();
