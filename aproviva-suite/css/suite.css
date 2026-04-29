@@ -1220,6 +1220,75 @@ body {
   padding: 0.5rem 0 0.15rem;
   line-height: 1.45;
 }
+.inv-next-card,
+.inv-stock-card {
+  border: 1px solid rgba(203, 213, 225, 0.78);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 14px 30px -28px rgba(15, 23, 42, 0.5);
+}
+.inv-next-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding: 0.85rem 0.95rem;
+}
+.inv-next-copy { min-width: 0; }
+.inv-next-eyebrow {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+.inv-next-copy strong {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--text);
+}
+.inv-next-copy p {
+  margin: 0.2rem 0 0;
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+.inv-next-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.inv-card-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+.inv-stock-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+}
+.inv-stock-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.inv-stock-main strong { color: var(--text); }
+.inv-stock-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  text-align: right;
+}
+.inv-stock-card--ok { display: block; }
 .inv-delta-neg { color: var(--danger); font-weight: 600; }
 .inv-delta-zero { color: var(--warning); font-weight: 600; }
 .inv-delta-ok { color: var(--success); }
@@ -1837,7 +1906,9 @@ body {
   .app-shell--authed .table-wrap,
   .app-shell--authed .data-table tr,
   .app-shell--authed .install-section .install-card,
-  .app-shell--authed .alert-row {
+  .app-shell--authed .alert-row,
+  .app-shell--authed .inv-next-card,
+  .app-shell--authed .inv-stock-card {
     background:
       radial-gradient(circle at 0% 0%, rgba(162, 155, 254, 0.08), transparent 30%),
       #22252f;
@@ -1867,5 +1938,50 @@ body {
   .app-shell--authed .btn-secondary {
     background: #22252f;
     border-color: #2e3140;
+  }
+
+  .app-shell--authed .inv-next-card {
+    align-items: stretch;
+    flex-direction: column;
+    margin-top: 0.85rem;
+    padding: 0.85rem;
+  }
+
+  .app-shell--authed .inv-next-eyebrow {
+    color: #6b7280;
+  }
+
+  .app-shell--authed .inv-next-copy strong,
+  .app-shell--authed .inv-stock-main strong {
+    color: #e8e8ee;
+  }
+
+  .app-shell--authed .inv-next-copy p,
+  .app-shell--authed .inv-stock-meta {
+    color: #9ca3af;
+  }
+
+  .app-shell--authed .inv-next-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .app-shell--authed .inv-next-actions .badge {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .app-shell--authed .inv-next-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .app-shell--authed .inv-stock-card {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell--authed .inv-stock-meta {
+    justify-content: flex-start;
+    text-align: left;
   }
 }
