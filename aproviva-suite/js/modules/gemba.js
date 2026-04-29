@@ -230,7 +230,9 @@
         is_active: 'eq.true',
         order: 'sort_order.asc,name.asc',
       });
-      STATE.templates = sortedTemplates(Array.isArray(rows) ? rows : []);
+      STATE.templates = sortedTemplates((Array.isArray(rows) ? rows : []).map(function (r) {
+        return normalizeTemplate(r, r && r.id);
+      }).filter(Boolean));
       STATE.templateStore = 'table';
       STATE.templateBuilding = null;
       return;
@@ -395,8 +397,10 @@
         title: t.title,
         area: t.area,
         round_type: t.round_type,
+        points: t.points,
         sort_order: rows.length,
         is_active: true,
+        metadata: { plan_points: t.points },
       });
       await saveTemplatesToBuildingMetadata(rows);
       return;
@@ -576,20 +580,33 @@
       '</select>' +
       '<div class="hint">' + (sharedCount ? 'Aplica un Plan Maestro guardado por administraci\u00f3n.' : 'Usa planes sugeridos hasta cargar planes compartidos.') + ' La ruta sale de sus Puntos de Inspecci\u00f3n.</div>';
     form.insertBefore(wrap, form.firstChild);
-    host.querySelector('#gemba-tpl-pick').addEventListener('change', function () {
-      var id = this.value;
-      if (!id) return;
+    function applyTemplateSelection(id) {
+      var tplId = form.querySelector('[name=template_id]');
+      if (!id) {
+        if (tplId) tplId.value = '';
+        return;
+      }
       var t = tpls.filter(function (x) { return String(x.id) === id; })[0];
-      if (!t) return;
+      if (!t) {
+        if (tplId) tplId.value = '';
+        return;
+      }
       var titleEl = form.querySelector('[name=title]');
       var areaEl = form.querySelector('[name=area]');
       if (titleEl) titleEl.value = t.title;
       if (areaEl) areaEl.value = t.area;
       var rt = form.querySelector('[name=round_type]');
       if (rt && t.round_type) rt.value = t.round_type;
-      var tplId = form.querySelector('[name=template_id]');
       if (tplId) tplId.value = String(t.id);
+    }
+    var picker = host.querySelector('#gemba-tpl-pick');
+    picker.addEventListener('change', function () {
+      applyTemplateSelection(this.value);
     });
+    if (tpls[0]) {
+      picker.value = String(tpls[0].id);
+      applyTemplateSelection(picker.value);
+    }
   }
 
   async function loadAll() {
@@ -1127,13 +1144,14 @@
       var frases = picks.HALLAZGO_FRASE.map(function (f) {
         return '<option value="' + window.UI.esc(f.value) + '">' + window.UI.esc(f.label) + '</option>';
       }).join('');
+      var suggestedZonaValue = findingOpts.suggestedZona || '';
       var ubicBlock = STATE.locations.length
         ? '<div class="form-field" style="grid-column:1/-1;"><label>Ubicaci\u00f3n en sitio</label>' +
-            '<select name="location_id" required>' +
+            '<select name="location_id">' +
               '<option value="">Seleccionar punto...</option>' +
               locOpts +
             '</select></div>' +
-          '<input type="hidden" name="ubic_fija" value="">'
+          '<input type="hidden" name="ubic_fija" value="' + window.UI.esc(suggestedZonaValue) + '">'
         : '<div class="form-field" style="grid-column:1/-1;"><label>Zona</label>' +
             '<select name="ubic_fija" required>' + zonaFijaOpts + '</select>' +
             '<div class="hint">Cat\u00e1logo de puntos no cargado; usa zona predefinida.</div></div>' +

@@ -23,8 +23,8 @@ module.exports = defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        // cwd = e2e/ so local `serve` devDependency resolves; `..` = portal root
-        command: `npx serve .. -l tcp://127.0.0.1:${PORT} --single --no-clipboard`,
+        // cwd = e2e/; `..` = portal root. Avoid `serve`, which enumerates network interfaces.
+        command: `node static-server.js .. 127.0.0.1 ${PORT}`,
         cwd: __dirname,
         // Wait for suite entry (most e2e traffic); resident `index.html` alone can race with cold start.
         url: `${baseURL}/aproviva-suite/index.html`,
