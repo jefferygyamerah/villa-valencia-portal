@@ -167,8 +167,8 @@ CREATE TRIGGER trg_pqrs_set_case_reference BEFORE INSERT ON public.pqrs_cases FO
 CREATE OR REPLACE FUNCTION public.pqrs_set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at := now(); RETURN NEW; END; $$;
 DROP TRIGGER IF EXISTS trg_pqrs_updated_at ON public.pqrs_cases;
 CREATE TRIGGER trg_pqrs_updated_at BEFORE UPDATE ON public.pqrs_cases FOR EACH ROW EXECUTE PROCEDURE public.pqrs_set_updated_at();
-CREATE OR REPLACE FUNCTION public.lookup_pqrs_case(case_ref text) RETURNS SETOF public.pqrs_cases LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
-  SELECT * FROM public.pqrs_cases WHERE case_reference = trim(case_ref) LIMIT 1;
+CREATE OR REPLACE FUNCTION public.lookup_pqrs_case(p_case_ref text) RETURNS SETOF public.pqrs_cases LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
+  SELECT * FROM public.pqrs_cases WHERE case_reference = trim(p_case_ref) LIMIT 1;
 $$;
 GRANT EXECUTE ON FUNCTION public.lookup_pqrs_case(text) TO anon, authenticated;
 ALTER TABLE public.pqrs_cases ENABLE ROW LEVEL SECURITY;

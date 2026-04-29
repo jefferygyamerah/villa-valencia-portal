@@ -637,6 +637,7 @@
     feedback.textContent = 'Consultando estado...';
 
     if (isVvPqrsConfigured()) {
+      var expectedCaseId = normalizeCaseReference(caseId);
       fetch(config.SUPABASE_URL + '/rest/v1/rpc/lookup_pqrs_case', {
         method: 'POST',
         headers: {
@@ -664,8 +665,15 @@
               return;
             }
             var row = rows[0];
+            var returnedRef = row.case_reference || row.case_ref || '';
+            if (normalizeCaseReference(returnedRef) !== expectedCaseId) {
+              feedback.className = 'pqrs-status-feedback show error';
+              feedback.textContent =
+                'No encontramos un caso con esa referencia. Verifica el código y vuelve a intentarlo.';
+              return;
+            }
             renderLookupStatusSuccess({
-              caseReference: row.case_reference || row.case_ref || caseId,
+              caseReference: returnedRef || caseId,
               status: row.status || 'recibido',
               lastUpdatedAt: row.updated_at || row.created_at || ''
             });
@@ -722,6 +730,10 @@
 
     feedback.className = 'pqrs-status-feedback show success';
     feedback.textContent = 'Caso ' + caseReference + ': ' + statusLabel + '.' + updatedText;
+  }
+
+  function normalizeCaseReference(value) {
+    return String(value || '').trim().toUpperCase();
   }
 
   function consultPqrsStatusFromSuccess() {
