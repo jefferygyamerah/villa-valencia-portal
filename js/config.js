@@ -7,8 +7,9 @@ window.APROVIVA_CONFIG = {
   // APPS_SCRIPT_URL still owns the dashboard + budget + provider directory.
   PH_MANAGEMENT_API_BASE: 'https://ph-management.vercel.app',
 
-  // Villa Valencia Supabase (same project as aproviva-suite). Set PQRS_USE_VV_SUPABASE
-  // to true after running aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql
+  // Villa Valencia Supabase (same project as aproviva-suite). Keep false until
+  // the live lookup_pqrs_case SQL fix is applied and smoke-tested; otherwise
+  // resident lookup can return a false match from the old RPC signature.
   PQRS_USE_VV_SUPABASE: false,
   SUPABASE_URL: 'https://tgoitmwdpdkhlpqpwrvs.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_rF14WdkYwSnffaOxzKsncA_PjtaXgBz',
@@ -32,7 +33,7 @@ window.APROVIVA_CONFIG = {
 
   // Role-based login URLs — set each secure destination when available
   ROLE_LOGIN_LINKS: {
-    residentes: 'https://vv-auth-app.vercel.app/es/resident/login?next=/es/resident/inicio',
+    residentes: null,
     administracion: 'https://vv-auth-app.vercel.app/es/admin/login?next=/es/admin/inicio',
     junta: 'https://vv-auth-app.vercel.app/es/admin/login?next=/es/admin/junta',
   },

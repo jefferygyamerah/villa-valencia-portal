@@ -118,7 +118,7 @@ CREATE TRIGGER trg_pqrs_updated_at
   EXECUTE PROCEDURE public.pqrs_set_updated_at();
 
 -- Lookup por referencia (sin exponer listado completo a anon).
-CREATE OR REPLACE FUNCTION public.lookup_pqrs_case(case_ref text)
+CREATE OR REPLACE FUNCTION public.lookup_pqrs_case(p_case_ref text)
 RETURNS SETOF public.pqrs_cases
 LANGUAGE sql
 SECURITY DEFINER
@@ -127,7 +127,7 @@ STABLE
 AS $$
   SELECT *
   FROM public.pqrs_cases
-  WHERE case_reference = trim(case_ref)
+  WHERE case_reference = trim(p_case_ref)
   LIMIT 1;
 $$;
 

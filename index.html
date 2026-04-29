@@ -154,8 +154,15 @@
   <script>
     function openRoleLogin(roleKey) {
       // Internal roles (admin / junta) land in the live APROVIVA Operations Suite.
-      // Residentes still uses the configured external destination (aspirational
-      // ROLE_LOGIN_LINKS in js/config.js) until that surface is brought online.
+      // Residentes are already in the live portal; avoid sending them to an
+      // unrelated auth surface until resident accounts are actually available.
+      if (roleKey === 'residentes') {
+        var pqrs = document.getElementById('pqrs');
+        if (pqrs && typeof pqrs.scrollIntoView === 'function') {
+          pqrs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return false;
+      }
       if (roleKey === 'administracion' || roleKey === 'junta') {
         window.location.href = 'aproviva-suite/index.html#/login';
         return false;
@@ -218,7 +225,7 @@
     <a class="card access-card" href="#" onclick="return openRoleLogin('residentes')">
       <div class="access-badge">Portal activo</div>
       <h3>Ingreso residentes</h3>
-      <p>Documentos, avisos, solicitudes y seguimiento claro para la comunidad.</p>
+      <p>Ya est&aacute;s en el portal de residentes: documentos, avisos, solicitudes y seguimiento claro para la comunidad.</p>
     </a>
     <a class="card access-card" href="#" onclick="return openRoleLogin('administracion')">
       <div class="access-badge">Operaci&oacute;n del d&iacute;a</div>

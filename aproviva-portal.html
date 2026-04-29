@@ -913,10 +913,10 @@
       badge: 'Portal Residentes 2026',
       title: 'Bienvenido a Villa Valencia',
       description: 'Tu espacio digital para acceder a toda la informaci&oacute;n de la copropiedad, gestionar solicitudes y mantenerte informado.',
-      intro: 'Bienvenido al acceso residencial de<br><strong>Villa Valencia</strong>.<br>Entrar&aacute;s al portal seguro para recibir tu enlace o c&oacute;digo de ingreso.',
-      action: 'Ir al acceso residencial',
-      note: 'Usa el correo registrado con el que recibes informaci&oacute;n de tu residencia.',
-      url: 'https://vv-auth-app.vercel.app/es/resident/login?next=/es/resident/inicio'
+      intro: 'Bienvenido al portal residencial de<br><strong>Villa Valencia</strong>.<br>Ya puedes consultar informaci&oacute;n y radicar solicitudes desde aqu&iacute;.',
+      action: 'Ir al portal residencial',
+      note: 'El acceso residencial actual no requiere cuenta externa.',
+      url: 'index.html#pqrs'
     },
     admin: {
       label: 'Acceso administrativo · Villa Valencia',
@@ -963,7 +963,7 @@
 })();
 
 function openSecureLogin() {
-  var targetUrl = window.APROVIVA_SECURE_LOGIN_URL || 'https://vv-auth-app.vercel.app/es/resident/login?next=/es/resident/inicio';
+  var targetUrl = window.APROVIVA_SECURE_LOGIN_URL || 'index.html#pqrs';
   window.location.href = targetUrl;
 }
 </script>

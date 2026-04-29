@@ -90,8 +90,9 @@
 
 ## Regressions checked
 
-- **PQRS submit / lookup (ph-management path)** — still the default while `PQRS_USE_VV_SUPABASE` is `false` in [js/config.js](../../js/config.js). Historical validation: `apps/ph-management/ops/STATUS.md` Session 16 (case `VV-PQRS-20260419-855099`).
-- **PQRS submit / lookup (Villa Valencia Supabase path)** — implemented 2026-04-19: table `pqrs_cases` + RPC `lookup_pqrs_case` ([migration](../../aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql)). **Apply SQL in Supabase, then set `PQRS_USE_VV_SUPABASE: true`** and smoke-test; details in [2026-04-19-pqrs-vv-supabase-migration.md](2026-04-19-pqrs-vv-supabase-migration.md).
+- **PQRS submit / lookup (Villa Valencia Supabase path)** — cutover target as of 2026-04-29: [js/config.js](../../js/config.js) keeps `PQRS_USE_VV_SUPABASE: false` until the live RPC fix is applied and smoke-tested; resident submit/lookup remains on the stable `ph-management` fallback for production safety.
+- **PQRS lookup hardening** — local client code rejects RPC rows whose returned `case_reference` does not match the requested reference. Apply the updated `lookup_pqrs_case(p_case_ref text)` SQL in VV Supabase before deploy so invalid references return zero rows server-side too.
+- **PQRS submit / lookup (ph-management path)** — current production-safe fallback while `PQRS_USE_VV_SUPABASE` remains `false`. Historical validation: `apps/ph-management/ops/STATUS.md` Session 16 (case `VV-PQRS-20260419-855099`).
 - **19 scenarios (suite)** — matrix above unchanged; no full browser re-run in this session after PQRS work. Re-execute PIN flows + module smoke when convenient.
 
 ## Portal PQRS — submit path
@@ -102,9 +103,9 @@
 
 | Step | State |
 |------|--------|
-| Run `20260422120000_pqrs_cases.sql` in Supabase SQL Editor | Pending human |
-| Set `PQRS_USE_VV_SUPABASE: true` in portal `js/config.js` | Off until SQL applied |
-| Submit test case + lookup by reference | Pending |
+| Run updated `lookup_pqrs_case(p_case_ref text)` SQL in Supabase SQL Editor | Required before deploy |
+| Set `PQRS_USE_VV_SUPABASE: true` in portal `js/config.js` | Pending after DB RPC fix |
+| Submit test case + lookup by reference | Pending after DB RPC fix and config cutover |
 
 - **Existing portal landing pages** (`index.html`, `aproviva-portal.html`) — PQRS modal gained ubicación `option value` slugs for `site_place_id`; rest of portal copy and Apps-Script-backed dashboards unchanged unless otherwise noted.
 

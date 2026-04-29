@@ -50,7 +50,7 @@ CREATE INDEX IF NOT EXISTS pqrs_cases_building_id_idx ON public.pqrs_cases (buil
 CREATE INDEX IF NOT EXISTS pqrs_cases_site_place_id_idx ON public.pqrs_cases (building_id, site_place_id);
 
 -- Función lookup (reemplazar si ya existía otra firma)
-CREATE OR REPLACE FUNCTION public.lookup_pqrs_case(case_ref text)
+CREATE OR REPLACE FUNCTION public.lookup_pqrs_case(p_case_ref text)
 RETURNS SETOF public.pqrs_cases
 LANGUAGE sql
 SECURITY DEFINER
@@ -59,7 +59,7 @@ STABLE
 AS $$
   SELECT *
   FROM public.pqrs_cases
-  WHERE case_reference = trim(case_ref)
+  WHERE case_reference = trim(p_case_ref)
   LIMIT 1;
 $$;
 
