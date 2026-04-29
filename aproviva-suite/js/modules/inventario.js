@@ -28,6 +28,33 @@
       '</details>';
   }
 
+  function movementTypeLabel(type) {
+    var labels = {
+      counted: 'Conteo',
+      replenished: 'Ingreso',
+      adjusted: 'Ajuste',
+      issued: 'Salida',
+    };
+    return labels[type] || type || 'Movimiento';
+  }
+
+  function alertBadgeKind(level) {
+    if (level === 'critical') return 'danger';
+    if (level === 'reorder') return 'warning';
+    return 'neutral';
+  }
+
+  function formatQty(value, unit) {
+    if (value === null || value === undefined || value === '') return 's/d';
+    var n = Number(value);
+    var shown = isNaN(n) ? value : n;
+    return String(shown) + (unit ? ' ' + unit : '');
+  }
+
+  function itemOptionLabel(item, includeSku) {
+    return window.UI.esc(item.name) + (includeSku && item.sku ? ' (' + window.UI.esc(item.sku) + ')' : '');
+  }
+
   async function render(container, session) {
     var invSub = 'Conteo c\u00edclico, alertas y registro de novedades.';
     if (session && (session.role === 'supervisor' || session.role === 'gerencia')) {
@@ -46,7 +73,8 @@
             '<button class="btn btn-ghost" id="inv-issue-btn" type="button">Reportar novedad</button>' +
           '</div>' +
         '</div>' +
-        '<div class="kpi-grid" id="inv-kpis"><div class="loading">Cargando KPIs...</div></div>' +
+        '<div class="inv-next-card" id="inv-next"><div class="loading">Preparando siguiente paso...</div></div>' +
+        '<div class="kpi-grid inv-kpis" id="inv-kpis"><div class="loading">Cargando KPIs...</div></div>' +
         '<div class="page-section">' +
           '<h3 class="section-title">Alertas activas</h3>' +
           '<div id="inv-alerts"><div class="loading">Cargando alertas...</div></div>' +
@@ -78,6 +106,7 @@
       STATE.items = results[0] || [];
       STATE.locations = results[1] || [];
       STATE.movements = results[2] || [];
+      renderNextStep();
       renderKpis();
       renderAlerts();
       renderCatalog();
@@ -101,15 +130,15 @@
     document.getElementById('inv-kpis').innerHTML = '' +
       kpi('Art\u00edculos activos', STATE.items.length) +
       kpi('Ubicaciones', STATE.locations.length) +
-      kpi('Alertas cr\u00edticas', alerts.filter(function (a) { return a.level === 'critical'; }).length) +
-      kpi('Alertas reorden', alerts.filter(function (a) { return a.level === 'reorder'; }).length) +
+      kpi('Cr\u00edticos', alerts.filter(function (a) { return a.level === 'critical'; }).length) +
+      kpi('Reorden', alerts.filter(function (a) { return a.level === 'reorder'; }).length) +
       kpi(
-        'Conteos (ventana reciente)',
+        'Conteos recientes',
         STATE.movements.filter(function (m) { return m.movement_type === 'counted'; }).length,
         'Movimientos tipo counted en los \u00faltimos 100 registros (no incluye replenished u otros).'
       ) +
       kpi(
-        'SKUs con saldo en ventana',
+        'SKUs con saldo',
         (function () {
           var latest = latestPerItem();
           var n = 0;
@@ -118,6 +147,42 @@
         })(),
         'Proporci\u00f3n de art\u00edculos con al menos un movimiento reciente en la ventana cargada (\u00faltimos 100). Multi-ubicaci\u00f3n: ver tabla de movimientos.'
       );
+  }
+
+  function renderNextStep() {
+    var alerts = computeAlerts();
+    var critical = alerts.filter(function (a) { return a.level === 'critical'; }).length;
+    var reorder = alerts.filter(function (a) { return a.level === 'reorder'; }).length;
+    var noCount = alerts.filter(function (a) { return a.level === 'no-count'; }).length;
+    var nextTitle = 'Registrar conteo de rutina';
+    var nextCopy = 'Si el conteo f\u00edsico coincide, guarda el saldo y deja trazabilidad de la visita.';
+    var badge = window.UI.badge('Rutina', 'info');
+    if (critical) {
+      nextTitle = 'Atender faltantes cr\u00edticos';
+      nextCopy = 'Primero confirma existencia f\u00edsica. Si hay da\u00f1o o faltante real, reporta novedad.';
+      badge = window.UI.badge(critical + ' cr\u00edtico' + (critical === 1 ? '' : 's'), 'danger');
+    } else if (reorder) {
+      nextTitle = 'Preparar reposici\u00f3n';
+      nextCopy = 'Valida saldo antes de pedir compra o ingreso. Usa conteo si el saldo est\u00e1 desactualizado.';
+      badge = window.UI.badge(reorder + ' reorden', 'warning');
+    } else if (noCount) {
+      nextTitle = 'Completar primeros conteos';
+      nextCopy = 'Hay art\u00edculos sin saldo reciente. Cuenta los de mayor uso primero.';
+      badge = window.UI.badge(noCount + ' sin conteo', 'neutral');
+    }
+    document.getElementById('inv-next').innerHTML = '' +
+      '<div class="inv-next-copy">' +
+        '<div class="inv-next-eyebrow">Siguiente acci\u00f3n</div>' +
+        '<strong>' + window.UI.esc(nextTitle) + '</strong>' +
+        '<p>' + window.UI.esc(nextCopy) + '</p>' +
+      '</div>' +
+      '<div class="inv-next-actions">' +
+        badge +
+        '<button class="btn btn-primary-sm" id="inv-next-count" type="button">Contar</button>' +
+        '<button class="btn btn-ghost" id="inv-next-issue" type="button">Novedad</button>' +
+      '</div>';
+    document.getElementById('inv-next-count').addEventListener('click', function () { openCountModal(); });
+    document.getElementById('inv-next-issue').addEventListener('click', function () { openIssueModal(); });
   }
 
   function computeAlerts() {
@@ -152,9 +217,9 @@
       var cls = a.level === 'critical' ? 'critical' : '';
       var qtyTxt = (a.qty !== undefined) ? (a.qty + ' ' + (a.item.unit || '')) : 's/d';
       return '<div class="alert-row ' + cls + '">' +
-        '<div><strong>' + window.UI.esc(a.item.name) + '</strong> &middot; <span class="muted">' + window.UI.esc(a.item.sku) + '</span></div>' +
+        '<div><strong>' + window.UI.esc(a.item.name) + '</strong><div class="muted">' + window.UI.esc(a.item.sku || 'Sin SKU') + '</div></div>' +
         '<div class="row" style="gap:0.5rem;">' +
-          window.UI.badge(a.label, a.level === 'critical' ? 'danger' : (a.level === 'reorder' ? 'warning' : 'neutral')) +
+          window.UI.badge(a.label, alertBadgeKind(a.level)) +
           '<span class="muted">' + window.UI.esc(qtyTxt) + '</span>' +
         '</div>' +
       '</div>';
@@ -193,6 +258,38 @@
       }, html: true },
       { key: 'last_at', label: 'Fecha', render: function (r) { return r.last_at ? window.UI.fmtDate(r.last_at) : ''; } },
     ]);
+    renderPriorityCatalogCards(rows);
+  }
+
+  function renderPriorityCatalogCards(rows) {
+    var priority = rows.filter(function (r) {
+      return r.last_qty === null || Number(r.last_qty) <= Number(r.reorder || 0);
+    }).slice(0, 6);
+    if (!priority.length) {
+      document.getElementById('inv-catalog').insertAdjacentHTML('afterbegin',
+        '<div class="inv-card-list"><div class="inv-stock-card inv-stock-card--ok">' +
+          '<div><strong>Inventario sin excepciones de reorden.</strong><p class="muted">Usa el cat\u00e1logo para validar saldos por SKU.</p></div>' +
+        '</div></div>');
+      return;
+    }
+    document.getElementById('inv-catalog').insertAdjacentHTML('afterbegin',
+      '<div class="inv-card-list">' + priority.map(function (r) {
+        var noCount = r.last_qty === null;
+        var critical = !noCount && Number(r.last_qty) <= Number(r.reorder || 0) * 0.5;
+        var kind = noCount ? 'neutral' : (critical ? 'danger' : 'warning');
+        var label = noCount ? 'Sin conteo' : (critical ? 'Cr\u00edtico' : 'Reorden');
+        return '<div class="inv-stock-card">' +
+          '<div class="inv-stock-main">' +
+            '<strong>' + window.UI.esc(r.name) + '</strong>' +
+            '<span class="muted">' + window.UI.esc(r.sku || 'Sin SKU') + (r.category ? ' &middot; ' + window.UI.esc(r.category) : '') + '</span>' +
+          '</div>' +
+          '<div class="inv-stock-meta">' +
+            window.UI.badge(label, kind) +
+            '<span>Saldo <strong>' + window.UI.esc(formatQty(r.last_qty, r.unit)) + '</strong></span>' +
+            '<span>Reorden <strong>' + window.UI.esc(formatQty(r.reorder, r.unit)) + '</strong></span>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>');
   }
 
   function renderMovements() {
@@ -206,6 +303,7 @@
         item: byId[m.inventory_item_id] ? byId[m.inventory_item_id].name : '?',
         location: byLoc[m.inventory_location_id] ? byLoc[m.inventory_location_id].name : '',
         type: m.movement_type,
+        type_label: movementTypeLabel(m.movement_type),
         qty: m.quantity,
         balance: m.balance_after,
         notes: m.notes || '',
@@ -215,7 +313,7 @@
       { key: 'when', label: 'Fecha', render: function (r) { return window.UI.fmtDate(r.when); } },
       { key: 'item', label: 'Art\u00edculo' },
       { key: 'location', label: 'Ubicaci\u00f3n' },
-      { key: 'type', label: 'Tipo', render: function (r) { return window.UI.badge(r.type, r.type === 'counted' ? 'info' : (r.type === 'replenished' ? 'success' : 'neutral')); }, html: true },
+      { key: 'type', label: 'Tipo', render: function (r) { return window.UI.badge(r.type_label, r.type === 'counted' ? 'info' : (r.type === 'replenished' ? 'success' : 'neutral')); }, html: true },
       { key: 'qty', label: 'Cant.' },
       { key: 'balance', label: 'Saldo' },
       { key: 'notes', label: 'Notas' },
@@ -277,9 +375,9 @@
         '<h3 class="section-title">Registrar conteo</h3>' +
         '<form id="count-form" class="form-grid cols-2" novalidate data-testid="inv-count-form-inner">' +
           '<div class="form-field"><label>Art\u00edculo</label>' +
-            '<select name="item" required>' +
+            '<select name="item" required autocomplete="off">' +
               '<option value="">Seleccionar...</option>' +
-              STATE.items.map(function (i) { return '<option value="' + i.id + '">' + window.UI.esc(i.name) + ' (' + window.UI.esc(i.sku) + ')</option>'; }).join('') +
+              STATE.items.map(function (i) { return '<option value="' + i.id + '">' + itemOptionLabel(i, true) + '</option>'; }).join('') +
             '</select></div>' +
           '<div class="form-field"><label>Ubicaci\u00f3n</label>' +
             '<select name="loc" required>' +
@@ -290,10 +388,10 @@
             '<input type="number" name="qty" min="0" step="0.01" required inputmode="decimal"></div>' +
           '<div class="form-field"><label>Saldo despu\u00e9s del conteo</label>' +
             '<input type="number" name="balance" min="0" step="0.01" required inputmode="decimal">' +
-            '<div class="hint">Por defecto igual a la cantidad contada si no hay m\u00e1s ubicaciones.</div></div>' +
+            '<div class="hint">Se completa con la cantidad contada; ajusta solo si hay otra ubicaci\u00f3n.</div></div>' +
           notesBlock +
           '<div class="btn-row" style="grid-column:1/-1;">' +
-            '<button class="btn btn-primary-sm" type="submit">Guardar</button>' +
+            '<button class="btn btn-primary-sm" type="submit">Guardar conteo</button>' +
             '<button class="btn btn-ghost" type="button" id="count-cancel">Cancelar</button>' +
           '</div>' +
         '</form>' +
@@ -380,7 +478,7 @@
             '<div class="form-field"><label>Art\u00edculo (si aplica)</label>' +
               '<select name="item">' +
                 '<option value="">N/A</option>' +
-                STATE.items.map(function (i) { return '<option value="' + i.id + '">' + window.UI.esc(i.name) + '</option>'; }).join('') +
+                STATE.items.map(function (i) { return '<option value="' + i.id + '">' + itemOptionLabel(i, false) + '</option>'; }).join('') +
               '</select></div>' +
             '<div class="btn-row" style="grid-column:1/-1;">' +
               '<button class="btn btn-primary-sm" type="submit">Reportar</button>' +
@@ -410,7 +508,7 @@
           '<div class="form-field"><label>Art\u00edculo (opcional)</label>' +
             '<select name="item">' +
               '<option value="">N/A</option>' +
-              STATE.items.map(function (i) { return '<option value="' + i.id + '">' + window.UI.esc(i.name) + '</option>'; }).join('') +
+              STATE.items.map(function (i) { return '<option value="' + i.id + '">' + itemOptionLabel(i, false) + '</option>'; }).join('') +
             '</select></div>' +
           '<div class="form-field"><label>Ubicaci\u00f3n / lugar</label>' +
             '<input type="text" name="location" placeholder="Ej: Garita, Cuarto de bombas" required></div>' +
