@@ -212,3 +212,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.gemba_round_templates TO anon, au
 CREATE OR REPLACE FUNCTION public.gemba_round_templates_set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at := now(); RETURN NEW; END; $$;
 DROP TRIGGER IF EXISTS trg_gemba_round_templates_updated_at ON public.gemba_round_templates;
 CREATE TRIGGER trg_gemba_round_templates_updated_at BEFORE UPDATE ON public.gemba_round_templates FOR EACH ROW EXECUTE PROCEDURE public.gemba_round_templates_set_updated_at();
+
+-- --- 20260429120000 inspection plan data backbone ---
+-- Apply the standalone migration after this bundle:
+-- aproviva-suite/supabase/migrations/20260429120000_inspection_plan_data_backbone.sql
+-- It is intentionally kept separate because it adds the production recorrido
+-- plan/point/result backbone and MD04-lite view after the legacy suite tables
+-- already exist in the Villa Valencia Supabase project.
