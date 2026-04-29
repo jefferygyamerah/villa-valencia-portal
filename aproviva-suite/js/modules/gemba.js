@@ -262,6 +262,14 @@
           '</div>' +
         '</div>' +
         '<div class="kpi-grid" id="gemba-kpis"><div class="loading">...</div></div>' +
+        '<div class="page-section" data-testid="gemba-demo-flow">' +
+          '<h3 class="section-title">Flujo rápido para demo APROVIVA</h3>' +
+          '<p class="muted">1) Inicia recorrido con plantilla. 2) Registra hallazgo con foto opcional. 3) Deriva a incidencia o revisa en mapa.</p>' +
+          '<div class="btn-row">' +
+            '<button class="btn btn-primary-sm" id="gemba-flow-start" type="button">Iniciar + hallazgo</button>' +
+            '<a class="btn btn-ghost" href="#/mapa">Abrir mapa</a>' +
+          '</div>' +
+        '</div>' +
         '<div class="page-section">' +
           '<h3 class="section-title">Recorridos en curso o atrasados</h3>' +
           '<div id="gemba-active"></div>' +
@@ -277,7 +285,10 @@
       '</section>';
 
     document.getElementById('gemba-start-btn').addEventListener('click', function () {
-      openStartModal().catch(function (e) { window.UI.toast('Error: ' + (e.message || e), 'error'); });
+      openStartModal({ openFindingAfter: false }).catch(function (e) { window.UI.toast('Error: ' + (e.message || e), 'error'); });
+    });
+    document.getElementById('gemba-flow-start').addEventListener('click', function () {
+      openStartModal({ openFindingAfter: true }).catch(function (e) { window.UI.toast('Error: ' + (e.message || e), 'error'); });
     });
     var newTpl = document.getElementById('gemba-new-tpl');
     if (newTpl) {
@@ -442,23 +453,52 @@
     });
   }
 
+  function fallbackRoundTemplates() {
+    var picks = staffPicks();
+    var titles = picks.RECORRIDO_TITULOS || ['Recorrido matutino'];
+    var zones = picks.ZONAS_GEMBA || picks.UBICACIONES_FIJAS || ['Zona general'];
+    var pairs = [
+      { name: 'Matutina área social', title: titles[0], area: zones.indexOf('Piscina') !== -1 ? 'Piscina' : zones[0], round_type: 'daily' },
+      { name: 'Seguridad garita', title: titles.indexOf('Ronda de seguridad') !== -1 ? 'Ronda de seguridad' : titles[0], area: zones.indexOf('Garita') !== -1 ? 'Garita' : zones[0], round_type: 'daily' },
+      { name: 'Áreas húmedas', title: titles.indexOf('Inspección áreas húmedas') !== -1 ? 'Inspección áreas húmedas' : titles[0], area: zones.indexOf('Baños área social') !== -1 ? 'Baños área social' : zones[0], round_type: 'weekly' },
+      { name: 'Puntos críticos', title: titles.indexOf('Ronda puntos críticos') !== -1 ? 'Ronda puntos críticos' : titles[0], area: zones.indexOf('Cuarto Eléctrico') !== -1 ? 'Cuarto Eléctrico' : zones[0], round_type: 'weekly' },
+    ];
+    return pairs.map(function (t, idx) {
+      return {
+        id: 'preset-' + idx,
+        name: t.name,
+        title: t.title || titles[0],
+        area: t.area || zones[0],
+        round_type: t.round_type || 'ad_hoc',
+        is_fallback: true,
+      };
+    });
+  }
+
+  function templatesForPicker() {
+    var shared = (STATE.templates || []).filter(function (t) { return t && t.is_active !== false; });
+    return shared.length ? shared : fallbackRoundTemplates();
+  }
+
   function attachTemplatePicker(host, staff) {
-    var tpls = STATE.templates || [];
+    var tpls = templatesForPicker();
     if (!tpls.length || !host) return;
     var form = host.querySelector('#round-form');
     if (!form) return;
+    var sharedCount = (STATE.templates || []).length;
     var wrap = document.createElement('div');
     wrap.className = 'form-field';
     wrap.style.gridColumn = '1/-1';
     wrap.setAttribute('data-testid', 'gemba-template-picker');
-    wrap.innerHTML = '<label>Plantilla del equipo</label>' +
+    wrap.innerHTML = '<label>Plantilla rápida</label>' +
       '<select id="gemba-tpl-pick">' +
         '<option value="">\u2014 Manual \u2014</option>' +
         tpls.map(function (t) {
-          return '<option value="' + window.UI.esc(String(t.id)) + '">' + window.UI.esc(t.name) + '</option>';
+          var suffix = t.is_fallback ? ' · sugerida' : '';
+          return '<option value="' + window.UI.esc(String(t.id)) + '">' + window.UI.esc(t.name + suffix) + '</option>';
         }).join('') +
       '</select>' +
-      '<div class="hint">Aplica t\u00edtulo, zona y frecuencia guardados por administraci\u00f3n (mismo cat\u00e1logo que los desplegables).</div>';
+      '<div class="hint">' + (sharedCount ? 'Aplica una plantilla guardada por administración.' : 'Usa plantillas sugeridas para demo hasta cargar plantillas compartidas.') + ' Título, zona y frecuencia se rellenan automáticamente.</div>';
     form.insertBefore(wrap, form.firstChild);
     host.querySelector('#gemba-tpl-pick').addEventListener('change', function () {
       var id = this.value;
@@ -525,7 +565,8 @@
       { key: 'scheduled_for', label: 'Programado', render: function (r) { return r.scheduled_for ? window.UI.fmtDate(r.scheduled_for) : ''; } },
       { key: 'actions', label: '', render: function (r) {
         return '<button class="btn btn-ghost" data-act="complete" data-id="' + window.UI.esc(r.id) + '">Marcar completado</button> ' +
-               '<button class="btn btn-ghost" data-act="finding" data-id="' + window.UI.esc(r.id) + '">+ Hallazgo</button>';
+               '<button class="btn btn-ghost" data-act="finding" data-id="' + window.UI.esc(r.id) + '">+ Hallazgo</button> ' +
+               '<a class="btn btn-ghost" href="#/mapa">Mapa</a>';
       }, html: true },
     ]);
     document.getElementById('gemba-active').addEventListener('click', onTableAction);
@@ -644,7 +685,8 @@
     }
   }
 
-  async function openStartModal() {
+  async function openStartModal(options) {
+    options = options || {};
     await fetchTemplates();
     var staff = window.AUTH.isStaff();
     var host = getModalHost();
@@ -681,6 +723,9 @@
               '</select></div>' +
             '<div class="form-field"><label>Programado (opcional)</label>' +
               '<input type="datetime-local" name="scheduled_for"></div>' +
+            '<label class="form-field" style="grid-column:1/-1;display:flex;gap:0.55rem;align-items:flex-start;">' +
+              '<input type="checkbox" name="open_finding_after" value="1"' + (options.openFindingAfter === false ? '' : ' checked') + '> ' +
+              '<span>Registrar hallazgo inmediatamente después de iniciar</span></label>' +
             '<div class="btn-row" style="grid-column:1/-1;">' +
               '<button class="btn btn-primary-sm" type="submit" id="round-submit">Iniciar</button>' +
               '<button class="btn btn-ghost" type="button" id="round-cancel">Cancelar</button>' +
@@ -705,6 +750,9 @@
               '</select></div>' +
             '<div class="form-field"><label>Programado para</label>' +
               '<input type="datetime-local" name="scheduled_for"></div>' +
+            '<label class="form-field" style="grid-column:1/-1;display:flex;gap:0.55rem;align-items:flex-start;">' +
+              '<input type="checkbox" name="open_finding_after" value="1"' + (options.openFindingAfter ? ' checked' : '') + '> ' +
+              '<span>Registrar hallazgo inmediatamente después de iniciar</span></label>' +
             '<div class="btn-row" style="grid-column:1/-1;">' +
               '<button class="btn btn-primary-sm" type="submit" id="round-submit">Iniciar</button>' +
               '<button class="btn btn-ghost" type="button" id="round-cancel">Cancelar</button>' +
@@ -767,10 +815,19 @@
         metadata: { actorRole: sess.role, actorLabel: sess.label, source: 'aproviva-suite' },
       };
       try {
-        await window.SB.insert('inspection_rounds', body);
+        var inserted = await window.SB.insert('inspection_rounds', body);
+        var insertedRow = inserted && inserted[0] ? inserted[0] : null;
         window.UI.toast('Recorrido iniciado.', 'success');
         closeSuiteModal();
         await loadAll();
+        if (fd.get('open_finding_after') === '1') {
+          var newRoundId = insertedRow && insertedRow.id;
+          if (!newRoundId) {
+            var created = STATE.rounds.filter(function (r) { return r.round_number === body.round_number; })[0];
+            newRoundId = created && created.id;
+          }
+          if (newRoundId) openFindingModal(newRoundId, null);
+        }
       } catch (err) {
         window.UI.toast('Error: ' + insertErrorMessage(err), 'error');
         closeSuiteModal();
