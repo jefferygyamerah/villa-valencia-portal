@@ -28,7 +28,7 @@ This document frames **moving PQRS submit, lookup, storage, and map-facing reads
 
 - Portal `js/app.js` uses Villa Valencia Supabase directly for resident PQRS submit + lookup when `PQRS_USE_VV_SUPABASE: true`.
 - `PH_MANAGEMENT_API_BASE` is still present as the rollback path if Villa Valencia Supabase PQRS must be disabled.
-- Case truth for new resident cases is moving to the **Villa Valencia Supabase project**; historical/admin continuity with **ph-management** still needs an export/import or decommission plan.
+- Case truth for new resident cases is moving to the **Villa Valencia Supabase project**; historical/admin continuity with **ph-management** now has a runbook in [`PQRS-HISTORICAL-BACKFILL-RUNBOOK.md`](PQRS-HISTORICAL-BACKFILL-RUNBOOK.md). Execution still requires Jeff approval and a private export.
 - Dashboard / transparency in portal may still be **Sheets**-backed (`loadDashboard`) — separate cutover.
 
 ---
@@ -83,6 +83,12 @@ This document frames **moving PQRS submit, lookup, storage, and map-facing reads
 ---
 
 ## Export / import checklist (ph-management → VV Supabase)
+
+Detailed runbook: [`PQRS-HISTORICAL-BACKFILL-RUNBOOK.md`](PQRS-HISTORICAL-BACKFILL-RUNBOOK.md). Offline CSV guard: [`scripts/pqrs-backfill-validate.mjs`](../scripts/pqrs-backfill-validate.mjs). Fixture check:
+
+```sh
+node scripts/pqrs-backfill-validate.mjs --file scripts/fixtures/pqrs-backfill-sample.csv
+```
 
 Run these in **ph-management**’s Supabase SQL editor or export UI, then import into **VV** project `tgoitmwdpdkhlpqpwrvs` (adjust table/column names to match your ph-management schema).
 

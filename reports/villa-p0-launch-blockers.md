@@ -8,7 +8,7 @@ Worktree: `/home/jeffery/Adwen-Tech/apps/villa-valencia-portal`
 
 Gate status: **POST-DEPLOY HARDENING**.
 
-The codebase has deployed the Villa Valencia-owned PQRS path and Jeff applied the narrow production Supabase RPC fix in project `tgoitmwdpdkhlpqpwrvs`. A non-mutating fake-reference RPC smoke passed after that fix. Remaining work is post-deploy validation, a controlled manual submit/lookup smoke only if approved, historical backfill/decommission planning, and the separate recorridos/MD04-lite data backbone decision.
+The codebase has deployed the Villa Valencia-owned PQRS path and Jeff applied the narrow production Supabase RPC fix in project `tgoitmwdpdkhlpqpwrvs`. A non-mutating fake-reference RPC smoke passed after that fix. Wave 6 added the historical backfill/decommission runbook and an offline CSV validator; execution still requires Jeff approval and a private ph-management export. Remaining work is post-deploy validation, a controlled manual submit/lookup smoke only if approved, executing historical backfill/decommission, and the separate recorridos/MD04-lite data backbone decision.
 
 No new production SQL or resident-data mutation should be performed by agents without explicit approval.
 
@@ -69,7 +69,7 @@ Write attempt result: blocked by filesystem with `Read-only file system`. The re
 
 1. Confirm a known real PQRS reference returns exactly the requested case reference through `node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-YYYYMMDD-XXXXXX`.
 2. Approve, run, and label one controlled production PQRS submit/lookup smoke only if Jeff accepts creating a test row.
-3. Plan ph-management historical export/import and decommission/freeze for Villa Valencia PQRS.
+3. Execute the ph-management historical export/import and decommission/freeze runbook after Jeff approves the private export/import window.
 4. Decide whether to apply the recorridos data backbone migration `20260429120000_inspection_plan_data_backbone.sql`.
 5. If applying the data backbone, run the runbook verification SQL in `docs/RECORRIDOS-DATA-BACKBONE-RUNBOOK.md`.
 
@@ -80,7 +80,7 @@ Write attempt result: blocked by filesystem with `Read-only file system`. The re
 3. Controlled admin smoke: submit one clearly labeled PQRS test case with no sensitive data, then look it up, only after approval.
 4. Photo attachment smoke, only after approval to write one production Drive file.
 5. Suite login roles, Gemba, map, and providers smoke.
-6. Separately plan ph-management backfill/decommission for Villa Valencia PQRS.
+6. Separately execute ph-management backfill/decommission for Villa Valencia PQRS using `docs/PQRS-HISTORICAL-BACKFILL-RUNBOOK.md`.
 7. Separately approve/apply the recorridos data backbone and MD04-lite migration.
 8. After MD04 SQL is live, wire a UI board/report to `get_md04_lite_exceptions(uuid)` if desired.
 
@@ -205,7 +205,8 @@ Expected:
 - [ ] Photo upload smoke passes or is explicitly deferred with known risk accepted.
 - [ ] Playwright suite passes in an environment with browser dependencies.
 - [x] `PQRS_USE_VV_SUPABASE` production cutover deployed.
-- [ ] ph-management historical rows/backfill/decommission plan is complete for Villa Valencia PQRS.
+- [x] ph-management historical rows/backfill/decommission plan is documented for Villa Valencia PQRS.
+- [ ] ph-management historical export/import and freeze/decommission are executed.
 - [ ] MD04/data backbone migration is approved separately before applying.
 - [ ] If MD04 migration is applied, runbook verification SQL passes.
 

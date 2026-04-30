@@ -12,7 +12,7 @@ Digital portal for Villa Valencia HOA (APROVIVA), Costa Sur, Don Bosco, Panama.
 
 ## Overview
 
-Community portal for 118 homeowners providing transparency into HOA operations, finances, and maintenance. Production runs at `villavalencia.vercel.app` as a static Vercel deployment backed by Apps Script, PH Management APIs, and the APROVIVA suite.
+Community portal for 118 homeowners providing transparency into HOA operations, finances, and maintenance. Production runs at `villavalencia.vercel.app` as a static Vercel deployment backed by Apps Script, Villa Valencia Supabase for PQRS, and the APROVIVA suite. PH Management remains only as a rollback path for resident PQRS while historical backfill/decommission is completed.
 
 ## Active production operations direction — 2026-04-29
 
@@ -75,6 +75,16 @@ node scripts/pqrs-rpc-smoke.mjs --live
 ```
 
 These checks only read production route/config/RPC state. They do not submit PQRS cases or write resident data.
+
+## PQRS historical backfill guard
+
+Before importing any private ph-management export into Villa Valencia Supabase, validate the staged CSV offline:
+
+```sh
+node scripts/pqrs-backfill-validate.mjs --file /tmp/vv-pqrs-backfill.csv
+```
+
+Runbook: `docs/PQRS-HISTORICAL-BACKFILL-RUNBOOK.md`. Fixture smoke: `node scripts/pqrs-backfill-validate.mjs --file scripts/fixtures/pqrs-backfill-sample.csv`.
 
 ## Lightweight Automation (Drive-based)
 

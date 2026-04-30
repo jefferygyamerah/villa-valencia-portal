@@ -8,7 +8,7 @@ window.APROVIVA_CONFIG = {
   PH_MANAGEMENT_API_BASE: 'https://ph-management.vercel.app',
 
   // Villa Valencia Supabase (same project as aproviva-suite). Uses Villa Valencia Supabase directly for PQRS submit + lookup.
-  // The live lookup_pqrs_case(case_ref text) RPC was fixed/smoked on 2026-04-29.
+  // The live lookup_pqrs_case(p_case_ref text) RPC was fixed/smoked before the 2026-04-30 production cutover.
   PQRS_USE_VV_SUPABASE: true,
   SUPABASE_URL: 'https://tgoitmwdpdkhlpqpwrvs.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_rF14WdkYwSnffaOxzKsncA_PjtaXgBz',

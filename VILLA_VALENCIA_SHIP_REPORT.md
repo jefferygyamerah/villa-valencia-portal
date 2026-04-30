@@ -28,6 +28,7 @@ Remaining production validation should be non-mutating first:
 - `node scripts/production-smoke.mjs`
 - `node scripts/pqrs-rpc-smoke.mjs --live`
 - `node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-YYYYMMDD-XXXXXX` if Jeff provides a known real reference
+- `node scripts/pqrs-backfill-validate.mjs --file /tmp/vv-pqrs-backfill.csv` after a private ph-management export is staged
 
 Do not create a new production PQRS smoke row unless Jeff explicitly approves a clearly labeled test case.
 
@@ -102,7 +103,8 @@ SELECT * FROM public.lookup_pqrs_case('VV-PQRS-YYYYMMDD-XXXXXX');
 Expected: exactly one row and the returned reference matches the requested reference.
 
 2. Run one controlled PQRS submit + lookup only after Jeff approves creating a clearly labeled production smoke case.
-3. Run Playwright E2E in an environment with browser dependencies installed.
+3. Execute `docs/PQRS-HISTORICAL-BACKFILL-RUNBOOK.md` after Jeff approves a private ph-management export/import window.
+4. Run Playwright E2E in an environment with browser dependencies installed.
 
 ## Deploy Recommendation
 

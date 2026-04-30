@@ -1,0 +1,37 @@
+status: partial-complete
+summary: Wave 6 added a PQRS historical backfill/decommission runbook plus an offline staged CSV validator and fixture. No production data was mutated.
+verification:
+  passed:
+    - node --check scripts/pqrs-backfill-validate.mjs
+    - node --check scripts/production-smoke.mjs
+    - node --check scripts/pqrs-rpc-smoke.mjs
+    - node --check js/config.js
+    - node scripts/pqrs-backfill-validate.mjs --file scripts/fixtures/pqrs-backfill-sample.csv --strict
+    - node scripts/pqrs-rpc-smoke.mjs --check-sql
+    - node scripts/pqrs-rpc-smoke.mjs
+    - git diff --check
+  blocked:
+    - node scripts/production-smoke.mjs: DNS EAI_AGAIN villavalencia.vercel.app
+    - node scripts/pqrs-rpc-smoke.mjs --live: DNS EAI_AGAIN tgoitmwdpdkhlpqpwrvs.supabase.co
+files_changed:
+  - README.md
+  - VILLA_VALENCIA_SHIP_REPORT.md
+  - docs/PQRS-MIGRATION-PH-TO-VV.md
+  - docs/PQRS-HISTORICAL-BACKFILL-RUNBOOK.md
+  - js/config.js
+  - reports/villa-p0-launch-blockers.md
+  - scripts/pqrs-backfill-validate.mjs
+  - scripts/fixtures/pqrs-backfill-sample.csv
+commit_push_state:
+  local_git: blocked by read-only git metadata index.lock
+  temp_commit: 314c36a chore(vv): plan PQRS historical backfill
+  push: blocked by SSH config, DNS, and outbound socket restrictions; not pushed to origin/lane/villa-valencia-gemba or origin/main
+prod_status:
+  from_handoff: villavalencia.vercel.app live; PQRS_USE_VV_SUPABASE true; lookup_pqrs_case(p_case_ref text) live; prior fake-reference smoke passed
+  this_sandbox: live Vercel/Supabase checks blocked by DNS; no production rows/files created
+blockers_next_wave:
+  - push Wave 6 changes from an environment with writable git metadata and network access
+  - re-run production-smoke and pqrs-rpc-smoke --live from a network-enabled shell
+  - run known-reference lookup if Jeff provides a real reference
+  - validate a private ph-management export with scripts/pqrs-backfill-validate.mjs before any approved import
+log_path_note: requested /home/jeffery/lanes/agent-logs was read-only; wrote repo-local agent-logs fallback

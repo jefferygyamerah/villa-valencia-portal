@@ -1,0 +1,3 @@
+case_reference,subject,description,location,email,site_place_id,zona_label,tipo,urgencia,casa,status,created_at,updated_at,metadata
+VV-PQRS-20000101-SMOKE1,SMOKE - historical backfill fixture,Non-production fixture row for offline validator,Garita,smoke@example.invalid,garita,Garita,seguridad,baja,000,recibido,2000-01-01T12:00:00Z,2000-01-01T12:00:00Z,"{""source"":""fixture"",""import_note"":""not resident data""}"
+VV-PQRS-20000102-SMOKE2,SMOKE - resolved historical fixture,Second non-production fixture row for offline validator,Administracion,smoke2@example.invalid,administracion,Administracion,administracion,media,000,resuelto,2000-01-02T12:00:00Z,2000-01-03T12:00:00Z,"{""source"":""fixture"",""import_note"":""not resident data""}"
