@@ -98,6 +98,8 @@ Run these in **ph-management**’s Supabase SQL editor or export UI, then import
 4. **Verify (VV SQL)**
    - `SELECT count(*), min(created_at), max(created_at) FROM public.pqrs_cases WHERE building_id = '88e6c11e-4a8c-4f39-a571-5f97e7f2b774';`
    - `SELECT * FROM public.lookup_pqrs_case('VV-PQRS-YYYYMMDD-XXXXXX');` — must return one row for a known reference.
+   - Local preflight before manual SQL apply: `node scripts/pqrs-rpc-smoke.mjs --check-sql` confirms the repo SQL bundles use `lookup_pqrs_case(p_case_ref text)` and `case_reference = trim(p_case_ref)`.
+   - Read-only production smoke after manual SQL apply: `node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-YYYYMMDD-XXXXXX`. The built-in fake reference must return zero rows, and the known reference must return itself.
 
 5. **Rollback**
    - Revert portal `PQRS_USE_VV_SUPABASE` to `false` in [js/config.js](../js/config.js); residents use ph-management again. Do **not** delete imported rows until the cutover is final.

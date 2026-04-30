@@ -646,7 +646,7 @@
           'Content-Type': 'application/json',
           Prefer: 'return=representation'
         },
-        body: JSON.stringify({ case_ref: caseId })
+        body: JSON.stringify({ p_case_ref: caseId })
       })
         .then(function (response) {
           return response.text().then(function (rawText) {

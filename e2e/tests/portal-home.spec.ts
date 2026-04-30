@@ -33,4 +33,51 @@ test.describe('Portal residentes (index.html)', () => {
     await page.goto('/index.html');
     await expect(page.locator('a[href="aproviva-suite/mapa-pqrs.html"]').first()).toBeVisible();
   });
+
+  test('PQRS status lookup uses ph-management fallback while VV Supabase flag is off', async ({ page }) => {
+    await page.route('https://ph-management.vercel.app/api/pqrs/lookup?**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          caseReference: 'VV-PQRS-20260430-123456',
+          status: 'en_progreso',
+          lastUpdatedAt: '2026-04-30T14:00:00Z'
+        })
+      });
+    });
+
+    await page.goto('/index.html');
+    await page.locator('#pqrs-status-id').fill('VV-PQRS-20260430-123456');
+    await page.getByRole('button', { name: /Consultar estado/i }).click();
+
+    await expect(page.locator('#pqrs-status-feedback')).toContainText('En progreso');
+  });
+
+  test('PQRS status lookup uses VV Supabase RPC argument required by migration', async ({ page }) => {
+    let rpcBody = '';
+    await page.route('https://tgoitmwdpdkhlpqpwrvs.supabase.co/rest/v1/rpc/lookup_pqrs_case', async (route) => {
+      rpcBody = route.request().postData() || '';
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{
+          case_reference: 'VV-PQRS-20260430-654321',
+          status: 'recibido',
+          updated_at: '2026-04-30T14:30:00Z'
+        }])
+      });
+    });
+
+    await page.goto('/index.html');
+    await page.evaluate(() => {
+      (window as any).APROVIVA_CONFIG.PQRS_USE_VV_SUPABASE = true;
+    });
+    await page.locator('#pqrs-status-id').fill('VV-PQRS-20260430-654321');
+    await page.getByRole('button', { name: /Consultar estado/i }).click();
+
+    await expect(page.locator('#pqrs-status-feedback')).toContainText('Recibido');
+    expect(JSON.parse(rpcBody)).toEqual({ p_case_ref: 'VV-PQRS-20260430-654321' });
+  });
 });

@@ -1,0 +1,18 @@
+status: complete
+summary: Added local non-mutating PQRS RPC SQL/preflight/live-smoke guard and documented it in the PQRS migration runbook. No deploy, push, or live DB mutation performed.
+verification_exits:
+  node --check scripts/pqrs-rpc-smoke.mjs: 0
+  node scripts/pqrs-rpc-smoke.mjs --check-sql: 0
+  node scripts/pqrs-rpc-smoke.mjs: 0
+  node --check js/app.js: 0
+  node --check js/config.js: 0
+  npm test -- --grep "PQRS|portal|lookup": 1 blocked by EPERM binding 127.0.0.1:8787
+  npm run test:prod -- --grep "PQRS status lookup": 1 blocked by Chromium sandbox Operation not permitted
+files_changed:
+  scripts/pqrs-rpc-smoke.mjs
+  docs/PQRS-MIGRATION-PH-TO-VV.md
+  js/app.js (pre-existing Wave 3 baseline)
+  e2e/tests/portal-home.spec.ts (pre-existing Wave 3 baseline)
+blockers_next_manual_step: Apply updated lookup_pqrs_case(p_case_ref text) SQL to VV Supabase, then run node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-YYYYMMDD-XXXXXX before deploy.
+log_path_note: Requested /home/jeffery/lanes/agent-logs was read-only; parent /mnt/openclaw-usb/lanes/agent-logs was also read-only; files written to repo agent-logs.
+notification: openclaw message send could not be confirmed; first attempt had CLI arg error, second failed on read-only /home/.openclaw runtime deps, redirected attempt timed out after 20s with exit 124.
