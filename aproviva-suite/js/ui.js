@@ -123,7 +123,9 @@
     var res = await fetch(endpoint, {
       method: 'POST',
       body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'application/json' },
+      // Apps Script web apps do not reliably answer OPTIONS preflight.
+      // Match the resident portal upload path and send JSON as text/plain.
+      headers: { 'Content-Type': 'text/plain' },
     });
     var json = {};
     try {

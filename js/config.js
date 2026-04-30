@@ -7,10 +7,9 @@ window.APROVIVA_CONFIG = {
   // APPS_SCRIPT_URL still owns the dashboard + budget + provider directory.
   PH_MANAGEMENT_API_BASE: 'https://ph-management.vercel.app',
 
-  // Villa Valencia Supabase (same project as aproviva-suite). Keep false until
-  // the live lookup_pqrs_case SQL fix is applied and smoke-tested; otherwise
-  // resident lookup can return a false match from the old RPC signature.
-  PQRS_USE_VV_SUPABASE: false,
+  // Villa Valencia Supabase (same project as aproviva-suite). Uses Villa Valencia Supabase directly for PQRS submit + lookup.
+  // The live lookup_pqrs_case(case_ref text) RPC was fixed/smoked on 2026-04-29.
+  PQRS_USE_VV_SUPABASE: true,
   SUPABASE_URL: 'https://tgoitmwdpdkhlpqpwrvs.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_rF14WdkYwSnffaOxzKsncA_PjtaXgBz',
   BUILDING_ID: '88e6c11e-4a8c-4f39-a571-5f97e7f2b774',

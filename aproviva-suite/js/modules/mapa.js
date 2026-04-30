@@ -344,7 +344,7 @@
         '<div class="row between wrap">' +
           '<div>' +
             '<h2 class="page-title">Mapa del sitio</h2>' +
-            '<p class="page-subtitle">Recorrido matutino: quien hace de <strong>admin de planta</strong> en <strong>Villa Valencia</strong> registra en el mapa lo observado (punto, comentario, foto a Drive). Este portal es <strong>solo este conjunto</strong>; la <strong>supervisi\u00f3n</strong> puede gestionar varios edificios u HOAs en otros despliegues. Conserjer\u00eda ve el mismo mapa, cierra con foto opcional y marca resuelto; supervisi\u00f3n o gerencia confirman y retiran el punto. Hallazgos Gemba y l\u00edmite' + (cloudOk ? ' (Supabase).' : ' (modo local hasta conectar tablas).') + '</p>' +
+            '<p class="page-subtitle">Mapa operativo para recorridos, puntos de ruta y hallazgos Gemba de Villa Valencia. Conserjer\u00eda registra o cierra en sitio; supervisi\u00f3n confirma y retira puntos resueltos' + (cloudOk ? '.' : ' (modo local hasta conectar tablas).') + '</p>' +
           '</div>' +
         '</div>' +
         cloudBanner +
@@ -359,7 +359,7 @@
         '</div>' +
         '<div class="page-section mapa-registry-section" id="mapa-registro-tabla">' +
           '<h3 class="section-title">Registro de observaciones en mapa</h3>' +
-          '<p class="muted mapa-registry-lead">Tabla de todos los puntos: qui\u00e9n report\u00f3, cu\u00e1ndo, ubicaci\u00f3n, texto m\u00e1s reciente, estado, evidencia fotogr\u00e1fica y \u00faltima actividad.</p>' +
+          '<p class="muted mapa-registry-lead">Registro operativo de puntos, estado, evidencia y \u00faltima actividad.</p>' +
           '<div id="mapa-waypoint-list"><div class="loading">Cargando mapa...</div></div>' +
         '</div>' +
       '</section>';

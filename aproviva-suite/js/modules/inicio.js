@@ -1,5 +1,5 @@
 /**
- * Inicio (home) - role-aware module shortcuts and quick KPIs.
+ * Inicio (home) - role-aware module shortcuts, Villa Valencia operating lens, and quick KPIs.
  */
 (function () {
   var MODULES = [
@@ -12,12 +12,76 @@
     { id: 'junta', eyebrow: 'GOBERNANZA', icon: '\ud83e\udded', title: 'Junta', desc: 'Visi\u00f3n ejecutiva: KPIs, escalaciones cr\u00f3nicas, accountability.' },
   ];
 
+  var ROLE_LENS = {
+    conserje: {
+      label: 'Conserjer\u00eda',
+      headline: 'Hoy toca ejecutar y dejar evidencia clara.',
+      focus: 'Recorridos, inventario e incidencias desde el tel\u00e9fono.',
+      primary: { label: 'Abrir recorrido', href: '#/gemba' },
+      secondary: { label: 'Reportar incidencia', href: '#/incidencias' },
+      steps: ['Ronda abierta', 'Evidencia', 'Novedad', 'Seguimiento'],
+      now: 1,
+      rows: [
+        { title: 'Recorrido matutino', meta: 'Ba\u00f1os, gimnasio, piscina', status: 'En curso', kind: 'success' },
+        { title: 'Conteo operativo', meta: 'Insumos cr\u00edticos y llaves', status: 'Pendiente', kind: 'warning' },
+        { title: 'Foto de hallazgo', meta: 'Sube a Drive con caso asociado', status: 'Seguro', kind: 'info' },
+      ],
+      privacy: 'Solo ves tareas operativas. Junta y gerencia ven resumen, no notas privadas.'
+    },
+    supervisor: {
+      label: 'Supervisi\u00f3n',
+      headline: 'Convierte hallazgos en seguimiento con responsable.',
+      focus: 'Rondas atrasadas, evidencia, asignaciones y reportes diarios.',
+      primary: { label: 'Ver recorridos', href: '#/gemba' },
+      secondary: { label: 'Reporte diario', href: '#/reportes' },
+      steps: ['Detectar', 'Validar', 'Asignar', 'Cerrar'],
+      now: 2,
+      rows: [
+        { title: 'Bomba de agua', meta: 'Activo cr\u00edtico, proveedor vinculado', status: 'Priorizar', kind: 'danger' },
+        { title: 'Ascensor Torre A', meta: 'Servicio programado en 3 d\u00edas', status: 'Vigilar', kind: 'warning' },
+        { title: 'Incidencias abiertas', meta: 'Triage y responsable operativo', status: 'Asignar', kind: 'info' },
+      ],
+      privacy: 'Puede ver operaci\u00f3n de Villa Valencia, con datos sensibles ocultos.'
+    },
+    gerencia: {
+      label: 'Gerencia',
+      headline: 'Mira el tablero de acci\u00f3n, no otro Excel.',
+      focus: 'Backlog, proyectos, reportes y decisiones para APROVIVA.',
+      primary: { label: 'Abrir reportes', href: '#/reportes' },
+      secondary: { label: 'Ver proyectos', href: '#/proyectos' },
+      steps: ['Captura', 'Trabajo', 'Costo', 'Junta'],
+      now: 2,
+      rows: [
+        { title: 'Pendientes de aprobaci\u00f3n', meta: 'Cotizaciones y cambios de alcance', status: '4', kind: 'warning' },
+        { title: 'Trabajos abiertos', meta: 'Proveedor, evidencia y fecha objetivo', status: '9', kind: 'info' },
+        { title: 'Resumen semanal', meta: 'Listo para junta sin limpiar hojas', status: 'Auto', kind: 'success' },
+      ],
+      privacy: 'Contratos, bancos, saldos y contactos quedan protegidos por rol.'
+    },
+    junta: {
+      label: 'Junta',
+      headline: 'Ve pruebas y decisiones, no ruido operativo.',
+      focus: 'KPIs, escalaciones, aprobaciones y cambios de la semana.',
+      primary: { label: 'Vista junta', href: '#/junta' },
+      secondary: { label: 'Aprobaciones', href: '#/proyectos' },
+      steps: ['Resumen', 'Riesgo', 'Decisi\u00f3n', 'Acta'],
+      now: 1,
+      rows: [
+        { title: 'Cotizaci\u00f3n ascensor', meta: 'Evidencia adjunta, requiere decisi\u00f3n', status: 'Ver', kind: 'warning' },
+        { title: 'Incidencias cr\u00f3nicas', meta: 'Patrones por zona y causa ra\u00edz', status: '3', kind: 'danger' },
+        { title: 'Cambios de la semana', meta: 'Solicitudes resueltas y hallazgos nuevos', status: 'OK', kind: 'success' },
+      ],
+      privacy: 'Vista ejecutiva sin PII, sin conversaciones privadas y sin datos bancarios.'
+    }
+  };
+
   async function render(container, session) {
     var allowed = MODULES.filter(function (m) { return window.AUTH.canAccess(m.id); });
     container.innerHTML = '' +
       '<section class="page">' +
         '<h2 class="page-title">Bienvenido, ' + window.UI.esc(session.label) + '</h2>' +
         '<p class="page-subtitle">' + window.UI.esc(window.APROVIVA_SUITE_CONFIG.BUILDING_NAME) + ' &middot; ' + window.UI.esc(window.APROVIVA_SUITE_CONFIG.BUILDING_CODE) + '</p>' +
+        renderVillaLens(session) +
         '<div class="kpi-grid" id="home-kpis"><div class="loading">Cargando KPIs...</div></div>' +
         '<div class="page-section">' +
           '<h3 class="section-title">Tus m\u00f3dulos</h3>' +
@@ -46,6 +110,68 @@
 
     loadKpis();
     setupInstallHints();
+  }
+
+  function renderVillaLens(session) {
+    var lens = ROLE_LENS[session.role] || ROLE_LENS.conserje;
+    var siteCount = (window.APROVIVA_SUITE_CONFIG.SITE_PLACES || []).length;
+    var allowedCount = (session.modules || []).length;
+    return '' +
+      '<div class="vv-lens" data-testid="villa-lens-card">' +
+        '<div class="vv-lens-head">' +
+          '<div>' +
+            '<div class="vv-eyebrow">Villa Valencia operating lens</div>' +
+            '<h3>' + window.UI.esc(lens.headline) + '</h3>' +
+            '<p>' + window.UI.esc(lens.focus) + '</p>' +
+          '</div>' +
+          '<span class="vv-role-pill">' + window.UI.esc(lens.label) + '</span>' +
+        '</div>' +
+        '<div class="vv-lens-grid">' +
+          '<div class="vv-workspace">' +
+            '<div class="vv-kpi-strip">' +
+              miniKpi('Puntos fijos', siteCount || 9) +
+              miniKpi('M\u00f3dulos', allowedCount) +
+              miniKpi('PII', 'oculta') +
+            '</div>' +
+            '<div class="vv-progress" aria-label="Flujo operativo">' +
+              lens.steps.map(function (step, idx) {
+                var cls = idx < lens.now ? 'done' : (idx === lens.now ? 'now' : '');
+                return '<span class="' + cls + '"><i></i><b>' + window.UI.esc(step) + '</b></span>';
+              }).join('') +
+            '</div>' +
+            '<div class="vv-row-list">' +
+              lens.rows.map(renderLensRow).join('') +
+            '</div>' +
+          '</div>' +
+          '<aside class="vv-side-panel">' +
+            '<div class="vv-side-card">' +
+              '<div class="vv-eyebrow">Acci\u00f3n sugerida</div>' +
+              '<a class="vv-primary-action" href="' + window.UI.esc(lens.primary.href) + '">' + window.UI.esc(lens.primary.label) + '</a>' +
+              '<a class="vv-secondary-action" href="' + window.UI.esc(lens.secondary.href) + '">' + window.UI.esc(lens.secondary.label) + '</a>' +
+            '</div>' +
+            '<div class="vv-privacy-card">' +
+              '<div class="vv-eyebrow">L\u00edmite de confianza</div>' +
+              '<p>' + window.UI.esc(lens.privacy) + '</p>' +
+              '<div class="vv-redacted"><span></span><span></span><span></span></div>' +
+            '</div>' +
+          '</aside>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function miniKpi(label, value) {
+    return '<div class="vv-mini-kpi"><strong>' + window.UI.esc(value) + '</strong><span>' + window.UI.esc(label) + '</span></div>';
+  }
+
+  function renderLensRow(row) {
+    return '' +
+      '<div class="vv-op-row">' +
+        '<div>' +
+          '<strong>' + window.UI.esc(row.title) + '</strong>' +
+          '<span>' + window.UI.esc(row.meta) + '</span>' +
+        '</div>' +
+        '<em class="vv-status vv-status-' + window.UI.esc(row.kind) + '"><i></i>' + window.UI.esc(row.status) + '</em>' +
+      '</div>';
   }
 
   function setupInstallHints() {
@@ -108,7 +234,7 @@
 
       box.innerHTML = '' +
         kpi('Art\u00edculos activos', items.length) +
-        kpi('Movimientos (recientes)', moves.length) +
+        kpi('Movimientos recientes', moves.length) +
         kpi('Incidencias abiertas', openIncidents) +
         kpi('Recorridos en curso', openRounds) +
         kpi('Escalaciones abiertas', openEsc);

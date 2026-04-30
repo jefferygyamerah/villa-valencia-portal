@@ -11,7 +11,7 @@
         '<div class="row between wrap">' +
           '<div>' +
             '<h2 class="page-title">Incidencias</h2>' +
-            '<p class="page-subtitle">Triage, escalaci\u00f3n y seguimiento de incidentes operativos.</p>' +
+            '<p class="page-subtitle">Reporte r\u00e1pido, triage y siguiente acci\u00f3n operativa.</p>' +
           '</div>' +
           '<div class="row wrap" style="gap:0.5rem;">' +
             '<select id="inc-filter" class="btn btn-ghost">' +
@@ -22,6 +22,7 @@
             '<button class="btn btn-primary-sm" id="inc-new" type="button">+ Nueva incidencia</button>' +
           '</div>' +
         '</div>' +
+        '<div class="inc-next-step" id="inc-next-step"></div>' +
         '<div class="kpi-grid" id="inc-kpis"><div class="loading">...</div></div>' +
         '<div class="page-section">' +
           '<div id="inc-list"></div>' +
@@ -44,6 +45,7 @@
       var rows = await window.SB.select('incident_tickets', { select: '*', building_id: 'eq.' + bid, order: 'created_at.desc', limit: '100' });
       STATE.tickets = rows || [];
       renderKpis();
+      renderNextStep();
       renderList();
     } catch (e) {
       window.UI.errorBox('inc-list', e);
@@ -53,15 +55,29 @@
   function renderKpis() {
     var open = STATE.tickets.filter(function (t) { return t.status !== 'resolved' && t.status !== 'closed'; });
     var critical = open.filter(function (t) { return t.severity === 'critical' || t.severity === 'high'; });
+    var triage = open.filter(function (t) { return t.status === 'received' || !t.status; });
     var resolved24h = STATE.tickets.filter(function (t) {
       if (!t.resolved_at) return false;
       return new Date(t.resolved_at).getTime() > Date.now() - 24 * 3600 * 1000;
     });
     document.getElementById('inc-kpis').innerHTML = '' +
       kpi('Total', STATE.tickets.length) +
-      kpi('Abiertas', open.length) +
+      kpi('Por tomar', triage.length) +
       kpi('Cr\u00edticas/Altas', critical.length) +
       kpi('Resueltas (24h)', resolved24h.length);
+  }
+
+  function renderNextStep() {
+    var open = STATE.tickets.filter(function (t) { return t.status !== 'resolved' && t.status !== 'closed'; });
+    var urgent = open.filter(function (t) { return t.severity === 'critical' || t.severity === 'high'; });
+    var waiting = open.filter(function (t) { return t.status === 'received' || !t.status; });
+    var msg = 'Registrar evidencia o cerrar lo que ya fue atendido.';
+    if (urgent.length) msg = 'Atender primero ' + urgent.length + ' incidencia(s) cr\u00edtica/alta.';
+    else if (waiting.length) msg = 'Tomar ' + waiting.length + ' incidencia(s) recibida(s).';
+    else if (!open.length) msg = 'Sin incidencias abiertas. Mantener monitoreo.';
+    document.getElementById('inc-next-step').innerHTML = '' +
+      '<div class="inc-next-label">Siguiente paso</div>' +
+      '<div class="inc-next-copy">' + window.UI.esc(msg) + '</div>';
   }
 
   function renderList() {
@@ -73,22 +89,37 @@
       document.getElementById('inc-list').innerHTML = '<p class="empty">Sin incidencias en este filtro.</p>';
       return;
     }
-    document.getElementById('inc-list').innerHTML = window.UI.table(rows, [
-      { key: 'ticket_number', label: '#' },
-      { key: 'title', label: 'T\u00edtulo' },
-      { key: 'category', label: 'Categor\u00eda' },
-      { key: 'location_label', label: 'Ubicaci\u00f3n' },
-      { key: 'severity', label: 'Severidad', render: function (r) { return window.UI.badge(r.severity, sevKind(r.severity)); }, html: true },
-      { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusKind(r.status)); }, html: true },
-      { key: 'created_at', label: 'Reportada', render: function (r) { return window.UI.fmtDate(r.created_at); } },
-      { key: 'actions', label: '', render: function (r) {
-        if (r.status === 'resolved' || r.status === 'closed') return '<span class="muted">Cerrada</span>';
-        if (!window.AUTH.canAccess('proyectos')) return '';
-        return '<button class="btn btn-ghost" data-act="advance" data-id="' + window.UI.esc(r.id) + '" data-current="' + window.UI.esc(r.status) + '">Avanzar</button> ' +
-               '<button class="btn btn-ghost" data-act="escalate" data-id="' + window.UI.esc(r.id) + '">Escalar</button>';
-      }, html: true },
-    ]);
-    document.getElementById('inc-list').addEventListener('click', onAction);
+    document.getElementById('inc-list').innerHTML = '<div class="inc-card-list">' + rows.map(ticketCard).join('') + '</div>';
+    document.getElementById('inc-list').onclick = onAction;
+  }
+
+  function ticketCard(r) {
+    var closed = r.status === 'resolved' || r.status === 'closed';
+    var next = nextStatus(r.status);
+    var actions = '<span class="muted">Cerrada</span>';
+    if (!closed && window.AUTH.canAccess('proyectos')) {
+      actions = '<button class="btn btn-primary-sm" data-act="advance" data-id="' + window.UI.esc(r.id) + '" data-current="' + window.UI.esc(r.status) + '">' + window.UI.esc(nextActionLabel(r.status)) + '</button>' +
+        '<button class="btn btn-ghost" data-act="escalate" data-id="' + window.UI.esc(r.id) + '">Escalar</button>';
+    } else if (!closed) {
+      actions = '<span class="muted">En seguimiento</span>';
+    }
+    return '' +
+      '<article class="inc-ticket-card">' +
+        '<div class="inc-ticket-top">' +
+          '<span class="inc-ticket-num">' + window.UI.esc(r.ticket_number || 'INC') + '</span>' +
+          '<span class="inc-ticket-date">' + window.UI.esc(window.UI.fmtDate(r.created_at)) + '</span>' +
+        '</div>' +
+        '<div class="inc-ticket-title">' + window.UI.esc(r.title || 'Incidencia sin t\u00edtulo') + '</div>' +
+        '<div class="inc-ticket-meta">' +
+          window.UI.badge(statusLabel(r.status), statusKind(r.status)) +
+          window.UI.badge(sevLabel(r.severity), sevKind(r.severity)) +
+        '</div>' +
+        '<div class="inc-ticket-detail">' +
+          '<span>' + window.UI.esc(r.category || 'Operaci\u00f3n') + '</span>' +
+          '<span>' + window.UI.esc(r.location_label || 'Ubicaci\u00f3n pendiente') + '</span>' +
+        '</div>' +
+        '<div class="inc-ticket-actions">' + actions + '</div>' +
+      '</article>';
   }
 
   function sevKind(s) {
@@ -102,6 +133,28 @@
     if (s === 'in_progress') return 'info';
     if (s === 'received') return 'warning';
     return 'neutral';
+  }
+
+  function sevLabel(s) {
+    if (s === 'critical') return 'Cr\u00edtica';
+    if (s === 'high') return 'Alta';
+    if (s === 'medium') return 'Media';
+    if (s === 'low') return 'Baja';
+    return 'Sin severidad';
+  }
+
+  function statusLabel(s) {
+    if (s === 'resolved') return 'Resuelta';
+    if (s === 'closed') return 'Cerrada';
+    if (s === 'in_progress') return 'En proceso';
+    if (s === 'received' || !s) return 'Recibida';
+    return s;
+  }
+
+  function nextActionLabel(s) {
+    if (s === 'received' || !s) return 'Tomar';
+    if (s === 'in_progress') return 'Resolver';
+    return 'Avanzar';
   }
 
   function nextStatus(s) {
@@ -122,7 +175,7 @@
         var patch = { status: next, resident_visible_status: next === 'in_progress' ? 'In progress' : 'Resolved' };
         if (next === 'resolved') patch.resolved_at = new Date().toISOString();
         await window.SB.update('incident_tickets', { id: 'eq.' + id }, patch);
-        window.UI.toast('Incidencia avanzada a ' + next + '.', 'success');
+        window.UI.toast('Incidencia avanzada a ' + statusLabel(next) + '.', 'success');
         await load();
       } catch (err) {
         window.UI.toast('Error: ' + err.message, 'error');
@@ -189,7 +242,7 @@
       host.innerHTML = '' +
         '<section class="page" data-testid="inc-new-form">' +
           '<h3 class="section-title">Nueva incidencia</h3>' +
-          '<p class="muted">Conserjer\u00eda: motivo y ubicaci\u00f3n (sin texto libre).</p>' +
+          '<p class="muted">Conserjer\u00eda: seleccione motivo, ubicaci\u00f3n y prioridad. Sin datos personales.</p>' +
           '<form id="inc-form" class="form-grid cols-2" data-staff="1" novalidate>' +
             '<div class="form-field"><label>Motivo</label>' +
               '<select name="motivo_id" required>' + motivoOpts + '</select></div>' +
@@ -207,8 +260,9 @@
                 '<option value="false" selected>No</option>' +
                 '<option value="true">S\u00ed</option>' +
               '</select></div>' +
-            '<div class="btn-row" style="grid-column:1/-1;">' +
-              '<button class="btn btn-primary-sm" type="submit">Crear</button>' +
+            '<div class="inc-privacy-note" style="grid-column:1/-1;">No incluya nombres, tel\u00e9fonos ni datos privados en el reporte operativo.</div>' +
+            '<div class="btn-row inc-form-actions" style="grid-column:1/-1;">' +
+              '<button class="btn btn-primary-sm" type="submit">Crear incidencia</button>' +
               '<button class="btn btn-ghost" type="button" id="inc-cancel">Cancelar</button>' +
             '</div>' +
           '</form>' +
@@ -243,9 +297,10 @@
             '<div class="form-field" style="grid-column:1/-1;"><label>T\u00edtulo</label>' +
               '<input type="text" name="title" required></div>' +
             '<div class="form-field" style="grid-column:1/-1;"><label>Descripci\u00f3n</label>' +
-              '<textarea name="description" rows="3" required></textarea></div>' +
-            '<div class="btn-row" style="grid-column:1/-1;">' +
-              '<button class="btn btn-primary-sm" type="submit">Crear</button>' +
+              '<textarea name="description" rows="3" placeholder="Qu\u00e9 pasa, desde cu\u00e1ndo y qu\u00e9 se necesita." required></textarea></div>' +
+            '<div class="inc-privacy-note" style="grid-column:1/-1;">Use datos operativos. Evite nombres, tel\u00e9fonos o informaci\u00f3n privada.</div>' +
+            '<div class="btn-row inc-form-actions" style="grid-column:1/-1;">' +
+              '<button class="btn btn-primary-sm" type="submit">Crear incidencia</button>' +
               '<button class="btn btn-ghost" type="button" id="inc-cancel">Cancelar</button>' +
             '</div>' +
           '</form>' +
