@@ -26,8 +26,9 @@ This document frames **moving PQRS submit, lookup, storage, and map-facing reads
 
 ## Current state (April 2026)
 
-- Portal `js/app.js` → `POST/GET` `PH_MANAGEMENT_API_BASE` (`/api/pqrs/submit`, `/api/pqrs/lookup`).
-- Case truth + admin workflows primarily in **ph-management**’s Supabase and UI.
+- Portal `js/app.js` uses Villa Valencia Supabase directly for resident PQRS submit + lookup when `PQRS_USE_VV_SUPABASE: true`.
+- `PH_MANAGEMENT_API_BASE` is still present as the rollback path if Villa Valencia Supabase PQRS must be disabled.
+- Case truth for new resident cases is moving to the **Villa Valencia Supabase project**; historical/admin continuity with **ph-management** still needs an export/import or decommission plan.
 - Dashboard / transparency in portal may still be **Sheets**-backed (`loadDashboard`) — separate cutover.
 
 ---
@@ -77,7 +78,7 @@ This document frames **moving PQRS submit, lookup, storage, and map-facing reads
 - **Pattern:** **PostgREST** (`INSERT` into `public.pqrs_cases`) + **`lookup_pqrs_case(text)`** RPC (`SECURITY DEFINER`) so `anon` cannot `SELECT` the full table.
 - **Migration files (en orden):** [20260422120000_pqrs_cases.sql](../aproviva-suite/supabase/migrations/20260422120000_pqrs_cases.sql), luego [20260422200000_pqrs_cases_align_existing.sql](../aproviva-suite/supabase/migrations/20260422200000_pqrs_cases_align_existing.sql) si la tabla `pqrs_cases` ya existía con otro esquema (p. ej. ph-management).
 - **CI opcional:** [`.github/workflows/apply-vv-supabase-sql.yml`](../.github/workflows/apply-vv-supabase-sql.yml) — secret `SUPABASE_DB_URL`, ejecutar workflow manualmente en GitHub.
-- **Portal:** [js/config.js](../js/config.js) — `PQRS_USE_VV_SUPABASE`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `BUILDING_ID`. As of 2026-04-29 the local portal keeps `PQRS_USE_VV_SUPABASE: false` for production safety; apply the updated RPC SQL, smoke-test `lookup_pqrs_case(p_case_ref text)`, then flip this flag in a separate cutover so production stops calling ph-management for submit/lookup.
+- **Portal:** [js/config.js](../js/config.js) — `PQRS_USE_VV_SUPABASE`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `BUILDING_ID`. As of Wave 3/4 on 2026-04-30, production is deployed with `PQRS_USE_VV_SUPABASE: true`; the live `lookup_pqrs_case(p_case_ref text)` RPC fix was applied and a fake-reference smoke returned zero rows. Keep `PH_MANAGEMENT_API_BASE` only as rollback configuration.
 
 ---
 
@@ -98,8 +99,9 @@ Run these in **ph-management**’s Supabase SQL editor or export UI, then import
 4. **Verify (VV SQL)**
    - `SELECT count(*), min(created_at), max(created_at) FROM public.pqrs_cases WHERE building_id = '88e6c11e-4a8c-4f39-a571-5f97e7f2b774';`
    - `SELECT * FROM public.lookup_pqrs_case('VV-PQRS-YYYYMMDD-XXXXXX');` — must return one row for a known reference.
-   - Local preflight before manual SQL apply: `node scripts/pqrs-rpc-smoke.mjs --check-sql` confirms the repo SQL bundles use `lookup_pqrs_case(p_case_ref text)` and `case_reference = trim(p_case_ref)`.
-   - Read-only production smoke after manual SQL apply: `node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-YYYYMMDD-XXXXXX`. The built-in fake reference must return zero rows, and the known reference must return itself.
+   - Local preflight: `node scripts/pqrs-rpc-smoke.mjs --check-sql` confirms the repo SQL bundles use `lookup_pqrs_case(p_case_ref text)` and `case_reference = trim(p_case_ref)`.
+   - Read-only production RPC smoke: `node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-YYYYMMDD-XXXXXX`. The built-in fake reference must return zero rows, and the known reference must return itself.
+   - Read-only production HTTP/config smoke: `node scripts/production-smoke.mjs`. This checks core production routes and verifies the deployed config keeps `PQRS_USE_VV_SUPABASE: true`.
 
 5. **Rollback**
    - Revert portal `PQRS_USE_VV_SUPABASE` to `false` in [js/config.js](../js/config.js); residents use ph-management again. Do **not** delete imported rows until the cutover is final.

@@ -19,18 +19,30 @@ No deploy, push, or external messages were sent.
 
 ## Production Findings
 
-### P0/P1: Production PQRS is not cut over yet
+### 2026-04-30 post-deploy update
 
-`https://villavalencia.vercel.app/js/config.js` currently has:
+Waves 3/4 were merged, pushed, and deployed to production. The production Villa Valencia Supabase RPC fix was applied live as `public.lookup_pqrs_case(p_case_ref text)`, and the read-only fake-reference smoke passed with zero rows. `js/config.js` is now deployed with `PQRS_USE_VV_SUPABASE: true`; `PH_MANAGEMENT_API_BASE` remains as rollback config.
+
+Remaining production validation should be non-mutating first:
+
+- `node scripts/production-smoke.mjs`
+- `node scripts/pqrs-rpc-smoke.mjs --live`
+- `node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-YYYYMMDD-XXXXXX` if Jeff provides a known real reference
+
+Do not create a new production PQRS smoke row unless Jeff explicitly approves a clearly labeled test case.
+
+### Superseded: production PQRS was not cut over yet
+
+At the time of the original 2026-04-29 report, `https://villavalencia.vercel.app/js/config.js` had:
 
 - `PQRS_USE_VV_SUPABASE: false`
 - `PH_MANAGEMENT_API_BASE: 'https://ph-management.vercel.app'`
 
-That means production resident PQRS submit/lookup still uses the legacy `ph-management` runtime. This conflicts with the current Villa Valencia operational ownership direction.
+That meant production resident PQRS submit/lookup still used the legacy `ph-management` runtime. This conflicted with the current Villa Valencia operational ownership direction.
 
-Local fix is ready, but production is unchanged until deployed.
+This is superseded by the 2026-04-30 deployment with `PQRS_USE_VV_SUPABASE: true`.
 
-### P0/P1: Production VV Supabase lookup RPC returns a false positive
+### Superseded: Production VV Supabase lookup RPC returned a false positive
 
 Smoke command:
 
@@ -43,7 +55,7 @@ Result: HTTP 200 with an existing case `VV-PQRS-20260419-855099` instead of zero
 
 Cause found locally: SQL function argument `case_ref` collides with an existing table column, so the predicate can evaluate against the row column instead of the input parameter.
 
-Local SQL fix is ready. This must be applied to the Villa Valencia Supabase project before deploy, or at minimum deploy the client-side guard with clear awareness that the server RPC is still wrong.
+This is superseded by the 2026-04-30 production RPC fix and fake-reference smoke. Keep the client-side guard as defense in depth.
 
 ### Auth Handoff Confusion
 
@@ -79,23 +91,22 @@ Not run:
 
 - I did not submit a new production PQRS case to avoid polluting live resident data. Existing production RPC smoke was enough to prove the lookup blocker.
 
-## Remaining Blockers Before Deploy
+## Remaining Blockers / Next Manual Steps
 
-1. Apply the updated `lookup_pqrs_case(p_case_ref text)` SQL to the Villa Valencia Supabase project `tgoitmwdpdkhlpqpwrvs`.
-2. Re-run a production RPC check:
+1. Run a known-reference production RPC check when Jeff provides a real reference:
 
 ```sql
-SELECT * FROM public.lookup_pqrs_case('VV-PQRS-NOTREAL-SMOKE');
+SELECT * FROM public.lookup_pqrs_case('VV-PQRS-YYYYMMDD-XXXXXX');
 ```
 
-Expected: zero rows.
+Expected: exactly one row and the returned reference matches the requested reference.
 
-3. Run one controlled PQRS submit + lookup after the SQL fix, preferably with a clearly labeled admin smoke case.
-4. Run Playwright E2E in an environment with browser dependencies installed.
+2. Run one controlled PQRS submit + lookup only after Jeff approves creating a clearly labeled production smoke case.
+3. Run Playwright E2E in an environment with browser dependencies installed.
 
 ## Deploy Recommendation
 
-Do not deploy yet if the Supabase RPC fix cannot be applied first. The local portal code is directionally correct and includes a client-side false-positive guard, but shipping the cutover while the server lookup function is known-bad leaves production in a fragile state.
+The prior "do not deploy yet" warning is superseded by the 2026-04-30 production deploy and live RPC fix. Keep the client-side false-positive guard and use non-mutating smokes before any manual production test-row smoke.
 
 Recommended release order:
 

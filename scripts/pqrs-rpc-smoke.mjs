@@ -72,16 +72,22 @@ function normalizeRef(value) {
 }
 
 async function callLookup({ url, anonKey, caseRef }) {
-  const response = await fetch(`${url}/rest/v1/rpc/lookup_pqrs_case`, {
-    method: 'POST',
-    headers: {
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    },
-    body: JSON.stringify({ p_case_ref: caseRef }),
-  });
+  let response;
+  try {
+    response = await fetch(`${url}/rest/v1/rpc/lookup_pqrs_case`, {
+      method: 'POST',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify({ p_case_ref: caseRef }),
+    });
+  } catch (error) {
+    const cause = error && error.cause ? `: ${error.cause.message || error.cause}` : '';
+    throw new Error(`Lookup request failed${cause}`);
+  }
   const text = await response.text();
   let body = null;
   try {

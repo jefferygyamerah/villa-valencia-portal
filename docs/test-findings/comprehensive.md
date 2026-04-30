@@ -90,9 +90,9 @@
 
 ## Regressions checked
 
-- **PQRS submit / lookup (Villa Valencia Supabase path)** — cutover target as of 2026-04-29: [js/config.js](../../js/config.js) keeps `PQRS_USE_VV_SUPABASE: false` until the live RPC fix is applied and smoke-tested; resident submit/lookup remains on the stable `ph-management` fallback for production safety.
+- **PQRS submit / lookup (Villa Valencia Supabase path)** — deployed as of Wave 3/4 on 2026-04-30: [js/config.js](../../js/config.js) keeps `PQRS_USE_VV_SUPABASE: true`; the live RPC fix was applied and fake-reference smoke returned zero rows.
 - **PQRS lookup hardening** — local client code rejects RPC rows whose returned `case_reference` does not match the requested reference. Apply the updated `lookup_pqrs_case(p_case_ref text)` SQL in VV Supabase before deploy so invalid references return zero rows server-side too.
-- **PQRS submit / lookup (ph-management path)** — current production-safe fallback while `PQRS_USE_VV_SUPABASE` remains `false`. Historical validation: `apps/ph-management/ops/STATUS.md` Session 16 (case `VV-PQRS-20260419-855099`).
+- **PQRS submit / lookup (ph-management path)** — rollback fallback if `PQRS_USE_VV_SUPABASE` must be set to `false`. Historical validation: `apps/ph-management/ops/STATUS.md` Session 16 (case `VV-PQRS-20260419-855099`).
 - **19 scenarios (suite)** — matrix above unchanged; no full browser re-run in this session after PQRS work. Re-execute PIN flows + module smoke when convenient.
 
 ## Portal PQRS — submit path
@@ -103,9 +103,9 @@
 
 | Step | State |
 |------|--------|
-| Run updated `lookup_pqrs_case(p_case_ref text)` SQL in Supabase SQL Editor | Required before deploy |
-| Set `PQRS_USE_VV_SUPABASE: true` in portal `js/config.js` | Pending after DB RPC fix |
-| Submit test case + lookup by reference | Pending after DB RPC fix and config cutover |
+| Run updated `lookup_pqrs_case(p_case_ref text)` SQL in Supabase SQL Editor | Done before 2026-04-30 production deploy |
+| Set `PQRS_USE_VV_SUPABASE: true` in portal `js/config.js` | Done in 2026-04-30 production deploy |
+| Submit test case + lookup by reference | Pending Jeff approval to create one clearly labeled production smoke row |
 
 - **Existing portal landing pages** (`index.html`, `aproviva-portal.html`) — PQRS modal gained ubicación `option value` slugs for `site_place_id`; rest of portal copy and Apps-Script-backed dashboards unchanged unless otherwise noted.
 

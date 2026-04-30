@@ -6,11 +6,11 @@ Worktree: `/home/jeffery/Adwen-Tech/apps/villa-valencia-portal`
 
 ## Status
 
-Gate status: **HOLD conditional**.
+Gate status: **POST-DEPLOY HARDENING**.
 
-The codebase has a prepared path for Villa Valencia-owned PQRS and the recorridos/MD04-lite data backbone, but production should not be cut over until Jeff approves and applies the required Villa Valencia Supabase SQL in project `tgoitmwdpdkhlpqpwrvs`.
+The codebase has deployed the Villa Valencia-owned PQRS path and Jeff applied the narrow production Supabase RPC fix in project `tgoitmwdpdkhlpqpwrvs`. A non-mutating fake-reference RPC smoke passed after that fix. Remaining work is post-deploy validation, a controlled manual submit/lookup smoke only if approved, historical backfill/decommission planning, and the separate recorridos/MD04-lite data backbone decision.
 
-No deploy, push, production SQL, or production toggle change was performed in this pass.
+No new production SQL or resident-data mutation should be performed by agents without explicit approval.
 
 ## What I Inspected
 
@@ -59,7 +59,7 @@ Write attempt result: blocked by filesystem with `Read-only file system`. The re
 
 ## Can Be Fixed In Code Now
 
-1. Keep `PQRS_USE_VV_SUPABASE: false` until the live SQL fix is applied and verified.
+1. Keep `PQRS_USE_VV_SUPABASE: true` after the deployed cutover and live RPC smoke; use `false` only as a rollback.
 2. Keep the client-side lookup false-positive guard in `js/app.js`; it prevents display of a wrong case if a bad RPC response slips through.
 3. Keep photo upload helpers aligned on `text/plain` for Apps Script.
 4. Add a future E2E smoke for suite photo upload only if a non-production Apps Script endpoint or mocked route is available. Do not test by writing uncontrolled production Drive files.
@@ -67,21 +67,20 @@ Write attempt result: blocked by filesystem with `Read-only file system`. The re
 
 ## Requires Jeff Approval / Production Supabase Action
 
-1. Apply the corrected `lookup_pqrs_case(p_case_ref text)` SQL in Villa Valencia Supabase project `tgoitmwdpdkhlpqpwrvs`.
-2. Confirm fake PQRS lookup returns zero rows.
-3. Confirm known PQRS lookup returns exactly the requested case reference.
+1. Confirm a known real PQRS reference returns exactly the requested case reference through `node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-YYYYMMDD-XXXXXX`.
+2. Approve, run, and label one controlled production PQRS submit/lookup smoke only if Jeff accepts creating a test row.
+3. Plan ph-management historical export/import and decommission/freeze for Villa Valencia PQRS.
 4. Decide whether to apply the recorridos data backbone migration `20260429120000_inspection_plan_data_backbone.sql`.
 5. If applying the data backbone, run the runbook verification SQL in `docs/RECORRIDOS-DATA-BACKBONE-RUNBOOK.md`.
-6. Only after the SQL/RPC smoke passes, approve a separate deployment or config cutover that flips production `PQRS_USE_VV_SUPABASE` from `false` to `true`.
 
 ## Recommended Sequence
 
-1. Production Supabase: apply only the PQRS RPC fix first.
-2. SQL smoke: fake lookup returns zero rows; known lookup returns the correct reference.
-3. Controlled admin smoke: submit one clearly labeled PQRS test case with no sensitive data, then look it up.
-4. Preview deploy or shareable QA build: verify portal and suite flows without changing production.
-5. Production deploy: only after Jeff approves the Supabase fix and cutover.
-6. Post-deploy smoke: resident portal, PQRS submit/lookup, photo attachment, suite login roles, Gemba, map, providers.
+1. Non-mutating post-deploy smoke: production routes/config and fake-reference PQRS RPC.
+2. Known-reference smoke: confirm one existing real reference returns itself.
+3. Controlled admin smoke: submit one clearly labeled PQRS test case with no sensitive data, then look it up, only after approval.
+4. Photo attachment smoke, only after approval to write one production Drive file.
+5. Suite login roles, Gemba, map, and providers smoke.
+6. Separately plan ph-management backfill/decommission for Villa Valencia PQRS.
 7. Separately approve/apply the recorridos data backbone and MD04-lite migration.
 8. After MD04 SQL is live, wire a UI board/report to `get_md04_lite_exceptions(uuid)` if desired.
 
@@ -112,31 +111,25 @@ If browser dependencies are missing, run these checks in an environment with Pla
 ### Production HTTP Smoke
 
 ```sh
-curl -I https://villavalencia.vercel.app/
-curl -I https://villavalencia.vercel.app/js/config.js
-curl -I https://villavalencia.vercel.app/aproviva-suite/index.html
-curl -I https://villavalencia.vercel.app/aproviva-suite/mapa-pqrs.html
-curl -I https://villavalencia.vercel.app/proveedores.html
+node scripts/production-smoke.mjs
 ```
 
-Expected: HTTP 200 for each.
+Expected: HTTP 200 for each core route and deployed config with `PQRS_USE_VV_SUPABASE: true`.
 
 ### PQRS Supabase RPC Smoke
 
-Run in Villa Valencia Supabase SQL editor after applying the RPC fix:
+Run the non-mutating script from this repo:
 
-```sql
-select *
-from public.lookup_pqrs_case('VV-PQRS-NOTREAL-SMOKE');
+```sh
+node scripts/pqrs-rpc-smoke.mjs --live
 ```
 
 Expected: zero rows.
 
 Then run with a known real reference:
 
-```sql
-select case_reference, status, created_at, updated_at
-from public.lookup_pqrs_case('VV-PQRS-YYYYMMDD-XXXXXX');
+```sh
+node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-YYYYMMDD-XXXXXX
 ```
 
 Expected: one row and `case_reference` exactly equals the requested reference.
@@ -204,21 +197,21 @@ Expected:
 
 ## Gate Checklist
 
-- [ ] Production `lookup_pqrs_case(p_case_ref text)` fix applied in VV Supabase.
-- [ ] Fake lookup returns zero rows.
+- [x] Production `lookup_pqrs_case(p_case_ref text)` fix applied in VV Supabase.
+- [x] Fake lookup returns zero rows.
 - [ ] Known lookup returns exactly one matching row.
 - [ ] Jeff approves one controlled production PQRS smoke case.
 - [ ] Controlled submit/lookup smoke passes.
 - [ ] Photo upload smoke passes or is explicitly deferred with known risk accepted.
 - [ ] Playwright suite passes in an environment with browser dependencies.
-- [ ] `PQRS_USE_VV_SUPABASE` production cutover is approved separately.
-- [ ] No dependency remains on `ph-management.vercel.app` for Villa Valencia PQRS after cutover.
+- [x] `PQRS_USE_VV_SUPABASE` production cutover deployed.
+- [ ] ph-management historical rows/backfill/decommission plan is complete for Villa Valencia PQRS.
 - [ ] MD04/data backbone migration is approved separately before applying.
 - [ ] If MD04 migration is applied, runbook verification SQL passes.
 
 ## Launch Decision
 
-Do not launch/cut over PQRS yet. The smallest safe next action is the production Supabase RPC fix plus SQL smoke. After that, the repo can be considered ready for a controlled preview/prod smoke and a separate cutover approval.
+Villa Valencia PQRS is in post-deploy validation. The smallest safe next action is non-mutating production smoke plus a known-reference lookup; the next manual action is one clearly labeled production submit/lookup smoke only if Jeff approves creating a test PQRS row.
 
 ## 2026-04-29 Supabase RPC smoke update
 Jeff applied the narrow production Supabase RPC replacement for `public.lookup_pqrs_case(case_ref text)`.
@@ -227,4 +220,15 @@ External PostgREST smoke from OpenClaw:
 - POST `/rest/v1/rpc/lookup_pqrs_case` with `{ "case_ref": "VV-PQRS-NOTREAL-SMOKE" }`
 - Result: HTTP 200 `[]`
 
-This confirms the false-match bug is fixed for the current function signature. The old `p_case_ref` payload intentionally returns PGRST202 because the live parameter name is `case_ref`.
+This confirmed the false-match bug before the final `p_case_ref` function signature was applied.
+
+## 2026-04-30 Wave 5 update
+
+Production context from the wave handoff:
+
+- Waves 3/4 were merged, pushed, and deployed to production.
+- Production Vercel is live at `villavalencia.vercel.app`.
+- The live Supabase RPC fix now uses `public.lookup_pqrs_case(p_case_ref text)`.
+- Non-mutating fake lookup smoke passed with `node scripts/pqrs-rpc-smoke.mjs --live`; the fake reference returned zero rows.
+
+Wave 5 added `node scripts/production-smoke.mjs` for read-only route/config checks and fixed the fallback Playwright test so it explicitly disables `PQRS_USE_VV_SUPABASE` before exercising the ph-management rollback path.

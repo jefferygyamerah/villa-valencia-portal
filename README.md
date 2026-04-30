@@ -8,7 +8,7 @@ Digital portal for Villa Valencia HOA (APROVIVA), Costa Sur, Don Bosco, Panama.
 - This portal is the end-user runtime, not the PH Management vanilla product site.
 - Keep this repo client-specific and operational.
 
-**PQRS backend:** Submit + lookup currently call **ph-management** (`https://ph-management.vercel.app/api/pqrs/{submit,lookup}`) as a temporary cutover. **Target:** bring PQRS storage and APIs **into the Villa Valencia stack** (this repo + VV Supabase) so production identity stays **`villavalencia.vercel.app`** without depending on the ph-management deployment for VV cases. **Canon:** Villa Valencia (`here`) is the live HOA deployment; **ph-management** is the reusable product � migrating PQRS home clarifies that boundary; see `docs/PQRS-MIGRATION-PH-TO-VV.md`. The transparency dashboard, budget, and provider directory remain on Google Apps Script + Sheets until those are unified separately.
+**PQRS backend:** Submit + lookup are now configured for the Villa Valencia Supabase project (`PQRS_USE_VV_SUPABASE: true`) after the production RPC false-positive fix was applied and a fake-reference smoke returned zero rows. `PH_MANAGEMENT_API_BASE` remains in config as an explicit rollback path, not the intended active runtime. **Canon:** Villa Valencia (`here`) is the live HOA deployment; **ph-management** is the reusable product - migrating PQRS home clarifies that boundary; see `docs/PQRS-MIGRATION-PH-TO-VV.md`. The transparency dashboard, budget, and provider directory remain on Google Apps Script + Sheets until those are unified separately.
 
 ## Overview
 
@@ -51,7 +51,7 @@ docs/                    Reference documents and migration notes
 Edit `js/config.js` with your values:
 
 - `PH_MANAGEMENT_API_BASE` � fallback PQRS backend while VV Supabase PQRS remains disabled
-- `PQRS_USE_VV_SUPABASE` � flips resident PQRS to Villa Valencia Supabase after required SQL is applied
+- `PQRS_USE_VV_SUPABASE` � active PQRS path; keep `true` after the production RPC smoke, set `false` only for rollback
 - `APPS_SCRIPT_URL` � Apps Script endpoint for dashboard, budget, and supporting automation
 - `DRIVE_LINKS` � Google Drive folder URLs for each document section
 - `ROLE_LOGIN_LINKS` � resident-facing auth handoff links; staff/junta currently land in the local suite
@@ -64,6 +64,17 @@ Historical GitHub Pages references are legacy only; if Pages is used for ad-hoc 
 ## End-to-end tests (Playwright)
 
 From `e2e/`: `npm install` then `npm test` (starts a static server on port 8787 and runs Chromium). To hit production instead: `npm run test:prod` (uses `BASE_URL=https://villavalencia.vercel.app`). CI runs the same suite via `.github/workflows/e2e-playwright.yml`.
+
+## Non-mutating production smokes
+
+From the repo root:
+
+```sh
+node scripts/production-smoke.mjs
+node scripts/pqrs-rpc-smoke.mjs --live
+```
+
+These checks only read production route/config/RPC state. They do not submit PQRS cases or write resident data.
 
 ## Lightweight Automation (Drive-based)
 

@@ -49,6 +49,9 @@ test.describe('Portal residentes (index.html)', () => {
     });
 
     await page.goto('/index.html');
+    await page.evaluate(() => {
+      (window as any).APROVIVA_CONFIG.PQRS_USE_VV_SUPABASE = false;
+    });
     await page.locator('#pqrs-status-id').fill('VV-PQRS-20260430-123456');
     await page.getByRole('button', { name: /Consultar estado/i }).click();
 

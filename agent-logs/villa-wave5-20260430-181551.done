@@ -1,0 +1,34 @@
+status: partial-complete
+summary: Added non-mutating production smoke hardening, corrected stale post-deploy docs/reports, improved RPC smoke error reporting, and fixed the PQRS fallback Playwright test drift. No live DB mutation and no deploy.
+verification_exits:
+  node --check scripts/production-smoke.mjs && node --check scripts/pqrs-rpc-smoke.mjs && node --check js/app.js && node --check js/config.js: 0
+  node scripts/pqrs-rpc-smoke.mjs --check-sql && node scripts/pqrs-rpc-smoke.mjs: 0
+  rg stale pre-cutover wording in mandated docs/reports: 1 no matches
+  git diff --check: 0
+  node scripts/production-smoke.mjs: 1 blocked by DNS getaddrinfo EAI_AGAIN villavalencia.vercel.app
+  node scripts/pqrs-rpc-smoke.mjs --live: 1 blocked by DNS getaddrinfo EAI_AGAIN tgoitmwdpdkhlpqpwrvs.supabase.co
+  npm test -- --grep "PQRS status lookup": 1 blocked by EPERM binding 127.0.0.1:8787
+files_changed:
+  README.md
+  VILLA_VALENCIA_SHIP_REPORT.md
+  docs/PQRS-MIGRATION-PH-TO-VV.md
+  docs/test-findings/comprehensive.md
+  e2e/tests/portal-home.spec.ts
+  reports/villa-p0-launch-blockers.md
+  scripts/pqrs-rpc-smoke.mjs
+  scripts/production-smoke.mjs
+prod_status:
+  Production deploy/RPC status taken from handoff: villavalencia.vercel.app live, Waves 3/4 deployed, lookup_pqrs_case(p_case_ref text) live, fake lookup smoke previously passed with zero rows.
+  Independent live checks from this sandbox were blocked by DNS resolution failures.
+remaining_blockers_next_manual_step:
+  Re-run node scripts/production-smoke.mjs and node scripts/pqrs-rpc-smoke.mjs --live from a network-enabled shell.
+  Run known-reference lookup if Jeff provides a real reference.
+  Create one clearly labeled production PQRS smoke row only after Jeff approval.
+  Plan ph-management historical PQRS export/import and decommission/freeze for Villa Valencia.
+  Separately decide/apply the recorridos MD04/data-backbone migration.
+commit_push:
+  Attempted, but blocked because git metadata index.lock path is read-only: /home/jeffery/Adwen-Tech/apps/villa-valencia-portal/.git/worktrees/villa-valencia-gemba.
+  No commit was created and no push was performed.
+notification:
+  openclaw message send could not be confirmed. First attempt failed because /home/jeffery/.openclaw/plugin-runtime-deps is read-only; retry with OPENCLAW_STATE_DIR=/tmp/openclaw-state produced no result before timeout in this network-restricted sandbox.
+log_path_note: requested /home/jeffery/lanes/agent-logs was read-only; wrote to repo agent-logs.
