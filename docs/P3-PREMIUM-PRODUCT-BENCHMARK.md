@@ -112,3 +112,13 @@ Covered in this slice:
 - Existing Junta/Reportes board packet premium surfaces remain the reference standard.
 
 Next product-wide slice: public portal, suite login, resident/PQRS journey, map PQRS, and legacy surface guard.
+
+
+## Public/login/PQRS premium polish — 2026-05-01
+
+Second product-wide premium slice after the suite module shell:
+- Suite login now presents a private-access/security note first and gates quick demo PIN shortcuts behind a "Modo demo / QA" disclosure.
+- Resident portal now shows a clear Residentes → Operación → Junta handoff strip.
+- PQRS resident journey now explains Radica → Seguimiento → Operación, with visible privacy copy in the panel and modal.
+- Standalone `mapa-pqrs.html` now has read-only badge, legend, and summary cards for PQRS reference, boundary/route, and privacy.
+- Legacy `aproviva-portal.html` is visibly marked as a reference/legacy surface so it is not confused with the commercial path.

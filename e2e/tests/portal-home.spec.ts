@@ -8,6 +8,9 @@ test.describe('Portal residentes (index.html)', () => {
     await expect(page.locator('#accesos')).toBeVisible();
     await expect(page.locator('#pqrs')).toBeVisible();
     await expect(page.locator('#finanzas')).toBeVisible();
+    await expect(page.getByTestId('portal-role-path-strip')).toContainText(/Residentes/i);
+    await expect(page.getByTestId('portal-pqrs-journey')).toContainText(/Seguimiento/i);
+    await expect(page.getByTestId('portal-pqrs-privacy-note')).toContainText(/Privacidad/i);
   });
 
 
@@ -25,6 +28,7 @@ test.describe('Portal residentes (index.html)', () => {
     // Prefer the panel button; the acceso rápido card is an <a href="#"> and is flaky under parallel runs.
     await page.getByRole('button', { name: /Radicar PQRS/i }).click();
     await expect(page.getByTestId('portal-pqrs-modal')).toBeVisible();
+    await expect(page.getByTestId('portal-pqrs-modal-privacy-note')).toContainText(/evidencia operativa/i);
     await expect(page.locator('#pqrs-resumen')).toBeVisible();
   });
 

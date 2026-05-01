@@ -64,7 +64,7 @@ test.describe('APROVIVA suite (PIN JD26 — Junta)', () => {
     await loginWithPin(page, 'JD26');
     await page.goto('/aproviva-suite/index.html#/reportes');
     await page.getByTestId('reportes-page').waitFor({ state: 'visible', timeout: 30_000 });
-    await page.getByRole('button', { name: 'Paquete Junta' }).click();
+    await page.getByRole('button', { name: 'Paquete Junta', exact: true }).click();
     await expect(page.getByTestId('board-packet')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('board-packet')).toContainText('Paquete ejecutivo para Junta');
     await expect(page.getByTestId('board-packet')).toContainText('Decisiones requeridas');

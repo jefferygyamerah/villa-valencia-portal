@@ -471,3 +471,15 @@ Jeff clarified that premium polish must cover all modules, not only Junta/Report
 - Added `e2e/tests/premium-module-shell.spec.ts` to verify premium hero/privacy shell across modules and mobile no-overflow behavior.
 
 Next product-wide slice: public portal/login/PQRS premium consistency and legacy-surface guard.
+
+
+## P3 Premium Product Iteration — Public/Login/PQRS Slice 2026-05-01
+
+Completed the next low-risk commercial polish slice:
+- Added suite login security posture and hid demo PIN shortcuts behind `Modo demo / QA`.
+- Added resident portal role handoff strip and PQRS journey/privacy copy.
+- Added standalone map-PQRS read-only badge, legend, and reference/privacy summary cards.
+- Added legacy notice to `aproviva-portal.html` to keep stale surfaces out of the commercial path.
+- Added Playwright coverage in `public-login-polish.spec.ts`, expanded `portal-home.spec.ts`, and expanded `mapa-pqrs.spec.ts`.
+
+Verification: JS syntax, E2E TypeScript, public/login/map focused tests, and suite route/premium module smoke tests.

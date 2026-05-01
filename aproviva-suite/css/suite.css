@@ -3007,3 +3007,46 @@ body {
     color: #9ca3af;
   }
 }
+
+/* Public/login premium trust posture */
+.suite-login-security-note,
+.suite-demo-access {
+  margin: 0.95rem 0 0;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid rgba(203, 213, 225, 0.85);
+  border-radius: 16px;
+  background: #f8fafc;
+  text-align: left;
+}
+
+.suite-login-security-note p,
+.suite-demo-access p {
+  margin: 0.25rem 0 0;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.suite-demo-access summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: var(--primary);
+  list-style-position: inside;
+}
+
+.suite-demo-access .login-hints {
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 767px) {
+  .suite-login-security-note,
+  .suite-demo-access {
+    background: #22252f;
+    border-color: #2e3140;
+  }
+
+  .suite-login-security-note p,
+  .suite-demo-access p {
+    color: #9ca3af;
+  }
+}

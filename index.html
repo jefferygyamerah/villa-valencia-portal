@@ -150,6 +150,62 @@
       font-weight: 700;
       color: #145694;
     }
+
+    .role-path-strip,
+    .resident-trust-strip,
+    .pqrs-journey {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.85rem;
+      margin: 1rem 0 1.35rem;
+    }
+
+    .role-path-card,
+    .resident-trust-card,
+    .pqrs-journey-step {
+      background: #fff;
+      border: 1px solid rgba(26,107,184,0.12);
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: 0 10px 28px rgba(26,107,184,0.07);
+    }
+
+    .role-path-card strong,
+    .resident-trust-card strong,
+    .pqrs-journey-step strong {
+      display: block;
+      color: #145694;
+      font-size: 0.84rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .role-path-card span,
+    .resident-trust-card span,
+    .pqrs-journey-step span {
+      display: block;
+      color: #5a6a85;
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    .privacy-note-card {
+      margin: 0.9rem 0 1rem;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1e3a8a;
+      border-radius: 16px;
+      padding: 0.85rem 1rem;
+      font-size: 0.82rem;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 760px) {
+      .role-path-strip,
+      .resident-trust-strip,
+      .pqrs-journey {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
   <script>
     function openRoleLogin(roleKey) {
@@ -233,11 +289,10 @@
       <p>La junta entra por la misma capa administrativa para revisar prioridades, aprobaciones y seguimiento ejecutivo del edificio.</p>
     </a>
   </div>
-  <div style="display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 28px;">
-    <span class="access-badge">Conserjer&iacute;a</span>
-    <span class="access-badge">Supervisor</span>
-    <span class="access-badge">Gerencia</span>
-    <span class="access-badge">Junta</span>
+  <div class="role-path-strip" data-testid="portal-role-path-strip">
+    <div class="role-path-card"><strong>Residentes</strong><span>Radican PQRS, consultan estado y usan el mapa de referencia sin entrar a la operaci&oacute;n interna.</span></div>
+    <div class="role-path-card"><strong>Operaci&oacute;n</strong><span>Conserjer&iacute;a, supervisi&oacute;n y gerencia convierten reportes en recorridos, incidencias, inventario y backlog.</span></div>
+    <div class="role-path-card"><strong>Junta</strong><span>Revisa decisiones, riesgos y evidencia resumida sin datos personales innecesarios.</span></div>
   </div>
 
   <h2 class="section-title">&#x26A1; Acceso R&aacute;pido</h2>
@@ -314,6 +369,14 @@
         Env&iacute;a tu petici&oacute;n, queja, reclamo o sugerencia a trav&eacute;s del formulario oficial de APROVIVA.
         Tu solicitud ser&aacute; atendida por la administraci&oacute;n.
       </p>
+      <div class="pqrs-journey" data-testid="portal-pqrs-journey">
+        <div class="pqrs-journey-step"><strong>1. Radica</strong><span>Describe el hecho, ubicaci&oacute;n y evidencia. Evita datos personales de terceros.</span></div>
+        <div class="pqrs-journey-step"><strong>2. Seguimiento</strong><span>Recibe una referencia VV-PQRS y consulta el estado cuando quieras.</span></div>
+        <div class="pqrs-journey-step"><strong>3. Operaci&oacute;n</strong><span>Administraci&oacute;n prioriza, asigna y cierra con evidencia trazable.</span></div>
+      </div>
+      <div class="privacy-note-card" data-testid="portal-pqrs-privacy-note">
+        <strong>Privacidad:</strong> el portal pide lo m&iacute;nimo para gestionar el caso. No incluyas bancos, documentos, conversaciones privadas ni datos de otros residentes.
+      </div>
       <p style="font-size:0.78rem;margin-bottom:0.85rem;">
         <a href="aproviva-suite/mapa-pqrs.html" target="_blank" rel="noopener noreferrer">Ver mapa del conjunto y puntos de recorrido</a>
         (referencia visual, mismo mapa que usa el m&oacute;dulo de recorridos).
@@ -434,6 +497,9 @@
     <div id="pqrsForm">
       <div class="modal-desc">&#x1F4CB; Tu reporte ser&aacute; recibido por la administraci&oacute;n de APROVIVA y atendido seg&uacute;n su prioridad.</div>
       <div class="form-status" id="pqrs-form-status" aria-live="polite"></div>
+      <div class="privacy-note-card" data-testid="portal-pqrs-modal-privacy-note">
+        Usa evidencia operativa: ubicaci&oacute;n, foto del punto y descripci&oacute;n clara. No incluyas datos personales de terceros.
+      </div>
       <div class="form-group">
         <label class="form-label">Resumen del reporte</label>
         <input type="text" class="form-input" id="pqrs-resumen" placeholder="Ej. Fuga de agua en la calle 3"/>

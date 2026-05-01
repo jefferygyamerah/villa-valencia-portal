@@ -11,21 +11,29 @@
           '<input type="password" inputmode="text" id="pin-input" class="pin-input" placeholder="PIN" maxlength="8" autocomplete="off" />' +
           '<div class="login-error" id="login-error"></div>' +
           '<button class="btn-primary" id="pin-submit" type="button">Entrar</button>' +
-          '<div class="btn-row mt-2" id="quick-pin-buttons" style="justify-content:center;gap:0.35rem;flex-wrap:wrap;">' +
-            '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="2026">Conserjería</button>' +
-            '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="SUP26">Supervisi\u00f3n</button>' +
-            '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="GER26">Gerencia</button>' +
-            '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="JD26">Junta</button>' +
+          '<div class="suite-login-security-note" data-testid="suite-login-security-note">' +
+            '<div class="vv-eyebrow">Acceso privado · Villa Valencia</div>' +
+            '<p>Usa el PIN asignado a tu rol. La vista limita datos por perfil y evita mostrar conversaciones privadas, bancos o PII en reportes ejecutivos.</p>' +
           '</div>' +
+          '<details class="suite-demo-access" data-testid="suite-demo-access">' +
+            '<summary>Modo demo / QA</summary>' +
+            '<p class="muted">Atajos para demostración controlada. No representan autenticación final de producción.</p>' +
+            '<div class="btn-row mt-2" id="quick-pin-buttons" style="justify-content:center;gap:0.35rem;flex-wrap:wrap;">' +
+              '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="2026">Conserjería</button>' +
+              '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="SUP26">Supervisión</button>' +
+              '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="GER26">Gerencia</button>' +
+              '<button type="button" class="btn btn-ghost btn-sm" data-quick-pin="JD26">Junta</button>' +
+            '</div>' +
+            '<div class="login-hints">' +
+              '<strong>Conserjería</strong> &mdash; PIN <strong>2026</strong> o <strong>CONS26</strong><br>' +
+              '<strong>Supervisión</strong> &mdash; PIN <strong>SUP26</strong><br>' +
+              '<strong>Gerencia</strong> &mdash; PIN <strong>GER26</strong><br>' +
+              '<strong>Junta</strong> &mdash; PIN <strong>JD26</strong>' +
+            '</div>' +
+          '</details>' +
           '<a class="login-back" href="../index.html">&larr; Volver al portal</a>' +
-          '<div class="login-hints">' +
-            '<strong>Conserjer\u00eda</strong> &mdash; PIN <strong>2026</strong> o <strong>CONS26</strong><br>' +
-            '<strong>Supervisi\u00f3n</strong> &mdash; PIN <strong>SUP26</strong> (en otros despliegues puede ver varios conjuntos u HOAs; aqu\u00ed solo <strong>Villa Valencia</strong>)<br>' +
-            '<strong>Gerencia</strong> &mdash; PIN <strong>GER26</strong><br>' +
-            '<strong>Junta</strong> &mdash; PIN <strong>JD26</strong> (gobernanza, reportes, backlog para operaciones)' +
-          '</div>' +
           '<p class="login-scope-hint muted" style="margin-top:0.85rem;font-size:0.82rem;line-height:1.45;">' +
-            '<strong>Alcance:</strong> este portal muestra solo <strong>Villa Valencia</strong>. El <strong>admin de planta</strong> es la operaci\u00f3n diaria de <em>un</em> conjunto (aqu\u00ed, este). La <strong>supervisi\u00f3n</strong> puede abarcar varios edificios u HOAs en otros entornos; <strong>gerencia</strong> y supervisi\u00f3n pueden ser el mismo perfil.' +
+            '<strong>Alcance:</strong> este portal muestra solo <strong>Villa Valencia</strong>. Conserjería, supervisión, gerencia y junta comparten una operación trazable con permisos distintos.' +
           '</p>' +
         '</div>' +
       '</div>';
