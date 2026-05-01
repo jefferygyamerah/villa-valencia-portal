@@ -97,6 +97,7 @@
           '</div>' +
         '</div>' +
         renderVillaLens(session) +
+        '<a class="page-section sop-home-card" data-testid="home-sop-link" href="#/sop"><div><div class="vv-eyebrow">Manual operativo</div><h3 class="section-title">Abrir SOP por roles</h3><p class="muted">Guía paso a paso con capturas para residentes, conserjería, supervisión, gerencia y junta.</p></div><span class="sop-home-action">Ver manual →</span></a>' +
         '<div class="kpi-grid" id="home-kpis"><div class="loading">Cargando KPIs...</div></div>' +
         '<div class="page-section" id="home-kpi-detail" data-testid="home-kpi-detail" style="display:none"></div>' +
         '<div class="page-section home-modules" data-testid="home-modules">' +

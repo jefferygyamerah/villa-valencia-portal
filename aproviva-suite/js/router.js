@@ -113,6 +113,7 @@
     var current = currentRoute();
     var items = [
       { name: 'inicio', label: 'Inicio', icon: '\ud83c\udfe0', module: null },
+      { name: 'sop', label: 'SOP', icon: '\ud83d\udcd8', module: null },
       { name: 'inventario', label: 'Inventario', icon: '\ud83d\udce6', module: 'inventario' },
       { name: 'gemba', label: 'Recorridos', icon: '\ud83d\udd0d', module: 'gemba' },
       { name: 'mapa', label: 'Mapa', icon: '\ud83d\uddfa\ufe0f', module: 'gemba' },

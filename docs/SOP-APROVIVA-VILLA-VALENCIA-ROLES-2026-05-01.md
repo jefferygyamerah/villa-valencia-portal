@@ -1,9 +1,10 @@
 # SOP APROVIVA Villa Valencia — Manual de uso por roles
 
-**Versión:** 2026-05-01  
-**Sistema:** APROVIVA Operaciones + Portal Residentes Villa Valencia  
-**URL producción:** <https://villavalencia.vercel.app>  
-**Audiencia:** Residentes, Conserjería, Supervisión, Gerencia/Administración y Junta Directiva  
+**Versión:** 2026-05-01
+**Sistema:** APROVIVA Operaciones + Portal Residentes Villa Valencia
+**URL producción:** <https://villavalencia.vercel.app>
+**Versión renderizada en la app:** entrar a APROVIVA Operaciones y abrir **SOP** en el menú o desde Inicio.
+**Audiencia:** Residentes, Conserjería, Supervisión, Gerencia/Administración y Junta Directiva
 **Estado:** Piloto controlado / demo operativa
 
 ---
@@ -26,22 +27,22 @@ El objetivo es que cualquier persona pueda operar sin adivinar:
 
 ## 2. Reglas de oro
 
-1. **Privacidad primero.**  
+1. **Privacidad primero.**
    No escribas números de cuenta, cédulas, tarjetas, contraseñas, conversaciones privadas, datos bancarios ni información personal de terceros.
 
-2. **Evidencia operativa, no chisme.**  
+2. **Evidencia operativa, no chisme.**
    Describe hechos: ubicación, fecha, estado, foto del punto o área común, responsable si aplica.
 
-3. **Cada rol hace su parte.**  
+3. **Cada rol hace su parte.**
    Conserjería ejecuta. Supervisión valida y coordina. Gerencia controla. Junta decide. Residentes reportan y consultan.
 
-4. **Los PIN son de demo.**  
+4. **Los PIN son de demo.**
    Los PIN indicados aquí son para demo/QA o piloto controlado. No representan autenticación final de producción.
 
-5. **No uses datos reales sensibles para probar.**  
+5. **No uses datos reales sensibles para probar.**
    Para capacitación, usa ejemplos simples y no privados.
 
-6. **Al terminar una prueba, revisar datos.**  
+6. **Al terminar una prueba, revisar datos.**
    Algunos flujos operativos pueden crear registros reales. En producción limpia solo debe quedar la semilla autorizada.
 
 ---
