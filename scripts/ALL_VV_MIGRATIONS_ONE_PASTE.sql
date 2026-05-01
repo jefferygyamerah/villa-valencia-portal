@@ -122,6 +122,17 @@ DO $$ BEGIN
     ALTER TABLE public.pqrs_cases ADD COLUMN status text NOT NULL DEFAULT 'recibido';
   END IF;
 END $$;
+-- Legacy ph-management columns are still present in production; keep browser inserts compatible.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pqrs_cases' AND column_name = 'resident_status') THEN
+    ALTER TABLE public.pqrs_cases ALTER COLUMN resident_status SET DEFAULT 'recibido';
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pqrs_cases' AND column_name = 'case_ref') THEN
+    UPDATE public.pqrs_cases SET case_ref = case_reference
+    WHERE case_reference IS NOT NULL AND (case_ref IS NULL OR trim(case_ref) = '');
+  END IF;
+END $$;
 -- Legacy tables may use another column for the public id; map then fill gaps so lookup/trigger work.
 DO $$
 BEGIN
@@ -141,7 +152,7 @@ DO $$
 BEGIN
   ALTER TABLE public.pqrs_cases ADD CONSTRAINT pqrs_cases_case_reference_key UNIQUE (case_reference);
 EXCEPTION
-  WHEN duplicate_object THEN NULL;
+  WHEN duplicate_object OR duplicate_table THEN NULL;
 END $$;
 UPDATE public.pqrs_cases SET building_id = '88e6c11e-4a8c-4f39-a571-5f97e7f2b774'::uuid WHERE building_id IS NULL;
 CREATE INDEX IF NOT EXISTS pqrs_cases_building_id_idx ON public.pqrs_cases (building_id);
@@ -150,16 +161,26 @@ CREATE INDEX IF NOT EXISTS pqrs_cases_site_place_id_idx ON public.pqrs_cases (bu
 CREATE OR REPLACE FUNCTION public.pqrs_set_case_reference() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE suffix text; candidate text; panama date;
 BEGIN
-  IF NEW.case_reference IS NOT NULL AND trim(NEW.case_reference) <> '' THEN RETURN NEW; END IF;
-  panama := (now() AT TIME ZONE 'America/Panama')::date;
+  IF NEW.case_reference IS NULL OR trim(NEW.case_reference) = '' THEN
+    panama := (now() AT TIME ZONE 'America/Panama')::date;
+  ELSE
+    IF to_jsonb(NEW) ? 'case_ref' AND (NEW.case_ref IS NULL OR trim(NEW.case_ref) = '') THEN NEW.case_ref := NEW.case_reference; END IF;
+    IF to_jsonb(NEW) ? 'resident_status' AND (NEW.resident_status IS NULL OR trim(NEW.resident_status) = '') THEN NEW.resident_status := 'recibido'; END IF;
+    RETURN NEW;
+  END IF;
   FOR i IN 1..12 LOOP
     suffix := lpad((floor(random() * 900000 + 100000))::bigint::text, 6, '0');
     candidate := 'VV-PQRS-' || to_char(panama, 'YYYYMMDD') || '-' || suffix;
     IF NOT EXISTS (SELECT 1 FROM public.pqrs_cases c WHERE c.case_reference = candidate) THEN
-      NEW.case_reference := candidate; RETURN NEW;
+      NEW.case_reference := candidate;
+      IF to_jsonb(NEW) ? 'case_ref' AND (NEW.case_ref IS NULL OR trim(NEW.case_ref) = '') THEN NEW.case_ref := NEW.case_reference; END IF;
+      IF to_jsonb(NEW) ? 'resident_status' AND (NEW.resident_status IS NULL OR trim(NEW.resident_status) = '') THEN NEW.resident_status := 'recibido'; END IF;
+      RETURN NEW;
     END IF;
   END LOOP;
   NEW.case_reference := 'VV-PQRS-' || to_char(panama, 'YYYYMMDD') || '-' || upper(substring(replace(gen_random_uuid()::text, '-', '') from 1 for 6));
+  IF to_jsonb(NEW) ? 'case_ref' AND (NEW.case_ref IS NULL OR trim(NEW.case_ref) = '') THEN NEW.case_ref := NEW.case_reference; END IF;
+  IF to_jsonb(NEW) ? 'resident_status' AND (NEW.resident_status IS NULL OR trim(NEW.resident_status) = '') THEN NEW.resident_status := 'recibido'; END IF;
   RETURN NEW;
 END; $$;
 DROP TRIGGER IF EXISTS trg_pqrs_set_case_reference ON public.pqrs_cases;

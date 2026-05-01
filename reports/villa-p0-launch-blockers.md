@@ -8,7 +8,7 @@ Worktree: `/home/jeffery/Adwen-Tech/apps/villa-valencia-portal`
 
 Gate status: **POST-DEPLOY HARDENING**.
 
-The codebase has deployed the Villa Valencia-owned PQRS path and Jeff applied the narrow production Supabase RPC fix in project `tgoitmwdpdkhlpqpwrvs`. A non-mutating fake-reference RPC smoke passed after that fix. Wave 6 added the historical backfill/decommission runbook and an offline CSV validator; execution still requires Jeff approval and a private ph-management export. Wave 7 added a non-mutating MD04/data-backbone preflight guard for the recorridos migration. Remaining work is post-deploy validation, a controlled manual submit/lookup smoke only if approved, executing historical backfill/decommission, and the separate recorridos/MD04-lite data backbone approval/apply decision.
+The codebase has deployed the Villa Valencia-owned PQRS path and Jeff applied the narrow production Supabase RPC fix in project `tgoitmwdpdkhlpqpwrvs`. A non-mutating fake-reference RPC smoke passed after that fix. Wave 6 added the historical backfill/decommission runbook and an offline CSV validator; execution still requires Jeff approval and a private ph-management export. Wave 7 added a non-mutating MD04/data-backbone preflight guard for the recorridos migration. Remaining work is executing historical backfill/decommission when a private ph-management export is available, optional photo/upload smoke, and Playwright in a browser-capable environment.
 
 No new production SQL or resident-data mutation should be performed by agents without explicit approval.
 
@@ -223,8 +223,8 @@ Expected:
 - [x] ph-management historical rows/backfill/decommission plan is documented for Villa Valencia PQRS.
 - [ ] ph-management historical export/import and freeze/decommission are executed.
 - [x] MD04/data backbone local preflight guard exists.
-- [ ] MD04/data backbone migration is approved separately before applying.
-- [ ] If MD04 migration is applied, runbook verification SQL passes.
+- [x] MD04/data backbone migration approved and applied after live preflight.
+- [x] MD04 runbook verification SQL passed after apply.
 
 ## Launch Decision
 

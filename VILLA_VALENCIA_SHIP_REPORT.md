@@ -29,9 +29,9 @@ Remaining production validation should be non-mutating first:
 - `node scripts/pqrs-rpc-smoke.mjs --live`
 - `node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-YYYYMMDD-XXXXXX` if Jeff provides a known real reference
 - `node scripts/pqrs-backfill-validate.mjs --file /tmp/vv-pqrs-backfill.csv` after a private ph-management export is staged
-- `node scripts/recorridos-md04-preflight.mjs` and `node scripts/recorridos-md04-preflight.mjs --print-sql` before any approved MD04/data-backbone Supabase apply
+- `node scripts/recorridos-md04-preflight.mjs --live` for read-only MD04 prerequisite checks; the approved MD04/data-backbone migration was applied on 2026-04-30
 
-Do not create a new production PQRS smoke row unless Jeff explicitly approves a clearly labeled test case.
+Jeff approved a clearly labeled production PQRS smoke row on 2026-04-30; case `VV-PQRS-20260430-SMOKE8299` was inserted and lookup returned itself. Do not create additional production smoke rows without fresh approval.
 
 ### Superseded: production PQRS was not cut over yet
 
@@ -103,10 +103,9 @@ SELECT * FROM public.lookup_pqrs_case('VV-PQRS-YYYYMMDD-XXXXXX');
 
 Expected: exactly one row and the returned reference matches the requested reference.
 
-2. Run one controlled PQRS submit + lookup only after Jeff approves creating a clearly labeled production smoke case.
-3. Execute `docs/PQRS-HISTORICAL-BACKFILL-RUNBOOK.md` after Jeff approves a private ph-management export/import window.
-4. Run Playwright E2E in an environment with browser dependencies installed.
-5. Run the MD04/data-backbone preflight guard and prerequisite SQL before Jeff approves applying `20260429120000_inspection_plan_data_backbone.sql`.
+2. Execute `docs/PQRS-HISTORICAL-BACKFILL-RUNBOOK.md` after a private ph-management export/import file or access is available.
+3. Run Playwright E2E in an environment with browser dependencies installed.
+4. Build the MD04-lite UI consumption layer on top of the now-applied `get_md04_lite_exceptions(uuid)` function if desired.
 
 ## Deploy Recommendation
 

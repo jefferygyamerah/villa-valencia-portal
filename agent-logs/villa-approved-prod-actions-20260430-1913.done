@@ -15,5 +15,5 @@ repo_changes:
   - PQRS migrations document legacy schema compatibility
   - MD04 migration uses text bridge ids for existing production tables
 remaining:
-  - deploy updated portal JS to production
+  - updated portal JS deployed to production and post-deploy smoke passed
   - historical ph-management backfill still needs a private export file/access before execution
