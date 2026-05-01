@@ -250,12 +250,12 @@
 
     container.innerHTML = '' +
       '<section class="page" data-testid="proyectos-page">' +
-        '<div class="row between wrap proj-head">' +
-          '<div>' +
+        '<div class="module-premium-hero" data-testid="proyectos-premium-hero">' +
+          '<div class="module-hero-copy"><div class="vv-eyebrow">Coordinación · Backlog</div>' +
             '<h2 class="page-title">' + title + '</h2>' +
             intro +
           '</div>' +
-          '<div class="row wrap proj-toolbar">' +
+          '<div class="module-hero-actions proj-toolbar">' +
             '<select id="proj-filter" class="btn btn-ghost">' +
               '<option value="open">Abiertos</option>' +
               '<option value="all">Todos</option>' +
@@ -265,6 +265,7 @@
             '<button class="btn btn-primary-sm" id="proj-new" type="button" data-testid="' + (junta ? 'proj-backlog-form' : 'proj-new-order') + '">' + newBtnLabel + '</button>' +
           '</div>' +
         '</div>' +
+        '<div class="vv-privacy-card module-privacy-card" data-testid="proyectos-privacy-card"><div class="vv-eyebrow">Backlog seguro</div><p>Las tarjetas muestran estado, responsable, prioridad y evidencia operativa. Evita residentes, cuentas o conversaciones privadas en notas libres.</p></div>' +
         '<div class="page-section proj-next">' +
           '<div>' +
             '<span class="vv-eyebrow">' + actionTitle + '</span>' +

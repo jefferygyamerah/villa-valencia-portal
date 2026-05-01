@@ -83,7 +83,7 @@
   async function render(container, session) {
     var allowed = MODULES.filter(function (m) { return window.AUTH.canAccess(m.id); });
     container.innerHTML = '' +
-      '<section class="page">' +
+      '<section class="page" data-testid="inicio-page">' +
         '<h2 class="page-title">Bienvenido, ' + window.UI.esc(session.label) + '</h2>' +
         '<p class="page-subtitle">' + window.UI.esc(window.APROVIVA_SUITE_CONFIG.BUILDING_NAME) + ' &middot; ' + window.UI.esc(window.APROVIVA_SUITE_CONFIG.BUILDING_CODE) + '</p>' +
         '<div class="page-section install-section install-section--top" id="install-section" style="display:none">' +
@@ -139,10 +139,8 @@
         '</div>' +
         '<div class="vv-lens-grid">' +
           '<div class="vv-workspace">' +
-            '<div class="vv-kpi-strip">' +
-              miniKpi('Puntos fijos', siteCount || 9) +
-              miniKpi('M\u00f3dulos', allowedCount) +
-              miniKpi('PII', 'oculta') +
+            '<div class="vv-kpi-strip" data-testid="home-kpi-strip">' +
+              strip.map(function (item) { return miniKpi(item.label, item.value); }).join('') +
             '</div>' +
             '<div class="vv-progress" aria-label="Flujo operativo">' +
               lens.steps.map(function (step, idx) {
@@ -160,6 +158,7 @@
               '<a class="vv-primary-action" href="' + window.UI.esc(lens.primary.href) + '">' + window.UI.esc(lens.primary.label) + '</a>' +
               '<a class="vv-secondary-action" href="' + window.UI.esc(lens.secondary.href) + '">' + window.UI.esc(lens.secondary.label) + '</a>' +
             '</div>' +
+            '<div class="vv-privacy-card home-privacy-card" data-testid="home-privacy-card"><div class="vv-eyebrow">Privacidad por rol</div><p>' + window.UI.esc(lens.privacy || 'Vista operativa con datos sensibles protegidos.') + '</p></div>' +
           '</aside>' +
         '</div>' +
       '</div>';

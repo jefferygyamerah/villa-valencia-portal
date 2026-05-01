@@ -333,19 +333,20 @@
     var canManagePlans = session && session.role === 'supervisor';
     container.innerHTML = '' +
       '<section class="page" data-testid="gemba-page">' +
-        '<div class="row between wrap">' +
-          '<div>' +
-            '<h2 class="page-title">Recorridos de inspecci\u00f3n</h2>' +
-            '<p class="page-subtitle">Plan Maestro, Puntos de Inspecci\u00f3n, Ejecuci\u00f3n y Hallazgos.</p>' +
+        '<div class="module-premium-hero" data-testid="gemba-premium-hero">' +
+          '<div class="module-hero-copy"><div class="vv-eyebrow">Operación · Recorridos</div>' +
+            '<h2 class="page-title">Recorridos de inspección</h2>' +
+            '<p class="page-subtitle">Plan Maestro → punto → evidencia → cierre. Cada hallazgo queda trazable por rol, ubicación y estado.</p>' +
           '</div>' +
-          '<div class="row wrap" style="gap:0.5rem;">' +
+          '<div class="module-hero-actions">' +
             '<a class="btn btn-ghost" href="#/mapa">Mapa del sitio</a>' +
             (canManagePlans
               ? '<button class="btn btn-ghost" id="gemba-new-tpl" type="button">Nuevo Plan Maestro</button>'
               : '') +
-            '<button class="btn btn-primary-sm" id="gemba-start-btn" type="button">Iniciar Ejecuci\u00f3n</button>' +
+            '<button class="btn btn-primary-sm" id="gemba-start-btn" type="button">Iniciar Ejecución</button>' +
           '</div>' +
         '</div>' +
+        '<div class="vv-privacy-card module-privacy-card" data-testid="gemba-privacy-note"><div class="vv-eyebrow">Evidencia operativa</div><p>Registra áreas comunes, puntos físicos y hallazgos. Evita nombres, teléfonos o datos privados en comentarios.</p></div>' +
         '<div class="kpi-grid" id="gemba-kpis"><div class="loading">...</div></div>' +
         '<div id="gemba-next-action" data-testid="gemba-demo-flow"></div>' +
         '<div class="page-section">' +

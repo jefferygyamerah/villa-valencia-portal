@@ -77,7 +77,7 @@ test.describe('P3-RPT-002 premium board scorecard', () => {
     const state = await mockSupabase(page);
     await loginWithPin(page, 'JD26');
     await page.goto('/aproviva-suite/index.html#/reportes');
-    await page.getByRole('button', { name: 'Paquete Junta' }).click();
+    await page.getByRole('button', { name: 'Paquete Junta', exact: true }).click();
 
     const packet = page.getByTestId('board-packet');
     await expect(packet).toBeVisible({ timeout: 30_000 });

@@ -458,3 +458,16 @@ Completed a low-risk executive surface polish slice:
 - Expanded mocked scorecard tests for hero/summary/mobile readability without Supabase writes.
 
 Next premium iteration: audit/history center lite or resident/PQRS polish, depending on which is higher commercial leverage.
+
+
+## P3 Premium Product Iteration — All-Module Suite Shell 2026-05-01
+
+Jeff clarified that premium polish must cover all modules, not only Junta/Reportes. Completed the first suite-wide slice:
+
+- Added premium module hero/context and privacy/evidence notes to field modules: Inventario, Recorridos/Gemba, Mapa, Incidencias.
+- Added premium module hero/privacy posture to management modules: Inicio, Proyectos, Maestros, Reportes landing.
+- Inicio now renders the role-specific privacy copy and role KPI strip from the lens configuration instead of hardcoded mini-KPIs.
+- Added reusable `module-premium-hero`, `module-hero-actions`, and `module-privacy-card` CSS with mobile-safe layout.
+- Added `e2e/tests/premium-module-shell.spec.ts` to verify premium hero/privacy shell across modules and mobile no-overflow behavior.
+
+Next product-wide slice: public portal/login/PQRS premium consistency and legacy-surface guard.

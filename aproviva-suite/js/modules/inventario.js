@@ -65,18 +65,19 @@
     }
     container.innerHTML = '' +
       '<section class="page" data-testid="inventario-page">' +
-        '<div class="row between wrap">' +
-          '<div>' +
+        '<div class="module-premium-hero" data-testid="inventario-premium-hero">' +
+          '<div class="module-hero-copy"><div class="vv-eyebrow">Operación · Inventario</div>' +
             '<h2 class="page-title">Inventario</h2>' +
             '<p class="page-subtitle">' + invSub + '</p>' +
             apicsHelpPanel() +
           '</div>' +
-          '<div class="row wrap" style="gap:0.5rem;">' +
+          '<div class="module-hero-actions">' +
             (canCount ? '<button class="btn btn-primary-sm" id="inv-count-btn" type="button">Registrar conteo</button>' : '') +
-            (canProcure ? '<button class="btn btn-primary-sm" id="inv-procure-btn" type="button">Actualizar reposici\u00f3n</button>' : '') +
+            (canProcure ? '<button class="btn btn-primary-sm" id="inv-procure-btn" type="button">Actualizar reposición</button>' : '') +
             '<button class="btn btn-ghost" id="inv-issue-btn" type="button">Reportar novedad</button>' +
           '</div>' +
         '</div>' +
+        '<div class="vv-privacy-card module-privacy-card" data-testid="inv-privacy-note"><div class="vv-eyebrow">Evidencia segura</div><p>Solo registra insumos operativos de Villa Valencia. Evita nombres de residentes, contactos, bancos o datos sensibles en notas libres.</p></div>' +
         '<div class="inv-next-card" id="inv-next"><div class="loading">Preparando siguiente paso...</div></div>' +
         '<div class="kpi-grid inv-kpis" id="inv-kpis"><div class="loading">Cargando KPIs...</div></div>' +
         '<details class="page-section" open>' +

@@ -13,8 +13,14 @@
   async function render(container, session) {
     container.innerHTML = '' +
       '<section class="page" data-testid="maestros-page">' +
-        '<h2 class="page-title">Datos maestros</h2>' +
-        '<p class="page-subtitle">Cat\u00e1logos operativos para inventario, recorridos y administraci\u00f3n de Villa Valencia. Mant\u00e9n datos cortos, consistentes y sin informaci\u00f3n sensible innecesaria.</p>' +
+        '<div class="module-premium-hero" data-testid="maestros-premium-hero">' +
+          '<div class="module-hero-copy"><div class="vv-eyebrow">Control · Datos maestros</div>' +
+            '<h2 class="page-title">Datos maestros</h2>' +
+            '<p class="page-subtitle">Catálogos operativos para inventario, recorridos y administración de Villa Valencia. Mantén datos cortos, consistentes y sin información sensible innecesaria.</p>' +
+          '</div>' +
+          '<div class="module-hero-actions"><button class="btn btn-primary-sm" id="m-new-item-hero" type="button">+ Artículo</button><button class="btn btn-ghost" id="m-new-loc-hero" type="button">+ Ubicación</button></div>' +
+        '</div>' +
+        '<div class="vv-privacy-card module-privacy-card" data-testid="maestros-privacy-card"><div class="vv-eyebrow">Higiene de datos</div><p>Usa catálogos controlados para reducir texto libre y proteger correos/contactos. Los datos internos se muestran resumidos.</p></div>' +
         '<div id="m-summary" class="m-summary kpi-grid">' +
           '<div class="kpi-card"><div class="kpi-label">Art\u00edculos</div><div class="kpi-value">...</div><div class="kpi-sub">Cat\u00e1logo de inventario</div></div>' +
           '<div class="kpi-card"><div class="kpi-label">Ubicaciones</div><div class="kpi-value">...</div><div class="kpi-sub">Puntos de operaci\u00f3n</div></div>' +
@@ -46,6 +52,8 @@
 
     document.getElementById('m-new-item').addEventListener('click', openNewItem);
     document.getElementById('m-new-loc').addEventListener('click', openNewLoc);
+    document.getElementById('m-new-item-hero').addEventListener('click', openNewItem);
+    document.getElementById('m-new-loc-hero').addEventListener('click', openNewLoc);
     await loadAll();
   }
 

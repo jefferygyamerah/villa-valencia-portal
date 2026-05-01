@@ -94,3 +94,21 @@ Implemented first premium reporting slice:
    - recent changes and closures across incidents, rounds, work orders.
 4. Auth/RLS hardening plan and first implementation slice.
 5. Resident/PQRS premium polish against Munily-style resident expectations.
+
+
+## All-module suite polish pass — 2026-05-01
+
+Jeff clarified the premium standard must apply across all modules. The first product-wide suite slice adds consistent module hero/context blocks and privacy/evidence notes across field and management modules, plus route/mobile tests.
+
+Covered in this slice:
+- Inicio
+- Inventario
+- Recorridos/Gemba
+- Mapa
+- Incidencias
+- Proyectos/backlog
+- Maestros
+- Reportes landing
+- Existing Junta/Reportes board packet premium surfaces remain the reference standard.
+
+Next product-wide slice: public portal, suite login, resident/PQRS journey, map PQRS, and legacy surface guard.

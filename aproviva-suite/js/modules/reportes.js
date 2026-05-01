@@ -6,8 +6,13 @@
   async function render(container, session) {
     container.innerHTML = '' +
       '<section class="page" data-testid="reportes-page">' +
-        '<h2 class="page-title">Reportes</h2>' +
-        '<p class="page-subtitle">Lectura ejecutiva de operaci\u00f3n sin datos personales: qu\u00e9 est\u00e1 pendiente, qu\u00e9 requiere decisi\u00f3n y qu\u00e9 se puede compartir.</p>' +
+        '<div class="module-premium-hero" data-testid="reportes-premium-hero">' +
+          '<div class="module-hero-copy"><div class="vv-eyebrow">Reporting · Junta</div>' +
+            '<h2 class="page-title">Reportes</h2>' +
+            '<p class="page-subtitle">Lectura ejecutiva de operación sin datos personales: qué está pendiente, qué requiere decisión y qué se puede compartir.</p>' +
+          '</div>' +
+          '<div class="module-hero-actions"><button class="btn btn-primary-sm" id="rp-board-hero" type="button">Preparar paquete Junta</button></div>' +
+        '</div>' +
         '<div class="rp-action-bar" aria-label="Tipos de reporte">' +
           '<button class="btn btn-primary-sm" id="rp-daily">Resumen diario</button>' +
           '<button class="btn btn-ghost" id="rp-weekly">Semanal</button>' +
@@ -28,6 +33,7 @@
     document.getElementById('rp-esc').addEventListener('click', renderEscalations);
     document.getElementById('rp-kpi').addEventListener('click', exportKpi);
     document.getElementById('rp-board').addEventListener('click', renderBoardPacket);
+    document.getElementById('rp-board-hero').addEventListener('click', renderBoardPacket);
     document.getElementById('rp-print').addEventListener('click', function () { window.print(); });
   }
 

@@ -366,14 +366,15 @@
 
     container.innerHTML = '' +
       '<section class="page mapa-page" data-testid="mapa-page">' +
-        '<div class="row between wrap">' +
-          '<div>' +
+        '<div class="module-premium-hero" data-testid="mapa-premium-hero">' +
+          '<div class="module-hero-copy"><div class="vv-eyebrow">Operación · Mapa</div>' +
             '<h2 class="page-title">Mapa del sitio</h2>' +
-            '<p class="page-subtitle">Mapa operativo para recorridos, puntos de ruta y hallazgos Gemba de Villa Valencia. Conserjer\u00eda registra o cierra en sitio; supervisi\u00f3n confirma y retira puntos resueltos' + (cloudOk ? '.' : ' (modo local hasta conectar tablas).') + '</p>' +
+            '<p class="page-subtitle">Vista de Villa Valencia para ubicar puntos de ruta, hallazgos y evidencia sin perder contexto físico' + (cloudOk ? '.' : ' (modo local hasta conectar tablas).') + '</p>' +
           '</div>' +
         '</div>' +
+        '<div class="vv-privacy-card module-privacy-card" data-testid="mapa-privacy-note"><div class="vv-eyebrow">Mapa seguro</div><p>Fotos y comentarios deben describir el punto físico o área común, no personas ni datos privados.</p></div>' +
         cloudBanner +
-        '<div class="mapa-layer-toggles mt-2">' +
+        '<div class="mapa-layer-toggles mt-2" data-testid="mapa-toolbar">' +
           '<label><input type="checkbox" id="mapa-layer-wp" checked /> Puntos de recorrido</label>' +
           '<label><input type="checkbox" id="mapa-layer-find" checked /> Hallazgos</label>' +
         '</div>' +

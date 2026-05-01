@@ -8,12 +8,12 @@
     STATE.session = session;
     container.innerHTML = '' +
       '<section class="page" data-testid="incidencias-page">' +
-        '<div class="row between wrap">' +
-          '<div>' +
+        '<div class="module-premium-hero" data-testid="inc-premium-hero">' +
+          '<div class="module-hero-copy"><div class="vv-eyebrow">Operación · Incidencias</div>' +
             '<h2 class="page-title">Incidencias</h2>' +
-            '<p class="page-subtitle">Reporte rapido, triage y siguiente accion operativa con bitacora visible.</p>' +
+            '<p class="page-subtitle">Reporte rápido, triage y siguiente acción operativa con bitácora visible.</p>' +
           '</div>' +
-          '<div class="row wrap" style="gap:0.5rem;">' +
+          '<div class="module-hero-actions">' +
             '<select id="inc-filter" class="btn btn-ghost">' +
               '<option value="open">Abiertas</option>' +
               '<option value="all">Todas</option>' +
@@ -22,6 +22,7 @@
             '<button class="btn btn-primary-sm" id="inc-new" type="button">+ Nueva incidencia</button>' +
           '</div>' +
         '</div>' +
+        '<div class="vv-privacy-card module-privacy-card" data-testid="inc-privacy-note"><div class="vv-eyebrow">Evidencia segura</div><p>Describe hechos operativos, ubicación y responsable. Evita teléfonos, datos personales o conversaciones privadas.</p></div>' +
         '<div class="inc-next-step" id="inc-next-step"></div>' +
         '<div class="kpi-grid" id="inc-kpis"><div class="loading">...</div></div>' +
         '<div class="page-section">' +
