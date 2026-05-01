@@ -1,0 +1,76 @@
+Villa Valencia E2E gap repair - 2026-05-01 05:49:59 America/Panama
+
+Scope honored:
+- No deploy.
+- No push.
+- No production DB mutation.
+- Code/docs/tests only.
+
+Audit summary for Waves 3-8:
+- Wave 3 Incidencias: mostly implemented in prior Wave 10 per docs/website-fix-log.md. I did not rework it.
+- Wave 4 Recorridos: P1 gaps genuinely remained around role/plan ownership, conserje vs supervisor visibility, and active execution ambiguity.
+- Wave 5 Mapa: P1 gaps remained around visible markers and map-click hallazgo context. Existing save path already carried map lat/lng into finding metadata, but route/issue visibility was still fragile.
+- Wave 6 Inventario: P1 gaps remained around supervisor seeing count capture and lacking stockout/procurement actioning.
+- Wave 7 Proyectos: P1 gaps remained around work assignment 400 risk, building context, and no existing item update path.
+- Wave 8 Gerencia/Junta: several P1/P2 drill-down/reporting items remain. I only addressed the feasible schema-free Gerencia Plan Maestro ownership gap.
+
+Implemented code changes:
+- `aproviva-suite/js/modules/gemba.js`
+  - Restricted Plan Maestro creation to `supervisor`; Gerencia keeps oversight only.
+  - Added template/round owner metadata (`plan_role`, `plan_owner`) without schema changes.
+  - Split fallback plans so conserje gets daily operational plans and supervisor gets weekly supervisor plans.
+  - Conserje sees only conserje-owned rounds; supervisor sees supervisor-owned and team oversight rounds.
+  - Active and next-action cards now show `Dueño` to reduce wrong-recorrido ambiguity.
+  - Template form stores role/owner in metadata for future filtering.
+- `aproviva-suite/js/modules/mapa.js`
+  - Added route preview markers from GeoJSON when no saved route waypoints exist, so the map is not blank.
+  - Preview markers are non-draggable and clearly labeled as base route references.
+- `aproviva-suite/js/modules/inventario.js`
+  - Hid `Registrar conteo` from supervisor.
+  - Added supervisor `Actualizar reposición` workflow with item, status, OC reference, and required comment.
+  - Moved long alert/catalog/movement sections below the action flow; catalog and movement sections collapse by default.
+  - Procurement action persists as an `inventory_movements` adjustment with metadata, preserving previous balance to avoid null-balance writes.
+- `aproviva-suite/js/modules/proyectos.js`
+  - Added `building_id` to work assignment creation/import/backlog payloads.
+  - Added update modal for existing work orders: status, priority, due date, and progress comment in metadata history.
+  - Removed the prior `verified_at` update from the quick advance path to avoid schema-specific 400 risk.
+
+Docs/tests updated:
+- `docs/website-fix-log.md` updated with conservative Done/Partial statuses for touched rows.
+- `e2e/tests/gemba-supervisor-conserje.spec.ts` updated for supervisor plan ownership and conserje-owned execution.
+- `e2e/tests/inventory-apics.spec.ts` adds supervisor role-split coverage.
+- `e2e/tests/master-data-controlled-choices.spec.ts` now expects supervisor to own Gemba Plan Maestro setup.
+- `e2e/tests/suite-routes.spec.ts` covers Gerencia hidden Plan Maestro creation and Supervisor visible setup.
+
+Verification:
+- PASS: `node --check aproviva-suite/js/modules/gemba.js`
+- PASS: `node --check aproviva-suite/js/modules/mapa.js`
+- PASS: `node --check aproviva-suite/js/modules/inventario.js`
+- PASS: `node --check aproviva-suite/js/modules/proyectos.js`
+- PASS: `cd e2e && npx tsc --noEmit`
+- PASS: `git diff --check`
+- BLOCKED: focused Playwright run (`npx playwright test tests/suite-routes.spec.ts tests/inventory-apics.spec.ts tests/master-data-controlled-choices.spec.ts --project=chromium`) because local webServer cannot bind `127.0.0.1:8787`: `listen EPERM: operation not permitted`.
+
+Remaining P1 gaps not overclaimed:
+- Incidencias should still get real browser verification against current production-like data, but code was already logged as Wave 10 implemented.
+- Gemba KPI labels still need scope wording beyond the active-card owner labels.
+- Existing shared Gemba templates without `plan_role` metadata may need a safe data backfill or admin touch-up before role filtering is perfect.
+- Map saved issue visibility still depends on `v_inspection_findings_map` extracting metadata lat/lng; I added nonblank route markers but did not prove immediate post-save marker reflection in browser.
+- Inventory procurement persistence is schema-free but still needs browser verification; a richer purchase-order model remains future schema work.
+- Work-order assignment routing is improved with controlled assignee/building metadata, but true per-user task routing still requires the downstream identity/data model.
+- Gerencia/Junta KPI drill-downs, board report source clarity, and Junta capital/backlog views remain mostly open.
+
+Deploy decision:
+- HOLD. Do not deploy until a local or preview browser run is possible and at least the focused role/map/inventory/projects checks pass.
+
+Follow-up verification after browser/preview fix:
+- Preview deployment was attempted at https://villavalencia-dvw8jhx36-jefferygyamerah-9993s-projects.vercel.app, but Vercel preview authentication blocked anonymous Playwright runs.
+- Replaced the failing local webServer bind path by starting the static server manually on `0.0.0.0:9876` and running Playwright with `BASE_URL=http://127.0.0.1:9876`.
+- Fixed deterministic browser tests by blocking service workers in `e2e/playwright.config.js`; the app PWA service worker was bypassing `page.route()` in mocked Supabase incident lifecycle specs.
+- Hardened the map boundary test to wait until the Leaflet map/button handler is ready before firing synthetic clicks.
+- PASS: `find js aproviva-suite/js scripts -name '*.js' -o -name '*.mjs' | sort | xargs -r -n1 node --check`
+- PASS: `cd e2e && npx tsc --noEmit`
+- PASS: `BASE_URL=http://127.0.0.1:9876 npx playwright test --project=chromium` — 46 passed.
+
+Updated deploy decision:
+- Local/browser verification is now unblocked and passing against the local static preview. Production deploy can proceed after commit/push and final smoke.

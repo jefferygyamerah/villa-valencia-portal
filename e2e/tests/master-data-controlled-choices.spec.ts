@@ -15,7 +15,7 @@ test.describe('Wave 2 master data controlled choices', () => {
   });
 
   test('gemba execution and plan forms use controlled areas and frequencies', async ({ page }) => {
-    await loginWithPin(page, 'GER26');
+    await loginWithPin(page, 'SUP26');
     await page.goto('/aproviva-suite/index.html#/gemba');
     await page.getByTestId('gemba-page').waitFor({ state: 'visible', timeout: 30_000 });
 

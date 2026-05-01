@@ -65,6 +65,13 @@ test.describe('APROVIVA suite (PIN GER26 — Gerencia)', () => {
     await expect(page.locator('#proj-csv-template')).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('#proj-csv-upload')).toBeVisible({ timeout: 20_000 });
   });
+
+  test('gemba is oversight only for Plan Maestro creation', async ({ page }) => {
+    await loginWithPin(page, 'GER26');
+    await page.goto('/aproviva-suite/index.html#/gemba');
+    await page.getByTestId('gemba-page').waitFor({ state: 'visible', timeout: 30_000 });
+    await expect(page.getByRole('button', { name: 'Nuevo Plan Maestro' })).toHaveCount(0);
+  });
 });
 
 test.describe('APROVIVA suite (PIN SUP26 — Supervisor)', () => {
@@ -78,6 +85,13 @@ test.describe('APROVIVA suite (PIN SUP26 — Supervisor)', () => {
     await expect(page.locator('#app-content')).toContainText('Acceso restringido');
     await page.goto('/aproviva-suite/index.html#/junta');
     await expect(page.locator('#app-content')).toContainText('Acceso restringido');
+  });
+
+  test('supervisor owns Plan Maestro setup', async ({ page }) => {
+    await loginWithPin(page, 'SUP26');
+    await page.goto('/aproviva-suite/index.html#/gemba');
+    await page.getByTestId('gemba-page').waitFor({ state: 'visible', timeout: 30_000 });
+    await expect(page.getByRole('button', { name: 'Nuevo Plan Maestro' })).toBeVisible();
   });
 });
 
@@ -152,9 +166,14 @@ test.describe('APROVIVA suite vision guardrails', () => {
     await expect(page.getByTestId('mapa-page')).toBeVisible({ timeout: 30_000 });
     const routeBtn = page.getByRole('button', { name: 'Punto de ruta' });
     await expect(routeBtn).toBeVisible({ timeout: 20_000 });
+    await page.waitForFunction(() => !!(window as any).__vvLeafletMap && !!(window as any).L);
+    await page.waitForFunction(() => {
+      const btn = document.querySelector('#mapa-mode-btn') as HTMLButtonElement | null;
+      return !!btn && !btn.disabled;
+    });
 
     await routeBtn.click();
-    await page.waitForFunction(() => !!(window as any).__vvLeafletMap && !!(window as any).L);
+    await expect(page.locator('#mapa-mode-btn')).toContainText('Cancelar punto de ruta');
 
     await page.evaluate(() => {
       const map = (window as any).__vvLeafletMap;
@@ -179,6 +198,5 @@ test.describe('APROVIVA suite vision guardrails', () => {
     await expect(page.locator('#mapa-new-save')).toHaveCount(0);
   });
 });
-
 
 

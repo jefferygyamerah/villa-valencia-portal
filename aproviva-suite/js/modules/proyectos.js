@@ -114,6 +114,7 @@
     return {
       body: {
         assignment_number: assignNum,
+        building_id: window.APROVIVA_SUITE_CONFIG.BUILDING_ID,
         assignee_name: assignee,
         area: area,
         task_type: taskType,
@@ -383,7 +384,8 @@
     var action = isClosed
       ? '<span class="muted">Cerrada</span>'
       : (showAdvance
-        ? '<button class="btn btn-ghost btn-sm" data-act="advance" data-id="' + window.UI.esc(r.id) + '" data-current="' + window.UI.esc(r.status) + '">' + next + '</button>'
+        ? '<button class="btn btn-ghost btn-sm" data-act="advance" data-id="' + window.UI.esc(r.id) + '" data-current="' + window.UI.esc(r.status) + '">' + next + '</button>' +
+          '<button class="btn btn-primary-sm" data-act="update" data-id="' + window.UI.esc(r.id) + '">Actualizar</button>'
         : '');
     return '<article class="proj-work-card">' +
       '<div class="proj-card-main">' +
@@ -433,15 +435,81 @@
       var current = btn.getAttribute('data-current');
       var next = nextStatus(current);
       try {
-        var patch = { status: next };
-        if (next === 'completed') patch.verified_at = new Date().toISOString();
+        var patch = { status: next, metadata: appendWorkHistory(rowById(id), 'status', 'Estado actualizado a ' + labelForStatus(next)) };
         await window.SB.update('work_assignments', { id: 'eq.' + id }, patch);
         window.UI.toast('Orden avanzada a ' + next + '.', 'success');
         await load(window.AUTH.readSession());
       } catch (err) {
         window.UI.toast('Error: ' + err.message, 'error');
       }
+    } else if (btn.getAttribute('data-act') === 'update') {
+      openUpdate(btn.getAttribute('data-id'), window.AUTH.readSession());
     }
+  }
+
+  function rowById(id) {
+    return STATE.rows.filter(function (r) { return String(r.id) === String(id); })[0] || null;
+  }
+
+  function appendWorkHistory(row, kind, note, extra) {
+    var sess = window.AUTH.readSession() || {};
+    var meta = parseMeta(row && row.metadata);
+    var hist = Array.isArray(meta.history) ? meta.history.slice() : [];
+    hist.push(Object.assign({
+      kind: kind,
+      note: note,
+      at: new Date().toISOString(),
+      actorRole: sess.role,
+      actorLabel: sess.label,
+    }, extra || {}));
+    meta.history = hist;
+    return meta;
+  }
+
+  function openUpdate(id, session) {
+    var row = rowById(id);
+    if (!row) return;
+    var host = document.getElementById('proj-modal-host');
+    host.innerHTML = '' +
+      '<section class="page" data-testid="proj-update-form">' +
+        '<h3 class="section-title">Actualizar orden</h3>' +
+        '<p class="muted">' + window.UI.esc(row.assignment_number || 'WO') + ' · ' + window.UI.esc(row.title || '') + '</p>' +
+        '<form id="proj-update" class="form-grid cols-2" novalidate>' +
+          '<div class="form-field"><label>Estado</label><select name="status">' +
+            STATUSES.map(function (s) { return '<option value="' + s + '"' + (s === row.status ? ' selected' : '') + '>' + window.UI.esc(labelForStatus(s)) + '</option>'; }).join('') +
+          '</select></div>' +
+          '<div class="form-field"><label>Prioridad</label><select name="priority">' +
+            PRIORITIES.map(function (p) { return '<option value="' + p + '"' + (p === row.priority ? ' selected' : '') + '>' + window.UI.esc(labelForPriority(p)) + '</option>'; }).join('') +
+          '</select></div>' +
+          '<div class="form-field"><label>Vence</label><input type="date" name="due_at" value="' + window.UI.esc(row.due_at ? String(row.due_at).slice(0, 10) : '') + '"></div>' +
+          '<div class="form-field" style="grid-column:1/-1;"><label>Comentario de avance</label><textarea name="note" rows="3" required></textarea></div>' +
+          '<div class="btn-row" style="grid-column:1/-1;">' +
+            '<button class="btn btn-primary-sm" type="submit">Guardar avance</button>' +
+            '<button class="btn btn-ghost" type="button" id="proj-update-cancel">Cancelar</button>' +
+          '</div>' +
+        '</form>' +
+      '</section>';
+    document.getElementById('proj-update-cancel').addEventListener('click', function () { host.innerHTML = ''; });
+    document.getElementById('proj-update').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      try {
+        await window.SB.update('work_assignments', { id: 'eq.' + id }, {
+          status: fd.get('status'),
+          priority: fd.get('priority'),
+          due_at: fd.get('due_at') ? new Date(fd.get('due_at')).toISOString() : null,
+          metadata: appendWorkHistory(row, 'progress', fd.get('note'), {
+            status: fd.get('status'),
+            priority: fd.get('priority'),
+          }),
+        });
+        window.UI.toast('Avance guardado.', 'success');
+        host.innerHTML = '';
+        await load(session || window.AUTH.readSession());
+      } catch (err) {
+        window.UI.toast('Error: ' + err.message, 'error');
+      }
+    });
   }
 
   function openJuntaBacklog(session) {
@@ -475,6 +543,7 @@
       var fd = new FormData(this);
       var body = {
         assignment_number: 'WO-' + Math.floor(Math.random() * 900000 + 100000),
+        building_id: window.APROVIVA_SUITE_CONFIG.BUILDING_ID,
         assignee_name: 'Por asignar (Junta)',
         area: fd.get('area'),
         task_type: 'corrective',
@@ -553,6 +622,7 @@
       var fd = new FormData(this);
       var body = {
         assignment_number: 'WO-' + Math.floor(Math.random() * 900000 + 100000),
+        building_id: window.APROVIVA_SUITE_CONFIG.BUILDING_ID,
         assignee_name: fd.get('assignee_name'),
         area: fd.get('area'),
         task_type: fd.get('task_type'),

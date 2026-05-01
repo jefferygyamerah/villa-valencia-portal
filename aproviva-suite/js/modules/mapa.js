@@ -186,6 +186,31 @@
     return null;
   }
 
+  function routePointsFromGeo(geo) {
+    var feats = geo && geo.features;
+    if (!feats) return [];
+    for (var i = 0; i < feats.length; i++) {
+      var f = feats[i];
+      if (f.properties && f.properties.kind === 'recorrido_path' && f.geometry && f.geometry.type === 'LineString') {
+        var coords = f.geometry.coordinates || [];
+        var step = Math.max(1, Math.floor(coords.length / 8));
+        return coords.filter(function (_, idx) { return idx % step === 0; }).slice(0, 10).map(function (c, idx) {
+          return {
+            id: 'route-preview-' + idx,
+            lat: Number(c[1]),
+            lng: Number(c[0]),
+            zonaLabel: 'Punto de recorrido',
+            order: idx + 1,
+            pointStatus: 'preview',
+            comments: [{ text: 'Referencia de ruta base. Use Marcar hallazgo para crear un punto operativo.', role: 'system', label: 'Mapa', at: null }],
+            metadata: { vv_reported_by_role: 'system', preview: true },
+          };
+        });
+      }
+    }
+    return [];
+  }
+
   function pointInSiteRing(lat, lng, ring) {
     if (!ring || ring.length < 3) return true;
     var x = lng;
@@ -408,6 +433,7 @@
     }
 
     function statusLabelWp(st) {
+      if (st === 'preview') return 'Ruta base';
       if (st === 'conserje_resolved') return 'Pendiente supervisi\u00f3n';
       return 'Abierto';
     }
@@ -683,7 +709,7 @@
     }
 
     function waypointMarkerIcon(idx, pointStatus) {
-      var bg = pointStatus === 'conserje_resolved' ? '#d97706' : '#1d4ed8';
+      var bg = pointStatus === 'preview' ? '#64748b' : (pointStatus === 'conserje_resolved' ? '#d97706' : '#1d4ed8');
       return L.divIcon({
         className: 'mapa-wp-marker',
         html: '<span class="mapa-wp-marker__badge" style="background:' + bg + '">' + String(idx + 1) + '</span>',
@@ -694,7 +720,8 @@
 
     function renderWaypointMarkers() {
       waypointLayer.clearLayers();
-      waypoints
+      var markerRows = waypoints.length ? waypoints : routePointsFromGeo(geo);
+      markerRows
         .sort(function (a, b) { return (a.order || 0) - (b.order || 0); })
         .forEach(function (w, idx) {
           var lat = Number(w.lat);
@@ -703,14 +730,18 @@
           var st = w.pointStatus || 'open';
           var icon = waypointMarkerIcon(idx, st);
           var m = L.marker([lat, lng], {
-            draggable: canManageRoute && cloudOk,
+            draggable: canManageRoute && cloudOk && !w.metadata.preview,
             title: (w.zonaLabel || '') + ' · ' + statusLabelWp(st),
             icon: icon,
           });
           m.on('click', function () {
+            if (w.metadata.preview) {
+              m.bindPopup('<strong>Punto de recorrido</strong><br>Referencia de ruta base. Toca <em>Marcar hallazgo</em> para guardar contexto operativo.').openPopup();
+              return;
+            }
             openWaypointDetailModal(w);
           });
-          if (canManageRoute && cloudOk) {
+          if (canManageRoute && cloudOk && !w.metadata.preview) {
             m.on('dragend', async function () {
               var prevLat = w.lat;
               var prevLng = w.lng;

@@ -56,6 +56,9 @@
   }
 
   async function render(container, session) {
+    var role = session && session.role;
+    var canCount = role === 'conserje';
+    var canProcure = role === 'supervisor';
     var invSub = 'Conteo c\u00edclico, alertas y registro de novedades.';
     if (session && (session.role === 'supervisor' || session.role === 'gerencia')) {
       invSub += ' Este portal opera solo <strong>Villa Valencia</strong>; los movimientos <strong>replenished</strong> son compras/ingreso para <strong>este</strong> conjunto. Quien hace de <strong>admin de planta</strong> en sitio coordina insumos aqu\u00ed; la <strong>supervisi\u00f3n</strong> puede ver varios edificios u HOAs en otros entornos.';
@@ -69,28 +72,32 @@
             apicsHelpPanel() +
           '</div>' +
           '<div class="row wrap" style="gap:0.5rem;">' +
-            '<button class="btn btn-primary-sm" id="inv-count-btn" type="button">Registrar conteo</button>' +
+            (canCount ? '<button class="btn btn-primary-sm" id="inv-count-btn" type="button">Registrar conteo</button>' : '') +
+            (canProcure ? '<button class="btn btn-primary-sm" id="inv-procure-btn" type="button">Actualizar reposici\u00f3n</button>' : '') +
             '<button class="btn btn-ghost" id="inv-issue-btn" type="button">Reportar novedad</button>' +
           '</div>' +
         '</div>' +
         '<div class="inv-next-card" id="inv-next"><div class="loading">Preparando siguiente paso...</div></div>' +
         '<div class="kpi-grid inv-kpis" id="inv-kpis"><div class="loading">Cargando KPIs...</div></div>' +
-        '<div class="page-section">' +
+        '<details class="page-section" open>' +
           '<h3 class="section-title">Alertas activas</h3>' +
           '<div id="inv-alerts"><div class="loading">Cargando alertas...</div></div>' +
-        '</div>' +
-        '<div class="page-section">' +
+        '</details>' +
+        '<details class="page-section">' +
           '<h3 class="section-title">Cat\u00e1logo y \u00faltimos saldos</h3>' +
           '<div id="inv-catalog"><div class="loading">Cargando cat\u00e1logo...</div></div>' +
-        '</div>' +
-        '<div class="page-section">' +
+        '</details>' +
+        '<details class="page-section">' +
           '<h3 class="section-title">Movimientos recientes</h3>' +
           '<div id="inv-movements"><div class="loading">Cargando movimientos...</div></div>' +
-        '</div>' +
+        '</details>' +
       '</section>' +
       '<div id="inv-modal-host"></div>';
 
-    document.getElementById('inv-count-btn').addEventListener('click', function () { openCountModal(session); });
+    var countBtn = document.getElementById('inv-count-btn');
+    if (countBtn) countBtn.addEventListener('click', function () { openCountModal(session); });
+    var procureBtn = document.getElementById('inv-procure-btn');
+    if (procureBtn) procureBtn.addEventListener('click', function () { openProcurementModal(session); });
     document.getElementById('inv-issue-btn').addEventListener('click', function () { openIssueModal(session); });
 
     await loadAll();
@@ -150,6 +157,7 @@
   }
 
   function renderNextStep() {
+    var session = window.AUTH.readSession() || {};
     var alerts = computeAlerts();
     var critical = alerts.filter(function (a) { return a.level === 'critical'; }).length;
     var reorder = alerts.filter(function (a) { return a.level === 'reorder'; }).length;
@@ -178,10 +186,17 @@
       '</div>' +
       '<div class="inv-next-actions">' +
         badge +
-        '<button class="btn btn-primary-sm" id="inv-next-count" type="button">Contar</button>' +
+        (session.role === 'conserje'
+          ? '<button class="btn btn-primary-sm" id="inv-next-count" type="button">Contar</button>'
+          : (session.role === 'supervisor'
+            ? '<button class="btn btn-primary-sm" id="inv-next-procure" type="button">Reposici\u00f3n</button>'
+            : '')) +
         '<button class="btn btn-ghost" id="inv-next-issue" type="button">Novedad</button>' +
       '</div>';
-    document.getElementById('inv-next-count').addEventListener('click', function () { openCountModal(); });
+    var nextCount = document.getElementById('inv-next-count');
+    if (nextCount) nextCount.addEventListener('click', function () { openCountModal(session); });
+    var nextProcure = document.getElementById('inv-next-procure');
+    if (nextProcure) nextProcure.addEventListener('click', function () { openProcurementModal(session); });
     document.getElementById('inv-next-issue').addEventListener('click', function () { openIssueModal(); });
   }
 
@@ -352,6 +367,75 @@
     var host = document.getElementById('inv-modal-host');
     host.innerHTML = renderIssueForm(session);
     bindIssueForm();
+  }
+
+  function openProcurementModal(session) {
+    var host = document.getElementById('inv-modal-host');
+    var alerts = computeAlerts();
+    var itemOpts = alerts.map(function (a) {
+      return '<option value="' + window.UI.esc(a.item.id) + '">' + itemOptionLabel(a.item, true) + ' - ' + window.UI.esc(a.label) + '</option>';
+    }).join('');
+    if (!itemOpts) {
+      itemOpts = STATE.items.map(function (i) { return '<option value="' + i.id + '">' + itemOptionLabel(i, true) + '</option>'; }).join('');
+    }
+    host.innerHTML = '' +
+      '<section class="page" data-testid="inv-procurement-form">' +
+        '<h3 class="section-title">Actualizar reposici\u00f3n</h3>' +
+        '<p class="muted">Supervisi\u00f3n registra estado, orden de compra o comentario sobre faltantes y reorden. No captura conteos f\u00edsicos.</p>' +
+        '<form id="procure-form" class="form-grid cols-2" novalidate>' +
+          '<div class="form-field"><label>Art\u00edculo</label><select name="item" required>' + itemOpts + '</select></div>' +
+          '<div class="form-field"><label>Estado</label><select name="status" required>' +
+            '<option value="po_requested">Compra solicitada</option>' +
+            '<option value="ordered">Orden emitida</option>' +
+            '<option value="waiting_vendor">Esperando proveedor</option>' +
+            '<option value="received">Recibido / repuesto</option>' +
+          '</select></div>' +
+          '<div class="form-field"><label>Referencia OC</label><input name="po_ref" placeholder="Opcional"></div>' +
+          '<div class="form-field" style="grid-column:1/-1;"><label>Comentario</label><textarea name="notes" rows="3" required></textarea></div>' +
+          '<div class="btn-row" style="grid-column:1/-1;">' +
+            '<button class="btn btn-primary-sm" type="submit">Guardar estado</button>' +
+            '<button class="btn btn-ghost" type="button" id="procure-cancel">Cancelar</button>' +
+          '</div>' +
+        '</form>' +
+      '</section>';
+    document.getElementById('procure-cancel').addEventListener('click', function () { host.innerHTML = ''; });
+    document.getElementById('procure-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var fd = new FormData(this);
+      var sess = session || window.AUTH.readSession() || {};
+      var itemId = fd.get('item');
+      var previous = null;
+      STATE.movements.forEach(function (m) {
+        if (m.inventory_item_id !== itemId) return;
+        if (!previous || String(m.movement_at) > String(previous.movement_at)) previous = m;
+      });
+      var locId = (previous && previous.inventory_location_id) || (STATE.locations[0] && STATE.locations[0].id);
+      var balance = previous && previous.balance_after !== undefined && previous.balance_after !== null
+        ? Number(previous.balance_after)
+        : 0;
+      try {
+        await window.SB.insert('inventory_movements', {
+          inventory_item_id: itemId,
+          inventory_location_id: locId,
+          movement_type: 'adjusted',
+          quantity: 0,
+          balance_after: balance,
+          notes: String(fd.get('status') || '') + (fd.get('po_ref') ? ' / OC ' + fd.get('po_ref') : '') + ': ' + fd.get('notes'),
+          metadata: {
+            actorRole: sess.role,
+            actorLabel: sess.label,
+            source: 'aproviva-suite-procurement',
+            procurement_status: fd.get('status'),
+            purchase_order_ref: fd.get('po_ref') || null,
+          },
+        });
+        window.UI.toast('Estado de reposici\u00f3n guardado.', 'success');
+        host.innerHTML = '';
+        await loadAll();
+      } catch (err) {
+        window.UI.toast('Error: ' + err.message, 'error');
+      }
+    });
   }
 
   function renderCountForm(session) {

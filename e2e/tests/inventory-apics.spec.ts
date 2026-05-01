@@ -58,3 +58,16 @@ test.describe('Inventario — gerencia full issue form', () => {
     await expect(page.locator('input[name="title"]')).toBeVisible();
   });
 });
+
+test.describe('Inventario — role split', () => {
+  test('supervisor sees procurement action instead of concierge count capture', async ({ page }) => {
+    await loginWithPin(page, 'SUP26');
+    await page.goto('/aproviva-suite/index.html#/inventario');
+    await page.locator('[data-testid="inventario-page"]').waitFor({ state: 'visible', timeout: 25_000 });
+
+    await expect(page.getByRole('button', { name: 'Registrar conteo' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Actualizar reposición' }).click();
+    await expect(page.getByTestId('inv-procurement-form')).toBeVisible();
+    await expect(page.getByTestId('inv-procurement-form')).toContainText('No captura conteos físicos');
+  });
+});

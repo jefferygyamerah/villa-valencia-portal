@@ -5,8 +5,8 @@ import { loginWithPin } from './helpers';
  * Recorrido production flow: Plan Maestro -> Puntos de Inspección -> Ejecución -> Hallazgo.
  */
 test.describe('Gemba — recorrido inspection-plan flow', () => {
-  test('admin creates Plan Maestro with Puntos de Inspección', async ({ page }) => {
-    await loginWithPin(page, 'GER26');
+  test('supervisor creates Plan Maestro with Puntos de Inspección', async ({ page }) => {
+    await loginWithPin(page, 'SUP26');
     await page.goto('/aproviva-suite/index.html#/gemba');
     await page.locator('[data-testid="gemba-page"]').waitFor({ state: 'visible', timeout: 30_000 });
 
@@ -24,7 +24,7 @@ test.describe('Gemba — recorrido inspection-plan flow', () => {
     await expect(panel.locator('#tpl-list')).toContainText('2 punto(s)', { timeout: 10_000 });
   });
 
-  test('SUP26 starts execution; CONS26 sees plan points and completion gate', async ({ browser }) => {
+  test('CONS26 starts own execution; SUP26 sees ownership and plan points', async ({ browser }) => {
     const sup = await browser.newContext();
     const cons = await browser.newContext();
     const supPage = await sup.newPage();
@@ -33,11 +33,11 @@ test.describe('Gemba — recorrido inspection-plan flow', () => {
     await loginWithPin(supPage, 'SUP26');
     await loginWithPin(consPage, '2026');
 
-    await supPage.goto('/aproviva-suite/index.html#/gemba');
-    await supPage.locator('[data-testid="gemba-page"]').waitFor({ state: 'visible', timeout: 30_000 });
+    await consPage.goto('/aproviva-suite/index.html#/gemba');
+    await consPage.locator('[data-testid="gemba-page"]').waitFor({ state: 'visible', timeout: 30_000 });
 
-    await supPage.locator('#gemba-start-btn').click();
-    const form = supPage.locator('[data-testid="gemba-start-form"]');
+    await consPage.locator('#gemba-start-btn').click();
+    const form = consPage.locator('[data-testid="gemba-start-form"]');
     await form.waitFor({ state: 'visible', timeout: 15_000 });
     await expect(form.locator('[data-testid="gemba-template-picker"]')).toContainText('Plan Maestro');
 
@@ -45,23 +45,23 @@ test.describe('Gemba — recorrido inspection-plan flow', () => {
       (await form.locator('select[name="title"] option:checked').first().textContent())?.trim() || '';
     expect(titleText.length).toBeGreaterThan(0);
 
-    await form.locator('select[name="area"]').selectOption({ index: 0 });
-    await form.locator('select[name="round_type"]').selectOption('ad_hoc');
+    await expect(form.locator('#gemba-plan-owner-note')).toContainText('Dueño del plan');
     await form.getByRole('button', { name: 'Iniciar Ejecución' }).click();
 
     // Primary success signal: the active list updates (do not require #suite-modal-host empty; error path can leave form mounted).
-    await expect(supPage.locator('#gemba-active')).not.toContainText('Sin recorridos abiertos', {
+    await expect(consPage.locator('#gemba-active')).not.toContainText('Sin recorridos abiertos', {
       timeout: 30_000,
     });
-    await expect(supPage.locator('#gemba-active')).toContainText(titleText, { timeout: 15_000 });
+    await expect(consPage.locator('#gemba-active')).toContainText(titleText, { timeout: 15_000 });
+    await expect(consPage.locator('#gemba-active')).toContainText('Dueño: Conserjería', { timeout: 15_000 });
 
-    await consPage.goto('/aproviva-suite/index.html#/gemba');
-    await consPage.locator('[data-testid="gemba-page"]').waitFor({ state: 'visible', timeout: 30_000 });
-    await expect(consPage.locator('#gemba-active')).not.toContainText('Sin recorridos abiertos', {
+    await supPage.goto('/aproviva-suite/index.html#/gemba');
+    await supPage.locator('[data-testid="gemba-page"]').waitFor({ state: 'visible', timeout: 30_000 });
+    await expect(supPage.locator('#gemba-active')).not.toContainText('Sin recorridos abiertos', {
       timeout: 25_000,
     });
-    await expect(consPage.locator('#gemba-active')).toContainText(titleText, { timeout: 15_000 });
-    await expect(consPage.locator('#gemba-active')).toContainText(/0\/\d+/, { timeout: 10_000 });
+    await expect(supPage.locator('#gemba-active')).toContainText(titleText, { timeout: 15_000 });
+    await expect(supPage.locator('#gemba-active')).toContainText('Dueño: Conserjería', { timeout: 15_000 });
 
     await consPage.locator('#gemba-active').getByRole('button', { name: 'Completar' }).first().click();
     await expect(consPage.locator('body')).toContainText('Completa todos los Puntos de Inspección requeridos', {

@@ -88,6 +88,8 @@
       title: title,
       area: area,
       round_type: normalizeRoundType(raw && raw.round_type),
+      role: String((raw && (raw.role || (raw.metadata && raw.metadata.plan_role))) || '').trim(),
+      owner: String((raw && (raw.owner || (raw.metadata && raw.metadata.plan_owner))) || '').trim(),
       sort_order: Number((raw && raw.sort_order) || 0),
       is_active: raw && raw.is_active !== false,
       points: normalizePlanPoints((raw && raw.points) || (raw && raw.metadata && raw.metadata.plan_points), area, title),
@@ -222,10 +224,12 @@
         title: t.title,
         area: t.area,
         round_type: t.round_type,
+        role: t.role || '',
+        owner: t.owner || '',
         points: t.points,
         sort_order: idx,
         is_active: true,
-        metadata: { plan_points: t.points },
+        metadata: { plan_points: t.points, plan_role: t.role || '', plan_owner: t.owner || '' },
       };
     }).filter(Boolean);
     await window.SB.update('buildings', { id: 'eq.' + bid }, { metadata: metadata });
@@ -295,7 +299,8 @@
         '<select name="round_type">' + window.APROVIVA_SUITE_CONFIG.buildFrequencySelectOptionsHtml('ad_hoc') + '</select></div>' +
       '<div class="form-field" style="grid-column:1/-1;"><label>Puntos de Inspecci\u00f3n requeridos</label>' +
         '<textarea name="points_text" rows="4" placeholder="Un punto por l\u00ednea. Ej. Revisar cerradura de garita"></textarea>' +
-        '<div class="hint">Estos puntos definen la ruta del recorrido; los hallazgos se registran contra un punto.</div></div>';
+        '<div class="hint">Estos puntos definen la ruta del recorrido; los hallazgos se registran contra un punto.</div></div>' +
+      '<input type="hidden" name="role" value="' + window.UI.esc((window.AUTH.readSession() || {}).role || 'supervisor') + '">';
   }
 
   function getModalHost() {
@@ -325,6 +330,7 @@
   }
 
   async function render(container, session) {
+    var canManagePlans = session && session.role === 'supervisor';
     container.innerHTML = '' +
       '<section class="page" data-testid="gemba-page">' +
         '<div class="row between wrap">' +
@@ -334,7 +340,7 @@
           '</div>' +
           '<div class="row wrap" style="gap:0.5rem;">' +
             '<a class="btn btn-ghost" href="#/mapa">Mapa del sitio</a>' +
-            (window.AUTH.canAccess('maestros')
+            (canManagePlans
               ? '<button class="btn btn-ghost" id="gemba-new-tpl" type="button">Nuevo Plan Maestro</button>'
               : '') +
             '<button class="btn btn-primary-sm" id="gemba-start-btn" type="button">Iniciar Ejecuci\u00f3n</button>' +
@@ -396,7 +402,7 @@
         points: t.points,
         sort_order: rows.length,
         is_active: true,
-        metadata: { plan_points: t.points },
+        metadata: { plan_points: t.points, plan_role: t.role || '', plan_owner: t.owner || '' },
       });
       await saveTemplatesToBuildingMetadata(rows);
       return;
@@ -409,7 +415,7 @@
       round_type: t.round_type,
       sort_order: 0,
       is_active: true,
-      metadata: { plan_points: t.points },
+      metadata: { plan_points: t.points, plan_role: t.role || '', plan_owner: t.owner || '' },
     });
   }
 
@@ -502,6 +508,8 @@
           title: String(fd.get('title') || '').trim(),
           area: String(fd.get('area') || '').trim(),
           round_type: fd.get('round_type') || 'ad_hoc',
+          role: fd.get('role') || (window.AUTH.readSession() || {}).role || 'supervisor',
+          owner: (window.AUTH.readSession() || {}).label || '',
           points: parsePlanPointsText(fd.get('points_text'), fd.get('area'), fd.get('title')),
         });
         window.UI.toast('Plan Maestro guardado.', 'success');
@@ -535,8 +543,8 @@
     var pairs = [
       { name: 'Matutina área social', title: titles[0], area: zones.indexOf('Piscina') !== -1 ? 'Piscina' : zones[0], round_type: 'daily' },
       { name: 'Seguridad garita', title: titles.indexOf('Ronda de seguridad') !== -1 ? 'Ronda de seguridad' : titles[0], area: zones.indexOf('Garita') !== -1 ? 'Garita' : zones[0], round_type: 'daily' },
-      { name: 'Áreas húmedas', title: titles.indexOf('Inspección áreas húmedas') !== -1 ? 'Inspección áreas húmedas' : titles[0], area: zones.indexOf('Baños área social') !== -1 ? 'Baños área social' : zones[0], round_type: 'weekly' },
-      { name: 'Puntos críticos', title: titles.indexOf('Ronda puntos críticos') !== -1 ? 'Ronda puntos críticos' : titles[0], area: zones.indexOf('Cuarto Eléctrico') !== -1 ? 'Cuarto Eléctrico' : zones[0], round_type: 'weekly' },
+      { name: 'Áreas húmedas supervisor', title: titles.indexOf('Inspección áreas húmedas') !== -1 ? 'Inspección áreas húmedas' : titles[0], area: zones.indexOf('Baños área social') !== -1 ? 'Baños área social' : zones[0], round_type: 'weekly', role: 'supervisor' },
+      { name: 'Puntos críticos supervisor', title: titles.indexOf('Ronda puntos críticos') !== -1 ? 'Ronda puntos críticos' : titles[0], area: zones.indexOf('Cuarto Eléctrico') !== -1 ? 'Cuarto Eléctrico' : zones[0], round_type: 'weekly', role: 'supervisor' },
     ];
     return pairs.map(function (t, idx) {
       return {
@@ -545,6 +553,8 @@
         title: t.title || titles[0],
         area: t.area || zones[0],
         round_type: t.round_type || 'ad_hoc',
+        role: t.role || 'conserje',
+        owner: t.role === 'supervisor' ? 'Supervisión operativa' : 'Personal / Conserjería',
         is_fallback: true,
         points: normalizePlanPoints(null, t.area || zones[0], t.title || titles[0]),
       };
@@ -552,8 +562,37 @@
   }
 
   function templatesForPicker() {
+    var sess = window.AUTH.readSession() || {};
     var shared = (STATE.templates || []).filter(function (t) { return t && t.is_active !== false; });
-    return shared.length ? shared : fallbackRoundTemplates();
+    var source = shared.length ? shared : fallbackRoundTemplates();
+    return source.filter(function (t) {
+      if (!t.role) return true;
+      if (sess.role === 'gerencia') return true;
+      return t.role === sess.role;
+    });
+  }
+
+  function roleLabel(role) {
+    if (role === 'conserje') return 'Conserjería';
+    if (role === 'supervisor') return 'Supervisión';
+    if (role === 'gerencia') return 'Gerencia';
+    return role || 'Operativo';
+  }
+
+  function roundOwnerRole(round) {
+    var meta = round && round.metadata && typeof round.metadata === 'object' ? round.metadata : {};
+    return meta.plan_role || meta.actorRole || '';
+  }
+
+  function visibleRoundsForSession(rows) {
+    var sess = window.AUTH.readSession() || {};
+    if (!sess.role || sess.role === 'gerencia') return rows || [];
+    return (rows || []).filter(function (r) {
+      var ownerRole = roundOwnerRole(r);
+      if (sess.role === 'conserje') return ownerRole === 'conserje';
+      if (sess.role === 'supervisor') return ownerRole === 'supervisor' || ownerRole === 'conserje' || !ownerRole;
+      return true;
+    });
   }
 
   function attachTemplatePicker(host, staff) {
@@ -594,6 +633,8 @@
       var rt = form.querySelector('[name=round_type]');
       if (rt && t.round_type) rt.value = t.round_type;
       if (tplId) tplId.value = String(t.id);
+      var ownerNote = form.querySelector('#gemba-plan-owner-note');
+      if (ownerNote) ownerNote.textContent = 'Dueño del plan: ' + roleLabel(t.role || (window.AUTH.readSession() || {}).role || 'operativo') + ' · área y frecuencia vienen del Plan Maestro.';
     }
     var picker = host.querySelector('#gemba-tpl-pick');
     picker.addEventListener('change', function () {
@@ -614,7 +655,7 @@
         window.SB.select('inspection_findings', { select: '*', order: 'created_at.desc', limit: '40' }),
         window.SB.select('inventory_locations', { select: '*', is_active: 'eq.true', order: 'name.asc' }),
       ]);
-      STATE.rounds = results[2] || [];
+      STATE.rounds = visibleRoundsForSession(results[2] || []);
       STATE.findings = results[3] || [];
       STATE.locations = results[4] || [];
       renderKpis();
@@ -666,7 +707,8 @@
             '<div>' +
               '<h3 class="section-title">Siguiente paso</h3>' +
               '<p class="muted"><strong>' + window.UI.esc(next.title || next.round_number || 'Recorrido') + '</strong> · ' +
-                window.UI.esc(next.area || 'Villa Valencia') + ' · ' + p.done + '/' + p.total + ' puntos.</p>' +
+                window.UI.esc(next.area || 'Villa Valencia') + ' · ' + p.done + '/' + p.total + ' puntos · Dueño: ' +
+                window.UI.esc(roleLabel(roundOwnerRole(next) || 'operativo')) + '.</p>' +
             '</div>' +
             '<div class="btn-row">' +
               '<button class="btn btn-primary-sm" data-act="execute" data-id="' + window.UI.esc(next.id) + '" type="button">Continuar puntos</button>' +
@@ -702,7 +744,7 @@
           '<div>' +
             '<strong>' + window.UI.esc(r.title || r.round_number || 'Recorrido') + '</strong>' +
             '<span>' + window.UI.esc(r.area || 'Villa Valencia') + scheduled + '</span>' +
-            '<span>Puntos: ' + p.done + '/' + p.total + ' · ' + window.UI.esc(r.round_type || 'ad_hoc') + '</span>' +
+            '<span>Puntos: ' + p.done + '/' + p.total + ' · ' + window.UI.esc(r.round_type || 'ad_hoc') + ' · Dueño: ' + window.UI.esc(roleLabel(roundOwnerRole(r) || 'operativo')) + '</span>' +
           '</div>' +
           '<div class="btn-row gemba-round-actions">' +
             window.UI.badge(r.status || 'in_progress', statusBadgeKind(r.status)) +
@@ -947,7 +989,7 @@
       inner = '' +
         '<section class="page" data-testid="gemba-start-form">' +
           '<h3 class="section-title">Iniciar Ejecuci\u00f3n</h3>' +
-          '<p class="muted">Conserjer\u00eda ejecuta los Puntos de Inspecci\u00f3n del Plan Maestro asignado.</p>' +
+          '<p class="muted">Ejecuta solo los Puntos de Inspecci\u00f3n del Plan Maestro asignado a tu rol.</p>' +
           '<form id="round-form" class="form-grid cols-2" data-staff-round="1" novalidate>' +
             '<input type="hidden" name="template_id" value="">' +
             '<div class="form-field"><label>Plan Maestro</label>' +
@@ -956,6 +998,7 @@
               '<select name="area" required>' + zonaOpts + '</select></div>' +
             '<div class="form-field"><label>Frecuencia</label>' +
               '<select name="round_type" required>' + window.APROVIVA_SUITE_CONFIG.buildFrequencySelectOptionsHtml('daily') + '</select></div>' +
+            '<div class="hint" id="gemba-plan-owner-note" style="grid-column:1/-1;">\u00c1rea y frecuencia vienen del Plan Maestro seleccionado.</div>' +
             '<div class="form-field"><label>Programado (opcional)</label>' +
               '<input type="datetime-local" name="scheduled_for"></div>' +
             '<label class="form-field" style="grid-column:1/-1;display:flex;gap:0.55rem;align-items:flex-start;">' +
@@ -1053,6 +1096,8 @@
           source: 'aproviva-suite',
           plan_template_id: selectedTemplate ? selectedTemplate.id : null,
           plan_name: selectedTemplate ? selectedTemplate.name : fd.get('title'),
+          plan_role: selectedTemplate && selectedTemplate.role ? selectedTemplate.role : sess.role,
+          plan_owner: selectedTemplate && selectedTemplate.owner ? selectedTemplate.owner : sess.label,
           plan_points: planPoints,
           point_results: {},
         },

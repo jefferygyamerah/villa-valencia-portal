@@ -18,6 +18,9 @@ module.exports = defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'on-first-retry',
+    // Keep mocked Supabase REST tests deterministic; the app registers a PWA service worker
+    // that can otherwise satisfy requests before page.route() sees them.
+    serviceWorkers: 'block',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: process.env.BASE_URL
