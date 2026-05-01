@@ -87,14 +87,15 @@
           '<div class="vv-eyebrow">Lectura segura</div>' +
           '<p>Esta pantalla resume estados operativos para Junta. No muestra datos de contacto, bancos, residentes ni detalles libres de casos.</p>' +
         '</div>' +
-        '<div class="kpi-grid">' +
-          kpi('Escalaciones abiertas', openEsc.length) +
-          kpi('Altas / cr\u00edticas', criticalEsc.length) +
-          kpi('Patrones cr\u00f3nicos', chronicPatterns.length) +
-          kpi('\u00d3rdenes atrasadas', lateWO.length) +
-          kpi('Casos compliance', compliance.length) +
-          kpi('Edificios activos', buildings.filter(function (b) { return b.status === 'active'; }).length || buildings.length) +
+        '<div class="kpi-grid" id="junta-kpis">' +
+          kpi('Escalaciones abiertas', openEsc.length, 'openEsc') +
+          kpi('Altas / críticas', criticalEsc.length, 'criticalEsc') +
+          kpi('Patrones crónicos', chronicPatterns.length, 'chronic') +
+          kpi('Órdenes atrasadas', lateWO.length, 'lateWO') +
+          kpi('Casos compliance', compliance.length, 'compliance') +
+          kpi('Edificios activos', buildings.filter(function (b) { return b.status === 'active'; }).length || buildings.length, 'buildings') +
         '</div>' +
+        '<div class="page-section" id="junta-kpi-detail" data-testid="junta-kpi-detail" style="display:none"></div>' +
 
         '<div class="page-section"><h3 class="section-title">Estado por edificio</h3>' +
           window.UI.table(Object.values(byBuilding), [
@@ -152,14 +153,69 @@
             { key: 'submitted_at', label: 'Enviado', render: function (r) { return r.submitted_at ? window.UI.fmtDate(r.submitted_at) : ''; } },
           ]) +
         '</div>';
+
+      wireKpiDrilldowns({
+        openEsc: { title: 'Escalaciones abiertas', rows: openEsc, columns: [
+          { key: 'severity', label: 'Nivel', render: function (r) { return window.UI.badge(r.severity, severityKind(r.severity)); }, html: true },
+          { key: 'title', label: 'Caso' },
+          { key: 'context', label: 'Contexto', render: function (r) { return escalationContext(r, incidentById); } },
+          { key: 'status', label: 'Estado' },
+        ] },
+        criticalEsc: { title: 'Escalaciones altas / críticas', rows: criticalEsc, columns: [
+          { key: 'severity', label: 'Nivel', render: function (r) { return window.UI.badge(r.severity, severityKind(r.severity)); }, html: true },
+          { key: 'title', label: 'Caso' },
+          { key: 'context', label: 'Contexto', render: function (r) { return escalationContext(r, incidentById); } },
+        ] },
+        chronic: { title: 'Patrones crónicos', rows: chronicPatterns, columns: [
+          { key: 'pattern', label: 'Ubicación | categoría' },
+          { key: 'count', label: 'Repeticiones' },
+        ] },
+        lateWO: { title: 'Órdenes atrasadas', rows: lateWO, columns: [
+          { key: 'assignment_number', label: '#' },
+          { key: 'title', label: 'Trabajo' },
+          { key: 'priority', label: 'Prioridad' },
+          { key: 'due_at', label: 'Vence', render: function (r) { return window.UI.fmtDate(r.due_at); } },
+        ] },
+        compliance: { title: 'Casos compliance', rows: complianceRows, columns: [
+          { key: 'status', label: 'Estado' },
+          { key: 'summary', label: 'Tipo / resumen' },
+          { key: 'opened', label: 'Fecha', render: function (r) { return r.opened ? window.UI.fmtDate(r.opened) : ''; } },
+        ] },
+        buildings: { title: 'Edificios activos', rows: Object.values(byBuilding), columns: [
+          { key: 'name', label: 'Edificio', render: function (r) { return r.building.name; } },
+          { key: 'openIncidents', label: 'Incidentes abiertos' },
+          { key: 'criticalIncidents', label: 'Altos/críticos' },
+        ] },
+      });
     } catch (e) {
       window.UI.errorBox(box, e);
     }
   }
 
-  function kpi(label, value) {
-    return '<div class="kpi-card"><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
-           '<div class="kpi-value">' + window.UI.esc(value) + '</div></div>';
+  function wireKpiDrilldowns(data) {
+    var grid = document.getElementById('junta-kpis');
+    if (!grid) return;
+    grid.querySelectorAll('[data-junta-drill]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        renderJuntaDrill(data[this.getAttribute('data-junta-drill')]);
+      });
+    });
+  }
+
+  function renderJuntaDrill(cfg) {
+    var box = document.getElementById('junta-kpi-detail');
+    if (!box || !cfg) return;
+    box.style.display = '';
+    box.innerHTML = '<h3 class="section-title">Detalle: ' + window.UI.esc(cfg.title) + '</h3>' +
+      '<p class="muted">Evidencia que alimenta el KPI seleccionado.</p>' +
+      window.UI.table(cfg.rows || [], cfg.columns || [{ key: 'id', label: 'ID' }]);
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function kpi(label, value, drillKey) {
+    var attr = drillKey ? ' data-junta-drill="' + window.UI.esc(drillKey) + '"' : '';
+    return '<button type="button" class="kpi-card"' + attr + '><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
+           '<div class="kpi-value">' + window.UI.esc(value) + '</div><div class="muted">Ver detalle</div></button>';
   }
 
   function decisionBox(text, kind) {

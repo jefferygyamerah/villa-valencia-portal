@@ -93,6 +93,7 @@
         '</div>' +
         renderVillaLens(session) +
         '<div class="kpi-grid" id="home-kpis"><div class="loading">Cargando KPIs...</div></div>' +
+        '<div class="page-section" id="home-kpi-detail" data-testid="home-kpi-detail" style="display:none"></div>' +
         '<div class="page-section home-modules" data-testid="home-modules">' +
           '<h3 class="section-title">Tus m\u00f3dulos</h3>' +
           '<div class="module-grid">' +
@@ -227,21 +228,59 @@
       var openRounds = rounds.filter(function (r) { return r.status !== 'completed' && r.status !== 'closed'; }).length;
       var openEsc = escalations.filter(function (r) { return r.status !== 'resolved' && r.status !== 'closed'; }).length;
 
+      var openIncidentRows = incidents.filter(function (r) { return r.status !== 'resolved' && r.status !== 'closed'; });
+      var openRoundRows = rounds.filter(function (r) { return r.status !== 'completed' && r.status !== 'closed'; });
+      var openEscRows = escalations.filter(function (r) { return r.status !== 'resolved' && r.status !== 'closed'; });
+      var drill = {
+        items: { title: 'Artículos activos', rows: items.slice(0, 25), columns: [
+          { key: 'id', label: 'ID' },
+        ] },
+        moves: { title: 'Movimientos recientes', rows: moves.slice(0, 25), columns: [
+          { key: 'id', label: 'ID' },
+        ] },
+        incidents: { title: 'Incidencias abiertas', rows: openIncidentRows.slice(0, 25), columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'status', label: 'Estado' },
+        ] },
+        rounds: { title: 'Recorridos en curso', rows: openRoundRows.slice(0, 25), columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'status', label: 'Estado' },
+        ] },
+        escalations: { title: 'Escalaciones abiertas', rows: openEscRows.slice(0, 25), columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'status', label: 'Estado' },
+        ] },
+      };
+
       box.innerHTML = '' +
-        kpi('Art\u00edculos activos', items.length) +
-        kpi('Movimientos recientes', moves.length) +
-        kpi('Incidencias abiertas', openIncidents) +
-        kpi('Recorridos en curso', openRounds) +
-        kpi('Escalaciones abiertas', openEsc);
+        kpi('Artículos activos', items.length, 'items') +
+        kpi('Movimientos recientes', moves.length, 'moves') +
+        kpi('Incidencias abiertas', openIncidents, 'incidents') +
+        kpi('Recorridos en curso', openRounds, 'rounds') +
+        kpi('Escalaciones abiertas', openEsc, 'escalations');
+      box.querySelectorAll('[data-home-drill]').forEach(function (btn) {
+        btn.addEventListener('click', function () { renderHomeDrill(drill[this.getAttribute('data-home-drill')]); });
+      });
     } catch (e) {
       console.error(e);
       window.UI.errorBox(box, e);
     }
   }
 
-  function kpi(label, value) {
-    return '<div class="kpi-card"><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
-           '<div class="kpi-value">' + window.UI.esc(value) + '</div></div>';
+  function renderHomeDrill(cfg) {
+    var box = document.getElementById('home-kpi-detail');
+    if (!box || !cfg) return;
+    box.style.display = '';
+    box.innerHTML = '<h3 class="section-title">Detalle: ' + window.UI.esc(cfg.title) + '</h3>' +
+      '<p class="muted">Drill-down operativo desde el KPI seleccionado.</p>' +
+      window.UI.table(cfg.rows || [], cfg.columns || [{ key: 'id', label: 'ID' }]);
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function kpi(label, value, drillKey) {
+    var attr = drillKey ? ' role="button" tabindex="0" data-home-drill="' + window.UI.esc(drillKey) + '"' : '';
+    return '<button type="button" class="kpi-card"' + attr + '><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
+           '<div class="kpi-value">' + window.UI.esc(value) + '</div><div class="muted">Ver detalle</div></button>';
   }
 
   window.ROUTER.register('inicio', { render: render });

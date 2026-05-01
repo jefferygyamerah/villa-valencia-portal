@@ -49,6 +49,15 @@ test.describe('APROVIVA suite (PIN JD26 — Junta)', () => {
     await expect(nav.getByRole('link', { name: 'Mapa' })).toHaveCount(0);
   });
 
+  test('junta KPIs drill down to supporting detail', async ({ page }) => {
+    await loginWithPin(page, 'JD26');
+    await page.goto('/aproviva-suite/index.html#/junta');
+    await page.getByTestId('junta-page').waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('button', { name: /Escalaciones abiertas/i }).click();
+    await expect(page.getByTestId('junta-kpi-detail')).toBeVisible();
+    await expect(page.getByTestId('junta-kpi-detail')).toContainText('Detalle: Escalaciones abiertas');
+  });
+
   test('logout returns to login', async ({ page }) => {
     await loginWithPin(page, 'JD26');
     await page.locator('#app-logout').click();
@@ -64,6 +73,14 @@ test.describe('APROVIVA suite (PIN GER26 — Gerencia)', () => {
     await page.goto('/aproviva-suite/index.html#/proyectos');
     await expect(page.locator('#proj-csv-template')).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('#proj-csv-upload')).toBeVisible({ timeout: 20_000 });
+  });
+
+  test('home KPIs drill down to supporting detail', async ({ page }) => {
+    await loginWithPin(page, 'GER26');
+    await page.goto('/aproviva-suite/index.html#/inicio');
+    await page.getByRole('button', { name: /Incidencias abiertas/i }).click();
+    await expect(page.getByTestId('home-kpi-detail')).toBeVisible();
+    await expect(page.getByTestId('home-kpi-detail')).toContainText('Detalle: Incidencias abiertas');
   });
 
   test('gemba is oversight only for Plan Maestro creation', async ({ page }) => {
