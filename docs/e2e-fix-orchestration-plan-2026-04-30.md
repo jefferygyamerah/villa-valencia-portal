@@ -446,3 +446,15 @@ Completed the next premium polish slice after `P3-RPT-002`:
 - Expanded mocked Playwright coverage to verify Junta scorecard semantics and no Supabase writes.
 
 Next premium iteration: visual polish of executive/board surfaces and/or audit/history center lite.
+
+
+## P3 Premium Product Iteration — Executive Visual Polish 2026-05-01
+
+Completed a low-risk executive surface polish slice:
+
+- Added Junta executive hero with board operating-system language and top-line stats.
+- Added board packet summary strip for decisions, risks, and KPI count.
+- Upgraded premium CSS for executive hero, scorecard hierarchy, hover/focus elevation, mobile board readability, and print cleanup.
+- Expanded mocked scorecard tests for hero/summary/mobile readability without Supabase writes.
+
+Next premium iteration: audit/history center lite or resident/PQRS polish, depending on which is higher commercial leverage.

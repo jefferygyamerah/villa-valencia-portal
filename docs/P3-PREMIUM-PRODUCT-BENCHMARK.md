@@ -88,10 +88,8 @@ Implemented first premium reporting slice:
 ## Next premium slices
 
 1. ✅ `P3-RPT-002` weekly board scorecard metrics: implemented across Reportes board packet and Junta live dashboard with 8 metrics, owner/source/detail, age buckets, chronic issue metric, and preventive/corrective ratio.
-2. Premium visual pass for Junta + Reportes:
-   - stronger executive cards,
-   - cleaner empty states,
-   - better print layout.
+2. ✅ Premium visual pass for Junta + Reportes: executive hero, board summary strip, stronger scorecard hierarchy, mobile readability, and print cleanup.
+3. Next: Audit/history center lite:
 3. Audit/history center lite:
    - recent changes and closures across incidents, rounds, work orders.
 4. Auth/RLS hardening plan and first implementation slice.

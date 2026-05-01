@@ -106,6 +106,16 @@
       }).slice(0, 10);
 
       box.innerHTML = '' +
+        '<div class="executive-hero" data-testid="junta-premium-hero">' +
+          '<div class="executive-hero-copy"><div class="vv-eyebrow">Centro de mando · Junta</div>' +
+            '<h3>Decisiones, riesgo y evidencia en una sola lectura</h3>' +
+            '<p>El tablero vivo comparte el mismo lenguaje del paquete imprimible: responsable, fuente, estado y detalle verificable.</p></div>' +
+          '<div class="executive-hero-rail">' +
+            heroStat('Decisión', decisionLevel === 'danger' ? 'Urgente' : (decisionLevel === 'warning' ? 'Seguimiento' : 'Estable')) +
+            heroStat('Backlog', openWO.length) +
+            heroStat('Recorridos', compliancePct + '%') +
+          '</div>' +
+        '</div>' +
         decisionBox(decisionText, decisionLevel) +
         '<div class="vv-privacy-card junta-privacy">' +
           '<div class="vv-eyebrow">Lectura segura</div>' +
@@ -272,6 +282,10 @@
       '<p class="muted">Evidencia que alimenta el KPI seleccionado.</p>' +
       window.UI.table(cfg.rows || [], cfg.columns || [{ key: 'id', label: 'ID' }]);
     box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function heroStat(label, value) {
+    return '<div class="executive-hero-stat"><span>' + window.UI.esc(label) + '</span><strong>' + window.UI.esc(value) + '</strong></div>';
   }
 
   function juntaKpiCard(metric) {

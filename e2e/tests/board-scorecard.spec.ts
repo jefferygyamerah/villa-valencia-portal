@@ -82,6 +82,8 @@ test.describe('P3-RPT-002 premium board scorecard', () => {
     const packet = page.getByTestId('board-packet');
     await expect(packet).toBeVisible({ timeout: 30_000 });
     await expect(packet).toContainText('No incluye datos personales');
+    await expect(page.getByTestId('board-summary-strip')).toBeVisible();
+    await expect(page.getByTestId('board-summary-strip')).toContainText('Scorecard');
 
     const cards = page.getByTestId('board-kpi-card');
     await expect(cards).toHaveCount(8);
@@ -105,6 +107,10 @@ test.describe('P3-RPT-002 premium board scorecard', () => {
     await loginWithPin(page, 'JD26');
     await page.goto('/aproviva-suite/index.html#/junta');
 
+    await expect(page.getByTestId('junta-premium-hero')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('junta-premium-hero')).toContainText('Centro de mando');
+    await expect(page.getByTestId('junta-premium-hero')).toContainText('Backlog');
+
     const scorecard = page.getByTestId('junta-scorecard');
     await expect(scorecard).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('junta-kpi-card')).toHaveCount(8);
@@ -123,6 +129,24 @@ test.describe('P3-RPT-002 premium board scorecard', () => {
     await expect(page.getByTestId('junta-kpi-detail')).toContainText('Detalle: Preventivo / correctivo');
     await expect(page.getByTestId('junta-kpi-detail')).toContainText('2 / 1');
 
+    expect(state.nonGet).toEqual([]);
+  });
+
+
+  test('Junta premium scorecard remains readable on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const state = await mockSupabase(page);
+    await loginWithPin(page, 'JD26');
+    await page.goto('/aproviva-suite/index.html#/junta');
+
+    await expect(page.getByTestId('junta-premium-hero')).toBeVisible({ timeout: 30_000 });
+    const box = await page.getByTestId('junta-scorecard').boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeLessThanOrEqual(430);
+    await expect(page.getByTestId('junta-kpi-card').first()).toContainText('Responsable');
+
+    await page.getByRole('button', { name: /Backlog abierto/i }).click();
+    await expect(page.getByTestId('junta-kpi-detail')).toBeVisible();
     expect(state.nonGet).toEqual([]);
   });
 

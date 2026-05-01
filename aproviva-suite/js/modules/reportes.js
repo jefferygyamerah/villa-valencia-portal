@@ -304,6 +304,11 @@
             '<button class="btn btn-primary-sm no-print" type="button" id="rp-board-print">Imprimir / guardar PDF</button>' +
           '</div>' +
           '<div class="board-privacy">No incluye datos personales, bancos, contactos de residentes ni notas libres sensibles. Fuente: tablas operativas APROVIVA.</div>' +
+          '<div class="board-summary-strip" data-testid="board-summary-strip">' +
+            heroStat('Decisiones', decisions.length) +
+            heroStat('Riesgos', risks.length) +
+            heroStat('Scorecard', metricCards.length + ' KPIs') +
+          '</div>' +
           '<section class="board-section"><h4>1. Decisiones requeridas</h4>' + list(decisions) + '</section>' +
           '<section class="board-section"><h4>2. Riesgos ejecutivos</h4>' + list(risks) + '</section>' +
           '<section class="board-section"><h4>3. Scorecard de gobernanza</h4>' +
@@ -395,6 +400,10 @@
 
 
 
+
+  function heroStat(label, value) {
+    return '<div class="executive-hero-stat"><span>' + window.UI.esc(label) + '</span><strong>' + window.UI.esc(value) + '</strong></div>';
+  }
 
   function boardKpiCard(metric) {
     return '<div class="kpi-card board-kpi-card" data-testid="board-kpi-card">' +
