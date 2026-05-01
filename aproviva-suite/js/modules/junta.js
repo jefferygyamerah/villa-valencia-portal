@@ -45,6 +45,8 @@
 
       var openEsc = esc.filter(function (r) { return r.status !== 'resolved' && r.status !== 'closed'; });
       var criticalEsc = openEsc.filter(function (r) { return r.severity === 'critical' || r.severity === 'high'; });
+      var incidentById = {};
+      incidents.forEach(function (i) { incidentById[i.id] = i; });
 
       // Chronic detection - source_id repeated 2+ times in escalations or incidents (Scenario 19)
       var sourceCount = {};
@@ -75,6 +77,9 @@
           opened: c.created_at || c.opened_at || '',
         };
       });
+      var closureRows = incidents.filter(function (i) {
+        return (i.status === 'resolved' || i.status === 'closed') && latestHistory(i);
+      }).slice(0, 10);
 
       box.innerHTML = '' +
         decisionBox(decisionText, decisionLevel) +
@@ -104,9 +109,19 @@
           (criticalEsc.length ? window.UI.table(criticalEsc.slice(0, 10), [
             { key: 'severity', label: 'Nivel', render: function (r) { return window.UI.badge(r.severity, severityKind(r.severity)); }, html: true },
             { key: 'title', label: 'Caso' },
+            { key: 'context', label: 'Contexto', render: function (r) { return escalationContext(r, incidentById); } },
             { key: 'source_type', label: 'Origen' },
             { key: 'created_at', label: 'Creado', render: function (r) { return window.UI.fmtDate(r.created_at); } },
           ]) : '<p class="empty">Sin escalaciones cr\u00edticas/altas abiertas.</p>') +
+        '</div>' +
+
+        '<div class="page-section"><h3 class="section-title">Historial de cierre</h3>' +
+          (closureRows.length ? window.UI.table(closureRows, [
+            { key: 'ticket_number', label: '#' },
+            { key: 'title', label: 'Caso' },
+            { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusKind(r.status)); }, html: true },
+            { key: 'history', label: 'Ultimo movimiento', render: function (r) { return closureSummary(r); } },
+          ]) : '<p class="empty">Sin cierres con bit\u00e1cora para revisar.</p>') +
         '</div>' +
 
         '<div class="page-section"><h3 class="section-title">Patrones repetidos</h3>' +
@@ -158,6 +173,44 @@
 
   function statusKind(status) {
     return status === 'resolved' || status === 'closed' || status === 'approved' ? 'success' : (status === 'open' || status === 'pending' ? 'warning' : 'info');
+  }
+
+  function parseJson(value) {
+    if (!value) return {};
+    if (typeof value === 'string') {
+      try { return JSON.parse(value) || {}; } catch (e) { return {}; }
+    }
+    if (typeof value === 'object') return value;
+    return {};
+  }
+
+  function latestHistory(incident) {
+    var meta = parseJson(incident.metadata);
+    var rows = Array.isArray(meta.incident_history) ? meta.incident_history : (Array.isArray(meta.history) ? meta.history : []);
+    if (!rows.length) return null;
+    return rows[rows.length - 1];
+  }
+
+  function closureSummary(incident) {
+    var h = latestHistory(incident);
+    if (!h) return '';
+    var bits = [h.label || h.action || 'Movimiento'];
+    if (h.note) bits.push(h.note);
+    if (h.actor_label) bits.push('Por ' + h.actor_label);
+    return bits.join(' · ');
+  }
+
+  function escalationContext(row, incidentById) {
+    var payload = parseJson(row.payload);
+    if (payload.source_context) return payload.source_context;
+    if (payload.ticket_number) {
+      return [payload.ticket_number, payload.category || '', payload.location_label || ''].filter(Boolean).join(' · ');
+    }
+    var incident = incidentById[row.source_id];
+    if (incident) {
+      return [incident.ticket_number, incident.category, incident.location_label].filter(Boolean).join(' · ');
+    }
+    return row.source_id || '';
   }
 
   window.ROUTER.register('junta', { render: render, requiredModule: 'junta' });

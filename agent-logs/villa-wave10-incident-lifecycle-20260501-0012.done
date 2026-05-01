@@ -1,0 +1,126 @@
+status: implemented-deploy-held
+summary: Wave 10 implemented the first schema-free incident/escalation lifecycle slice from the E2E orchestration plan Wave 3. No real operational data was imported, no production DB rows were created/updated/deleted, and no production deploy was performed because required browser/live checks are blocked in this sandbox.
+
+wave_audit_matrix:
+  numbering_note: Historical agent logs used Waves 4-9 for PQRS/MD04/readiness work. The later E2E orchestration plan defines Wave 0-9; its Wave 0-2 reconciliation is deployed at commit 451bcab. Jeff direction makes data import Wave 11, so Wave 10 continues with the plan's Wave 3 incident/escalation work.
+  - wave: E2E plan Wave 0 - Baseline and safety gate
+    intended_scope: Baseline Playwright, role smoke for conserje/supervisor/gerencia/junta, public Accessos and suite login.
+    evidence: 451bcab, docs/test-findings/e2e-baseline-2026-04-30.md, agent-logs/villa-e2e-orchestration-reconcile-20260430-2350.done
+    verification_status: Reconciliation log records focused E2E 16 passed and full E2E 41 passed before deploy; current sandbox local Playwright blocked by EPERM binding 127.0.0.1:8787.
+    prod_status: Deployed in reconciliation according to log; current shell production smoke blocked by DNS EAI_AGAIN.
+    open_risk: Current environment cannot independently rerun browser smoke.
+  - wave: E2E plan Wave 1 - Fast UI convergence
+    intended_scope: Remove resident Accessos card, tighten Accessos layout, remove product trust copy, remove mobile duplicate nav/module grid, move install prompt up.
+    evidence: 451bcab, docs/test-findings/e2e-wave1-2026-04-30.md, docs/website-fix-log.md
+    verification_status: Reconciliation log records focused and full E2E pass; current production-mode Playwright blocked by Chromium sandbox shutdown EPERM.
+    prod_status: Deployed per reconciliation log.
+    open_risk: Root production route could not be shell-smoked here; browser/web observation showed villavalencia.vercel.app redirects to /es, so final route ownership should be rechecked from a normal browser.
+  - wave: E2E plan Wave 2 - Master data backbone
+    intended_scope: Shared controlled areas/locations, assignees, inspection-plan taxonomy, follow-up statuses, escalation lifecycle taxonomy.
+    evidence: 451bcab, docs/test-findings/e2e-wave2-2026-04-30.md, e2e/tests/master-data-controlled-choices.spec.ts
+    verification_status: Reconciliation log records master-data focused tests passed; current TypeScript and JS syntax pass.
+    prod_status: Deployed per reconciliation log.
+    open_risk: Some deeper role-scoped recorrido/workflow application remains planned for later waves.
+  - wave: Historical Wave 4 - PQRS RPC guard
+    intended_scope: Non-mutating PQRS lookup SQL contract and live/fake reference smoke guard.
+    evidence: agent-logs/villa-wave4-20260430-163406.done, scripts/pqrs-rpc-smoke.mjs
+    verification_status: Local SQL contract passes now with node scripts/pqrs-rpc-smoke.mjs --check-sql.
+    prod_status: Production RPC fix later applied and verified in villa-approved-prod-actions-20260430-1913.done.
+    open_risk: Current live RPC smoke blocked by DNS EAI_AGAIN; no new live PQRS row created.
+  - wave: Historical Wave 5 - Production smoke hardening
+    intended_scope: Route/config production smoke and stale post-cutover docs cleanup.
+    evidence: agent-logs/villa-wave5-20260430-181551.done, scripts/production-smoke.mjs
+    verification_status: JS syntax passes now; current production-smoke blocked by DNS EAI_AGAIN villavalencia.vercel.app.
+    prod_status: Prior logs say production smoke passed after deploy; not independently rerunnable here.
+    open_risk: Requires network-enabled shell/browser to reconfirm production route/config state.
+  - wave: Historical Wave 6 - PQRS historical backfill readiness
+    intended_scope: Backfill/decommission runbook and offline CSV validator; no actual private data import.
+    evidence: c721710, agent-logs/villa-wave6-20260430-185106.done, docs/PQRS-HISTORICAL-BACKFILL-RUNBOOK.md
+    verification_status: Current fixture strict validation passed.
+    prod_status: No production mutation; actual historical import deferred to Wave 11 with Jeff approval/private export.
+    open_risk: Private source export and approved import window still needed.
+  - wave: Historical Wave 7 - MD04/data-backbone guard and approved apply
+    intended_scope: Non-mutating preflight guard for recorridos/MD04 migration and docs.
+    evidence: 8eec27e, b3f4196, agent-logs/villa-wave7-20260430-190507.done, agent-logs/villa-approved-prod-actions-20260430-1913.done
+    verification_status: Current local preflight dry run passed; live preflight blocked by DNS EAI_AGAIN.
+    prod_status: Approved actions log records MD04/data-backbone migration applied and verified live.
+    open_risk: Current live prerequisite probe cannot run in this sandbox.
+  - wave: Historical Wave 8 - Post-reset E2E seed verifier
+    intended_scope: Read-only verifier for one clean E2E example per core operational function.
+    evidence: b5066ce, agent-logs/villa-data-reset-e2e-seed-20260430-1936.done, agent-logs/villa-wave8-20260430-204542.done, scripts/vv-e2e-seed-verify.mjs
+    verification_status: Prior live checks passed; current verifier skipped because POSTGRES_URL is unavailable.
+    prod_status: Seed-only operational state was restored and then re-cleaned in logs.
+    open_risk: Current clean-state proof requires POSTGRES_URL from a private environment.
+  - wave: Historical re-clean - Operational drift cleanup
+    intended_scope: Remove non-seed operational drift after reset while preserving E2E examples.
+    evidence: 6db6503, agent-logs/villa-reclean-operational-20260430-2207.done
+    verification_status: Prior strict vv-e2e-seed-verify passed.
+    prod_status: Production rows were deleted only under Jeff-approved cleanup context before this Wave 10 turn; Wave 10 did not mutate DB.
+    open_risk: Current strict seed verification unavailable without POSTGRES_URL.
+  - wave: Historical Wave 9 - Operational real-data load readiness
+    intended_scope: Offline operational-data JSON/CSV validation package for future private real-data load.
+    evidence: b122ab8, agent-logs/villa-wave9-operational-load-readiness-20260430-2211.done, docs/OPERATIONAL-REAL-DATA-LOAD-READINESS.md
+    verification_status: Current strict fixture validation passed.
+    prod_status: No production mutation; data import explicitly deferred to Wave 11.
+    open_risk: Private source exports/mapping and explicit approval still required.
+
+wave10_scope:
+  - Added client-side conserjeria visibility filtering for incidents raised by or assigned to the conserjeria role/session metadata.
+  - Added incident detail sheet with operational context and metadata-backed movement history.
+  - Added lifecycle actions for supervisor/gerencia: take, resolve with required comment, reassign, send back, escalate.
+  - Added conserjeria close-with-note action for raised/assigned incidents.
+  - Added escalation payload source context/history so Junta and Reportes can show where escalation came from.
+  - Added mocked Playwright coverage for conserjeria visibility/closure and supervisor resolution/escalation/Junta review without live Supabase writes.
+
+files_changed:
+  - aproviva-suite/js/modules/incidencias.js
+  - aproviva-suite/js/modules/junta.js
+  - aproviva-suite/js/modules/reportes.js
+  - aproviva-suite/css/suite.css
+  - e2e/tests/incident-lifecycle.spec.ts
+  - docs/website-fix-log.md
+  - agent-logs/villa-wave10-incident-lifecycle-20260501-0012.done
+
+checks_passed:
+  - find js aproviva-suite/js scripts -name '*.js' -o -name '*.mjs' | sort | xargs -r -n1 node --check
+  - cd e2e && npx tsc --noEmit
+  - node scripts/vv-operational-load-validate.mjs --bundle scripts/fixtures/operational-load-sample.json --strict
+  - node scripts/pqrs-backfill-validate.mjs --file scripts/fixtures/pqrs-backfill-sample.csv --strict
+  - node scripts/pqrs-rpc-smoke.mjs --check-sql
+  - node scripts/recorridos-md04-preflight.mjs
+  - git diff --check
+
+checks_blocked:
+  - npm test: blocked by Error listen EPERM 127.0.0.1:8787 from Playwright static server.
+  - npm test -- --grep "Wave 10": blocked by the same local port bind EPERM.
+  - npm run test:prod -- --grep "accessos shows only|mobile inicio|master data controlled|Wave 10": browser launches then Chromium fails with sandbox_host_linux.cc:41 shutdown Operation not permitted.
+  - node scripts/production-smoke.mjs: DNS getaddrinfo EAI_AGAIN villavalencia.vercel.app.
+  - node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-E2E-000001: DNS getaddrinfo EAI_AGAIN tgoitmwdpdkhlpqpwrvs.supabase.co.
+  - node scripts/recorridos-md04-preflight.mjs --live: DNS getaddrinfo EAI_AGAIN tgoitmwdpdkhlpqpwrvs.supabase.co.
+  - node scripts/vv-e2e-seed-verify.mjs: skipped because POSTGRES_URL is unavailable.
+
+production_data:
+  mutated: false
+  import_or_backfill: false
+  note: Wave 10 only changed static client code/tests/docs. No production DB mutation was attempted.
+
+deploy_decision:
+  decision: hold
+  reason: Required browser/live production checks are blocked here and therefore did not pass. Commit/push may proceed if git/network permits, but production deploy should wait for a network/browser-capable runner to pass the focused Wave 10 and reconciliation smokes.
+
+commit_push:
+  local_commit: blocked
+  blocker: git add/commit cannot create /home/jeffery/Adwen-Tech/apps/villa-valencia-portal/.git/worktrees/villa-valencia-gemba/index.lock because that git metadata path is outside this session's writable roots and is treated as read-only.
+  remote_push: not_attempted_after_commit_block
+  note: Working-tree files are updated in the lane; .codex remains untracked and excluded.
+
+notification:
+  route: telegram -> telegram:7537783431, account default, reply_to 221
+  status: attempted_once
+  result: openclaw message send produced no JSON/result after more than 90 seconds in this restricted sandbox; no second send was attempted to avoid duplicate delivery.
+
+remaining:
+  - Re-run full local Playwright and focused production Playwright from a browser-capable environment.
+  - Re-run production-smoke, pqrs-rpc-smoke known seed, recorridos live preflight, and vv-e2e-seed-verify with POSTGRES_URL.
+  - If those pass, deploy the Wave 10 static changes.
+  - Continue remaining E2E plan Wave 3 items after this slice: richer reopen semantics and any non-incident escalation sources.

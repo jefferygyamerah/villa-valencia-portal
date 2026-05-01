@@ -168,6 +168,7 @@
         '<div class="page-section"><h4 class="section-title">Para decisi\u00f3n</h4>' + window.UI.table(critical.slice(0, 10), [
           { key: 'severity', label: 'Nivel', render: function (r) { return window.UI.badge(r.severity, severityKind(r.severity)); }, html: true },
           { key: 'title', label: 'Caso' },
+          { key: 'context', label: 'Contexto', render: escalationContext },
           { key: 'source_type', label: 'Origen' },
           { key: 'created_at', label: 'Creado', render: function (r) { return window.UI.fmtDate(r.created_at); } },
         ]) + '</div>' +
@@ -175,6 +176,7 @@
           { key: 'severity', label: 'Nivel', render: function (r) { return window.UI.badge(r.severity, severityKind(r.severity)); }, html: true },
           { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusKind(r.status)); }, html: true },
           { key: 'title', label: 'Caso' },
+          { key: 'context', label: 'Contexto', render: escalationContext },
           { key: 'source_type', label: 'Origen' },
           { key: 'created_at', label: 'Fecha', render: function (r) { return window.UI.fmtDate(r.created_at); } },
         ]) + '</div>';
@@ -240,6 +242,24 @@
 
   function statusKind(status) {
     return status === 'resolved' || status === 'closed' || status === 'completed' ? 'success' : (status === 'open' || status === 'pending' ? 'warning' : 'info');
+  }
+
+  function parseJson(value) {
+    if (!value) return {};
+    if (typeof value === 'string') {
+      try { return JSON.parse(value) || {}; } catch (e) { return {}; }
+    }
+    if (typeof value === 'object') return value;
+    return {};
+  }
+
+  function escalationContext(row) {
+    var payload = parseJson(row.payload);
+    if (payload.source_context) return payload.source_context;
+    if (payload.ticket_number) {
+      return [payload.ticket_number, payload.category || '', payload.location_label || ''].filter(Boolean).join(' · ');
+    }
+    return row.source_id || '';
   }
 
   window.ROUTER.register('reportes', { render: render, requiredModule: 'reportes' });
