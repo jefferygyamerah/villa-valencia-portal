@@ -80,10 +80,14 @@ From the repo root:
 
 ```sh
 node scripts/production-smoke.mjs
-node scripts/pqrs-rpc-smoke.mjs --live
+node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-E2E-000001
+node scripts/recorridos-md04-preflight.mjs --live
+POSTGRES_URL='<private-villa-valencia-production-db-url>' node scripts/vv-e2e-seed-verify.mjs
 ```
 
-These checks only read production route/config/RPC state. They do not submit PQRS cases or write resident data.
+These checks only read production route/config/RPC/DB state. They do not submit PQRS cases or write resident data. The E2E seed verifier requires a private Villa Valencia production DB URL and opens a read-only transaction. After real operational data is loaded, rerun it with `--allow-extra-operational`.
+
+Post-reset review path and real-data-load readiness criteria: `docs/POST-RESET-E2E-SEED-VERIFICATION.md`.
 
 ## PQRS historical backfill guard
 

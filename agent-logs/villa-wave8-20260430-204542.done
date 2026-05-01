@@ -1,0 +1,25 @@
+status: passed-with-operational-drift-note
+summary: Added durable read-only verifier for the clean post-reset E2E seed and documented Jeff/reviewer command sequence plus real-data-load readiness criteria. No live DB mutation, no production rows created, no deletes, no deploy. Initial worker push/log was repaired by removing accidental .codex from the commit, pushing to both main and lane, and re-running live checks from a network-enabled shell.
+changes:
+  - scripts/vv-e2e-seed-verify.mjs
+  - docs/POST-RESET-E2E-SEED-VERIFICATION.md
+  - README.md
+checks_passed:
+  - node --check scripts/vv-e2e-seed-verify.mjs
+  - node --check scripts/production-smoke.mjs
+  - node --check scripts/pqrs-rpc-smoke.mjs
+  - node --check scripts/recorridos-md04-preflight.mjs
+  - node scripts/pqrs-rpc-smoke.mjs --check-sql
+  - node scripts/recorridos-md04-preflight.mjs
+  - node scripts/vv-e2e-seed-verify.mjs --allow-extra-operational
+  - node scripts/production-smoke.mjs
+  - node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-E2E-000001
+  - node scripts/recorridos-md04-preflight.mjs --live
+notes:
+  - Strict clean-state verifier failed because production now has extra operational inspection_rounds/inspection_findings beyond the reset seed.
+  - Seed examples themselves are intact: foundation rows, all E2E seed examples, PQRS known lookup, and MD04 seeded OPEN_FINDING/STOCK_OUT are present.
+  - Use --allow-extra-operational after real data load or when reviewer-created rows are expected.
+  - Run without --allow-extra-operational only when production should contain exactly the clean seed set.
+remaining:
+  - Decide whether to re-clean the extra operational inspection rows or keep them as reviewer/test activity.
+  - Jeff reviews seed examples; after approval and private exports/source data are available, load real operational data.
