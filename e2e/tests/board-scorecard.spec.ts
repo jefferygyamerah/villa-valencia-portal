@@ -99,4 +99,31 @@ test.describe('P3-RPT-002 premium board scorecard', () => {
     await expect(packet).not.toContainText(/555-0100|persona sensible|cuenta 123|correo@example\.com/i);
     expect(state.nonGet).toEqual([]);
   });
+
+  test('Junta dashboard uses the same owner/source scorecard language and drilldowns without writes', async ({ page }) => {
+    const state = await mockSupabase(page);
+    await loginWithPin(page, 'JD26');
+    await page.goto('/aproviva-suite/index.html#/junta');
+
+    const scorecard = page.getByTestId('junta-scorecard');
+    await expect(scorecard).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('junta-kpi-card')).toHaveCount(8);
+    await expect(scorecard).toContainText('Responsable');
+    await expect(scorecard).toContainText('Fuente');
+    await expect(scorecard).toContainText('Preventivo / correctivo');
+    await expect(scorecard).toContainText('Backlog abierto');
+    await expect(scorecard).toContainText('Cumplimiento recorridos');
+
+    await page.getByRole('button', { name: /Backlog abierto/i }).click();
+    await expect(page.getByTestId('junta-kpi-detail')).toBeVisible();
+    await expect(page.getByTestId('junta-kpi-detail')).toContainText('Detalle: Backlog abierto');
+    await expect(page.getByTestId('junta-kpi-detail')).toContainText('WO-1');
+
+    await page.getByRole('button', { name: /Preventivo \/ correctivo/i }).click();
+    await expect(page.getByTestId('junta-kpi-detail')).toContainText('Detalle: Preventivo / correctivo');
+    await expect(page.getByTestId('junta-kpi-detail')).toContainText('2 / 1');
+
+    expect(state.nonGet).toEqual([]);
+  });
+
 });

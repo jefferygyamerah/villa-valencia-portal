@@ -434,3 +434,15 @@ Completed the initial `P3-RPT-002` premium scorecard slice:
 - Added mocked Playwright spec `e2e/tests/board-scorecard.spec.ts` to verify scorecard semantics without Supabase writes.
 
 Next premium iteration: unify Junta dashboard metrics with Reportes scorecard language and continue premium visual polish.
+
+
+## P3 Premium Product Iteration — Junta Scorecard Unification 2026-05-01
+
+Completed the next premium polish slice after `P3-RPT-002`:
+
+- Junta dashboard now uses the same board-scorecard language as Reportes: 8 KPI cards with `Responsable`, `Fuente`, `Estado`, and `Ver detalle`.
+- Added live Junta metrics for backlog abierto, órdenes vencidas, cumplimiento recorridos, patrones crónicos, stock en riesgo, and preventivo/correctivo.
+- Added drilldowns for backlog, recorridos, stock risk, and preventivo/correctivo.
+- Expanded mocked Playwright coverage to verify Junta scorecard semantics and no Supabase writes.
+
+Next premium iteration: visual polish of executive/board surfaces and/or audit/history center lite.

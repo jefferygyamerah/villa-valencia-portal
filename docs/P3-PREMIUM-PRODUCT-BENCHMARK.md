@@ -87,10 +87,7 @@ Implemented first premium reporting slice:
 
 ## Next premium slices
 
-1. `P3-RPT-002` weekly board scorecard metrics:
-   - 6–10 metrics only.
-   - owners/source/drilldowns.
-   - age buckets, chronic issue metric, preventive/corrective ratio.
+1. ✅ `P3-RPT-002` weekly board scorecard metrics: implemented across Reportes board packet and Junta live dashboard with 8 metrics, owner/source/detail, age buckets, chronic issue metric, and preventive/corrective ratio.
 2. Premium visual pass for Junta + Reportes:
    - stronger executive cards,
    - cleaner empty states,

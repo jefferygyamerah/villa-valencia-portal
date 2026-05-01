@@ -21,6 +21,8 @@
         window.SB.select('escalation_events', { select: '*', order: 'created_at.desc', limit: '100' }),
         window.SB.select('incident_tickets', { select: '*', order: 'created_at.desc', limit: '300' }),
         window.SB.select('inspection_rounds', { select: '*', order: 'created_at.desc', limit: '200' }),
+        window.SB.select('inspection_findings', { select: '*', order: 'created_at.desc', limit: '200' }),
+        window.SB.select('inventory_items', { select: '*', is_active: 'eq.true', limit: '200' }),
         window.SB.select('weekly_reports', { select: '*', order: 'submitted_at.desc.nullslast', limit: '20' }),
         window.SB.select('work_assignments', { select: '*', order: 'created_at.desc', limit: '200' }),
         window.SB.select('compliance_cases', { select: '*', order: 'created_at.desc', limit: '50' }),
@@ -29,9 +31,11 @@
       var esc = results[1] || [];
       var incidents = results[2] || [];
       var rounds = results[3] || [];
-      var reports = results[4] || [];
-      var wo = results[5] || [];
-      var compliance = results[6] || [];
+      var findings = results[4] || [];
+      var items = results[5] || [];
+      var reports = results[6] || [];
+      var wo = results[7] || [];
+      var compliance = results[8] || [];
 
       // Per-building rollups (Scenario 16 multi-location)
       var byBuilding = {};
@@ -65,6 +69,26 @@
 
       var openWO = wo.filter(function (r) { return r.status !== 'completed' && r.status !== 'closed' && r.status !== 'cancelled'; });
       var lateWO = openWO.filter(function (r) { return r.due_at && new Date(r.due_at).getTime() < Date.now(); });
+      var WEEK = 7 * 24 * 3600 * 1000;
+      var roundsCompleted = rounds.filter(function (r) { return inWindow(r.completed_at, WEEK); });
+      var roundsScheduled = rounds.filter(function (r) { return r.scheduled_for && inWindow(r.scheduled_for, WEEK); });
+      var compliancePct = roundsScheduled.length ? Math.round(100 * roundsCompleted.length / roundsScheduled.length) : 100;
+      var stockRisk = items.filter(function (item) {
+        var min = Number(item.reorder_point || item.default_reorder_point || item.min_quantity || 0);
+        var qty = Number(item.current_quantity || item.quantity_on_hand || item.quantity || 0);
+        return min > 0 && qty <= min;
+      });
+      var preventiveCorrective = preventiveCorrectiveRatio(wo, roundsCompleted);
+      var metricCards = [
+        { label: 'Escalaciones abiertas', value: openEsc.length, owner: 'Gerencia / Junta', source: 'escalation_events', status: criticalEsc.length ? 'Rojo' : (openEsc.length ? 'Amarillo' : 'Verde'), drillKey: 'openEsc', detail: 'Decisiones requeridas y bitácora.' },
+        { label: 'Altas / críticas', value: criticalEsc.length, owner: 'Supervisión', source: 'escalation_events', status: criticalEsc.length ? 'Rojo' : 'Verde', drillKey: 'criticalEsc', detail: 'Escalaciones de mayor severidad.' },
+        { label: 'Backlog abierto', value: openWO.length, owner: 'Supervisión', source: 'work_assignments', status: lateWO.length ? 'Amarillo' : 'Verde', drillKey: 'openWO', detail: 'Órdenes abiertas por dueño, prioridad y fecha.' },
+        { label: 'Órdenes vencidas', value: lateWO.length, owner: 'Gerencia', source: 'work_assignments.due_at', status: lateWO.length ? 'Rojo' : 'Verde', drillKey: 'lateWO', detail: 'Trabajos vencidos que requieren desbloqueo.' },
+        { label: 'Cumplimiento recorridos', value: compliancePct + '%', owner: 'Supervisión', source: 'inspection_rounds', status: compliancePct < 80 ? 'Amarillo' : 'Verde', drillKey: 'rounds', detail: 'Recorridos programados vs completados.' },
+        { label: 'Patrones crónicos', value: chronicPatterns.length, owner: 'Gerencia', source: 'incident_tickets.location_label + category', status: chronicPatterns.length ? 'Amarillo' : 'Verde', drillKey: 'chronic', detail: '3+ repeticiones por ubicación/categoría.' },
+        { label: 'Stock en riesgo', value: stockRisk.length, owner: 'Supervisión', source: 'inventory_items.reorder_point', status: stockRisk.length ? 'Amarillo' : 'Verde', drillKey: 'stockRisk', detail: 'Artículos bajo o igual al punto de reorden.' },
+        { label: 'Preventivo / correctivo', value: preventiveCorrective.label, owner: 'Gerencia', source: 'work_assignments.task_type + inspection_rounds', status: preventiveCorrective.corrective > preventiveCorrective.preventive ? 'Amarillo' : 'Verde', drillKey: 'preventiveCorrective', detail: 'Balance semanal, excluye capital.' },
+      ];
       var decisionLevel = criticalEsc.length || lateWO.length ? 'danger' : (openEsc.length || chronicPatterns.length ? 'warning' : 'success');
       var decisionText = criticalEsc.length
         ? 'Resolver due\u00f1o, fecha y pr\u00f3xima acci\u00f3n de escalaciones cr\u00edticas/altas.'
@@ -87,13 +111,8 @@
           '<div class="vv-eyebrow">Lectura segura</div>' +
           '<p>Esta pantalla resume estados operativos para Junta. No muestra datos de contacto, bancos, residentes ni detalles libres de casos.</p>' +
         '</div>' +
-        '<div class="kpi-grid" id="junta-kpis">' +
-          kpi('Escalaciones abiertas', openEsc.length, 'openEsc') +
-          kpi('Altas / críticas', criticalEsc.length, 'criticalEsc') +
-          kpi('Patrones crónicos', chronicPatterns.length, 'chronic') +
-          kpi('Órdenes atrasadas', lateWO.length, 'lateWO') +
-          kpi('Casos compliance', compliance.length, 'compliance') +
-          kpi('Edificios activos', buildings.filter(function (b) { return b.status === 'active'; }).length || buildings.length, 'buildings') +
+        '<div class="kpi-grid junta-scorecard" id="junta-kpis" data-testid="junta-scorecard">' +
+          metricCards.map(juntaKpiCard).join('') +
         '</div>' +
         '<div class="page-section" id="junta-kpi-detail" data-testid="junta-kpi-detail" style="display:none"></div>' +
 
@@ -170,7 +189,14 @@
           { key: 'pattern', label: 'Ubicación | categoría' },
           { key: 'count', label: 'Repeticiones' },
         ] },
-        lateWO: { title: 'Órdenes atrasadas', rows: lateWO, columns: [
+        openWO: { title: 'Backlog abierto', rows: openWO, columns: [
+          { key: 'assignment_number', label: '#' },
+          { key: 'title', label: 'Trabajo' },
+          { key: 'priority', label: 'Prioridad' },
+          { key: 'status', label: 'Estado' },
+          { key: 'due_at', label: 'Vence', render: function (r) { return r.due_at ? window.UI.fmtDate(r.due_at) : ''; } },
+        ] },
+        lateWO: { title: 'Órdenes vencidas', rows: lateWO, columns: [
           { key: 'assignment_number', label: '#' },
           { key: 'title', label: 'Trabajo' },
           { key: 'priority', label: 'Prioridad' },
@@ -181,15 +207,51 @@
           { key: 'summary', label: 'Tipo / resumen' },
           { key: 'opened', label: 'Fecha', render: function (r) { return r.opened ? window.UI.fmtDate(r.opened) : ''; } },
         ] },
-        buildings: { title: 'Edificios activos', rows: Object.values(byBuilding), columns: [
-          { key: 'name', label: 'Edificio', render: function (r) { return r.building.name; } },
-          { key: 'openIncidents', label: 'Incidentes abiertos' },
-          { key: 'criticalIncidents', label: 'Altos/críticos' },
+        rounds: { title: 'Cumplimiento recorridos', rows: rounds.slice(0, 30), columns: [
+          { key: 'round_number', label: '#' },
+          { key: 'title', label: 'Recorrido' },
+          { key: 'status', label: 'Estado' },
+          { key: 'scheduled_for', label: 'Programado', render: function (r) { return r.scheduled_for ? window.UI.fmtDate(r.scheduled_for) : ''; } },
+        ] },
+        stockRisk: { title: 'Stock en riesgo', rows: stockRisk, columns: [
+          { key: 'sku', label: 'SKU' },
+          { key: 'name', label: 'Artículo' },
+          { key: 'current_quantity', label: 'Cantidad' },
+          { key: 'reorder_point', label: 'Reorden' },
+        ] },
+        preventiveCorrective: { title: 'Preventivo / correctivo', rows: [preventiveCorrective], columns: [
+          { key: 'preventive', label: 'Preventivo' },
+          { key: 'corrective', label: 'Correctivo' },
+          { key: 'label', label: 'Ratio' },
         ] },
       });
     } catch (e) {
       window.UI.errorBox(box, e);
     }
+  }
+
+
+  function inWindow(iso, ms) {
+    if (!iso) return false;
+    return Date.now() - new Date(iso).getTime() <= ms;
+  }
+
+  function isCapitalProject(row) {
+    var meta = parseJson(row.metadata);
+    var type = String(row.task_type || row.work_type || meta.task_type || '').toLowerCase();
+    return meta.capital_project === true || meta.capital_project === 'true' || type.indexOf('capital') >= 0 || type.indexOf('project') >= 0 || type.indexOf('proyecto') >= 0;
+  }
+
+  function preventiveCorrectiveRatio(workRows, completedRounds) {
+    var preventive = completedRounds.length;
+    var corrective = 0;
+    (workRows || []).forEach(function (row) {
+      if (isCapitalProject(row)) return;
+      var type = String(row.task_type || row.work_type || parseJson(row.metadata).task_type || '').toLowerCase();
+      if (type.indexOf('correct') >= 0 || type.indexOf('repar') >= 0 || type.indexOf('incident') >= 0) corrective++;
+      else if (type.indexOf('prevent') >= 0 || type.indexOf('recorrido') >= 0 || type.indexOf('inspection') >= 0) preventive++;
+    });
+    return { preventive: preventive, corrective: corrective, label: preventive + ' / ' + corrective };
   }
 
   function wireKpiDrilldowns(data) {
@@ -212,10 +274,22 @@
     box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  function kpi(label, value, drillKey) {
-    var attr = drillKey ? ' data-junta-drill="' + window.UI.esc(drillKey) + '"' : '';
-    return '<button type="button" class="kpi-card"' + attr + '><div class="kpi-label">' + window.UI.esc(label) + '</div>' +
-           '<div class="kpi-value">' + window.UI.esc(value) + '</div><div class="muted">Ver detalle</div></button>';
+  function juntaKpiCard(metric) {
+    var attr = metric.drillKey ? ' data-junta-drill="' + window.UI.esc(metric.drillKey) + '"' : '';
+    return '<button type="button" class="kpi-card board-kpi-card junta-kpi-card" data-testid="junta-kpi-card"' + attr + '>' +
+      '<div class="kpi-label">' + window.UI.esc(metric.label) + '</div>' +
+      '<div class="kpi-value">' + window.UI.esc(metric.value) + '</div>' +
+      '<div class="board-kpi-status board-kpi-status-' + statusClass(metric.status) + '">Estado: ' + window.UI.esc(metric.status) + '</div>' +
+      '<div class="board-kpi-meta"><span>Responsable: ' + window.UI.esc(metric.owner) + '</span><span>Fuente: ' + window.UI.esc(metric.source) + '</span></div>' +
+      '<div class="board-kpi-detail">Ver detalle · ' + window.UI.esc(metric.detail) + '</div>' +
+    '</button>';
+  }
+
+  function statusClass(status) {
+    var value = String(status || '').toLowerCase();
+    if (value.indexOf('rojo') >= 0) return 'red';
+    if (value.indexOf('amarillo') >= 0) return 'yellow';
+    return 'green';
   }
 
   function decisionBox(text, kind) {
