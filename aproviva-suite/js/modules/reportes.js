@@ -13,6 +13,7 @@
           '<button class="btn btn-ghost" id="rp-weekly">Semanal</button>' +
           '<button class="btn btn-ghost" id="rp-esc">Escalaciones</button>' +
           '<button class="btn btn-ghost" id="rp-kpi">Exportar KPIs</button>' +
+          '<button class="btn btn-ghost" id="rp-board">Paquete Junta</button>' +
           '<button class="btn btn-ghost" id="rp-print">Imprimir</button>' +
         '</div>' +
         '<div class="vv-privacy-card rp-privacy">' +
@@ -26,6 +27,7 @@
     document.getElementById('rp-weekly').addEventListener('click', renderWeekly);
     document.getElementById('rp-esc').addEventListener('click', renderEscalations);
     document.getElementById('rp-kpi').addEventListener('click', exportKpi);
+    document.getElementById('rp-board').addEventListener('click', renderBoardPacket);
     document.getElementById('rp-print').addEventListener('click', function () { window.print(); });
   }
 
@@ -184,6 +186,112 @@
     } catch (e) { window.UI.errorBox(box, e); }
   }
 
+
+
+  async function renderBoardPacket() {
+    var box = document.getElementById('rp-output');
+    window.UI.loading(box, 'Preparando paquete de Junta...');
+    try {
+      var results = await fetchAll();
+      var rounds = results[0], findings = results[1], incidents = results[2], moves = results[3], items = results[4], esc = results[5], wo = results[6];
+      var now = new Date();
+      var WEEK = 7 * 24 * 3600 * 1000;
+      var openIncidents = incidents.filter(isOpen);
+      var criticalIncidents = openIncidents.filter(function (i) { return i.severity === 'critical' || i.severity === 'high'; });
+      var openFindings = findings.filter(isOpen);
+      var openEsc = esc.filter(isOpen);
+      var criticalEsc = openEsc.filter(function (r) { return r.severity === 'critical' || r.severity === 'high'; });
+      var openWO = wo.filter(function (r) { return r.status !== 'completed' && r.status !== 'closed' && r.status !== 'cancelled'; });
+      var lateWO = openWO.filter(function (r) { return r.due_at && new Date(r.due_at).getTime() < Date.now(); });
+      var roundsCompleted = rounds.filter(function (r) { return inWindow(r.completed_at, WEEK); });
+      var roundsScheduled = rounds.filter(function (r) { return r.scheduled_for && inWindow(r.scheduled_for, WEEK); });
+      var compliance = roundsScheduled.length ? Math.round(100 * roundsCompleted.length / roundsScheduled.length) : 100;
+      var stockRisk = items.filter(function (item) {
+        var min = Number(item.reorder_point || item.min_quantity || 0);
+        var qty = Number(item.current_quantity || item.quantity_on_hand || item.quantity || 0);
+        return min > 0 && qty <= min;
+      });
+      var capital = wo.filter(function (r) { return isCapitalProject(r); });
+      var operations = wo.filter(function (r) { return !isCapitalProject(r); });
+      var chronic = chronicPatterns(incidents);
+      var age = ageBuckets(openWO);
+      var decisions = [];
+      if (criticalEsc.length) decisions.push('Asignar dueño y fecha de decisión para escalaciones altas/críticas.');
+      if (lateWO.length) decisions.push('Confirmar plan de recuperación para órdenes vencidas.');
+      if (stockRisk.length) decisions.push('Aprobar reposición de insumos bajo punto de reorden.');
+      if (capital.length) decisions.push('Revisar avance/RAG de proyectos capitales y próxima aprobación.');
+      if (!decisions.length) decisions.push('Sin decisión crítica visible; revisar tablero y aprobar acta operativa.');
+      var risks = [];
+      if (criticalIncidents.length) risks.push(criticalIncidents.length + ' incidentes altos/críticos abiertos');
+      if (openFindings.length) risks.push(openFindings.length + ' hallazgos abiertos');
+      if (compliance < 80) risks.push('cumplimiento de recorridos bajo 80%');
+      if (chronic.length) risks.push(chronic.length + ' patrón(es) repetidos');
+      if (!risks.length) risks.push('sin riesgo operativo mayor en datos visibles');
+
+      box.innerHTML = '' +
+        '<article class="board-packet" data-testid="board-packet">' +
+          '<div class="board-cover">' +
+            '<div><div class="vv-eyebrow">APROVIVA · Villa Valencia</div>' +
+            '<h3>Paquete ejecutivo para Junta</h3>' +
+            '<p>Periodo de lectura: últimos 7 días · Preparado: ' + window.UI.esc(window.UI.fmtDate(now.toISOString())) + '</p></div>' +
+            '<button class="btn btn-primary-sm no-print" type="button" id="rp-board-print">Imprimir / guardar PDF</button>' +
+          '</div>' +
+          '<div class="board-privacy">No incluye datos personales, bancos, contactos de residentes ni notas libres sensibles. Fuente: tablas operativas APROVIVA.</div>' +
+          '<section class="board-section"><h4>1. Decisiones requeridas</h4>' + list(decisions) + '</section>' +
+          '<section class="board-section"><h4>2. Riesgos ejecutivos</h4>' + list(risks) + '</section>' +
+          '<section class="board-section"><h4>3. Scorecard de gobernanza</h4><div class="kpi-grid board-kpis">' +
+            kpi('Escalaciones abiertas', openEsc.length) +
+            kpi('Altas / críticas', criticalEsc.length + criticalIncidents.length) +
+            kpi('Backlog abierto', openWO.length) +
+            kpi('Órdenes vencidas', lateWO.length) +
+            kpi('Cumplimiento recorridos', compliance + '%') +
+            kpi('Stock en riesgo', stockRisk.length) +
+          '</div></section>' +
+          '<section class="board-section"><h4>4. Ejecución operativa</h4>' +
+            window.UI.table([
+              { metric: 'Recorridos completados', value: roundsCompleted.length, note: 'Últimos 7 días' },
+              { metric: 'Hallazgos abiertos', value: openFindings.length, note: 'Pendientes de cierre' },
+              { metric: 'Incidentes abiertos', value: openIncidents.length, note: 'No resueltos/cerrados' },
+              { metric: 'Patrones repetidos', value: chronic.length, note: '3+ por ubicación/categoría' },
+            ], [
+              { key: 'metric', label: 'Métrica' }, { key: 'value', label: 'Valor' }, { key: 'note', label: 'Lectura' }
+            ]) + '</section>' +
+          '<section class="board-section"><h4>5. Backlog y edad</h4>' +
+            window.UI.table([
+              { bucket: '0–7 días', total: age.fresh },
+              { bucket: '8–30 días', total: age.mid },
+              { bucket: '31+ días', total: age.old },
+            ], [{ key: 'bucket', label: 'Edad' }, { key: 'total', label: 'Órdenes abiertas' }]) +
+            '<h5>Trabajos vencidos / prioritarios</h5>' + window.UI.table(lateWO.slice(0, 8), [
+              { key: 'assignment_number', label: '#' },
+              { key: 'title', label: 'Trabajo' },
+              { key: 'priority', label: 'Prioridad' },
+              { key: 'due_at', label: 'Vence', render: function (r) { return window.UI.fmtDate(r.due_at); } },
+            ]) + '</section>' +
+          '<section class="board-section"><h4>6. Inventario y suministros</h4>' +
+            window.UI.table(stockRisk.slice(0, 8), [
+              { key: 'sku', label: 'SKU' }, { key: 'name', label: 'Artículo' },
+              { key: 'current_quantity', label: 'Cantidad' }, { key: 'reorder_point', label: 'Reorden' },
+            ]) + '</section>' +
+          '<section class="board-section"><h4>7. Proyectos capitales</h4>' +
+            (capital.length ? window.UI.table(capital.slice(0, 10), [
+              { key: 'assignment_number', label: '#' },
+              { key: 'title', label: 'Proyecto' },
+              { key: 'priority', label: 'Prioridad' },
+              { key: 'status', label: 'Estado' },
+              { key: 'due_at', label: 'Próximo hito', render: function (r) { return r.due_at ? window.UI.fmtDate(r.due_at) : ''; } },
+            ]) : '<p class="empty">Sin proyectos capitales en datos semilla actuales.</p>') + '</section>' +
+          '<section class="board-section"><h4>8. Apéndice de evidencia</h4>' +
+            '<p class="muted">Las tablas anteriores salen de recorridos, hallazgos, incidencias, inventario, escalaciones y asignaciones. Use los drill-downs de Inicio/Junta para inspeccionar cada KPI antes de emitir acta.</p>' +
+            '<p class="muted">Backlog operativo visible: ' + operations.length + ' filas · movimientos inventario recientes: ' + moves.length + '.</p>' +
+          '</section>' +
+        '</article>';
+      document.getElementById('rp-board-print').addEventListener('click', function () { window.print(); });
+    } catch (e) {
+      window.UI.errorBox(box, e);
+    }
+  }
+
   async function exportKpi() {
     var box = document.getElementById('rp-output');
     window.UI.loading(box, 'Generando export...');
@@ -218,6 +326,43 @@
       URL.revokeObjectURL(url);
       box.innerHTML = '<p class="empty">Export descargado: aproviva-kpi-' + stamp + '.csv</p><pre style="background:#f1f5f9;padding:0.85rem;border-radius:8px;font-size:0.85rem;">' + window.UI.esc(csv) + '</pre>';
     } catch (e) { window.UI.errorBox(box, e); }
+  }
+
+
+
+  function isOpen(row) {
+    return row && row.status !== 'resolved' && row.status !== 'closed' && row.status !== 'completed' && row.status !== 'cancelled';
+  }
+
+  function isCapitalProject(row) {
+    var meta = parseJson(row.metadata);
+    var type = String(row.task_type || row.work_type || meta.task_type || '').toLowerCase();
+    return meta.capital_project === true || meta.capital_project === 'true' || type.indexOf('capital') >= 0 || type.indexOf('project') >= 0 || type.indexOf('proyecto') >= 0;
+  }
+
+  function ageBuckets(rows) {
+    var out = { fresh: 0, mid: 0, old: 0 };
+    rows.forEach(function (r) {
+      var created = new Date(r.created_at || r.assigned_at || Date.now()).getTime();
+      var days = Math.max(0, Math.floor((Date.now() - created) / (24 * 3600 * 1000)));
+      if (days <= 7) out.fresh++;
+      else if (days <= 30) out.mid++;
+      else out.old++;
+    });
+    return out;
+  }
+
+  function chronicPatterns(incidents) {
+    var titleCount = {};
+    incidents.forEach(function (i) {
+      var key = (i.location_label || 'Sin ubicación') + ' | ' + (i.category || 'Sin categoría');
+      titleCount[key] = (titleCount[key] || 0) + 1;
+    });
+    return Object.keys(titleCount).map(function (k) { return { pattern: k, count: titleCount[k] }; }).filter(function (r) { return r.count >= 3; });
+  }
+
+  function list(items) {
+    return '<ul class="board-list">' + items.map(function (item) { return '<li>' + window.UI.esc(item) + '</li>'; }).join('') + '</ul>';
   }
 
   function kpi(label, value, title) {
