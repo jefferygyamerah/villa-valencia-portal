@@ -375,3 +375,25 @@ All P1/P2 rows in `docs/website-fix-log.md` have now been moved to Done/Confirme
 - Junta Proyectos split into capital projects and operational backlog.
 
 Verification for this pass must include syntax checks, TypeScript checks, focused browser coverage for role routes/drill-downs, production deploy, production smoke, and seed-only production count verification.
+
+
+## Wave 9 P3 Research Output 2026-05-01
+
+P3 research has started after P1/P2 E2E completion and production deployment.
+
+Primary output:
+
+- `docs/P3-BOARD-REPORTING-COMMERCIAL-READINESS-RESEARCH.md`
+
+Backlog tickets created there:
+
+- `P3-RPT-001` Board packet PDF template
+- `P3-RPT-002` Weekly board scorecard metrics
+- `P3-RPT-003` AI/RAG qualitative status draft
+- `P3-RPT-004` Reserve/capital project linkage
+- `P3-RPT-005` Vendor/contract watchlist
+- `P3-COM-001` Module packaging QA matrix
+- `P3-COM-002` Demo narrative and seed data script
+- `P3-SAP-001` SAP comparison one-pager
+
+Recommended first implementation slice: `P3-COM-001` then `P3-COM-002`, before PDF/reporting UI changes.
