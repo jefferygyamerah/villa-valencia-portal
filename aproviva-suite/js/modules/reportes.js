@@ -215,6 +215,73 @@
       var operations = wo.filter(function (r) { return !isCapitalProject(r); });
       var chronic = chronicPatterns(incidents);
       var age = ageBuckets(openWO);
+      var preventiveCorrective = preventiveCorrectiveRatio(wo, roundsCompleted);
+      var metricCards = [
+        {
+          label: 'Escalaciones abiertas',
+          value: openEsc.length,
+          owner: 'Gerencia / Junta',
+          source: 'escalation_events',
+          status: criticalEsc.length ? 'Rojo' : (openEsc.length ? 'Amarillo' : 'Verde'),
+          detail: 'Detalle: decisiones requeridas y bitácora de escalación.'
+        },
+        {
+          label: 'Altas / críticas',
+          value: criticalEsc.length + criticalIncidents.length,
+          owner: 'Supervisión',
+          source: 'escalation_events + incident_tickets',
+          status: (criticalEsc.length + criticalIncidents.length) ? 'Rojo' : 'Verde',
+          detail: 'Detalle: incidentes y escalaciones con severidad alta/crítica.'
+        },
+        {
+          label: 'Backlog abierto',
+          value: openWO.length,
+          owner: 'Supervisión',
+          source: 'work_assignments',
+          status: lateWO.length ? 'Amarillo' : 'Verde',
+          detail: 'Detalle: órdenes abiertas por edad, prioridad y vencimiento.'
+        },
+        {
+          label: 'Órdenes vencidas',
+          value: lateWO.length,
+          owner: 'Gerencia',
+          source: 'work_assignments.due_at',
+          status: lateWO.length ? 'Rojo' : 'Verde',
+          detail: 'Detalle: trabajos abiertos con fecha vencida.'
+        },
+        {
+          label: 'Cumplimiento recorridos',
+          value: compliance + '%',
+          owner: 'Supervisión',
+          source: 'inspection_rounds',
+          status: compliance < 80 ? 'Amarillo' : 'Verde',
+          detail: 'Detalle: recorridos programados vs completados en 7 días.'
+        },
+        {
+          label: 'Patrones crónicos',
+          value: chronic.length,
+          owner: 'Gerencia',
+          source: 'incident_tickets.location_label + category',
+          status: chronic.length ? 'Amarillo' : 'Verde',
+          detail: 'Detalle: ubicaciones/categorías repetidas 3+ veces.'
+        },
+        {
+          label: 'Stock en riesgo',
+          value: stockRisk.length,
+          owner: 'Supervisión',
+          source: 'inventory_items.reorder_point',
+          status: stockRisk.length ? 'Amarillo' : 'Verde',
+          detail: 'Detalle: artículos bajo o igual al punto de reorden.'
+        },
+        {
+          label: 'Preventivo / correctivo',
+          value: preventiveCorrective.label,
+          owner: 'Gerencia',
+          source: 'work_assignments.task_type + inspection_rounds',
+          status: preventiveCorrective.corrective > preventiveCorrective.preventive ? 'Amarillo' : 'Verde',
+          detail: 'Detalle: recorridos y trabajos preventivos frente a correctivos; capital se excluye.'
+        }
+      ];
       var decisions = [];
       if (criticalEsc.length) decisions.push('Asignar dueño y fecha de decisión para escalaciones altas/críticas.');
       if (lateWO.length) decisions.push('Confirmar plan de recuperación para órdenes vencidas.');
@@ -239,29 +306,26 @@
           '<div class="board-privacy">No incluye datos personales, bancos, contactos de residentes ni notas libres sensibles. Fuente: tablas operativas APROVIVA.</div>' +
           '<section class="board-section"><h4>1. Decisiones requeridas</h4>' + list(decisions) + '</section>' +
           '<section class="board-section"><h4>2. Riesgos ejecutivos</h4>' + list(risks) + '</section>' +
-          '<section class="board-section"><h4>3. Scorecard de gobernanza</h4><div class="kpi-grid board-kpis">' +
-            kpi('Escalaciones abiertas', openEsc.length) +
-            kpi('Altas / críticas', criticalEsc.length + criticalIncidents.length) +
-            kpi('Backlog abierto', openWO.length) +
-            kpi('Órdenes vencidas', lateWO.length) +
-            kpi('Cumplimiento recorridos', compliance + '%') +
-            kpi('Stock en riesgo', stockRisk.length) +
-          '</div></section>' +
+          '<section class="board-section"><h4>3. Scorecard de gobernanza</h4>' +
+            '<div class="kpi-grid board-kpis" data-testid="board-scorecard">' +
+              metricCards.map(boardKpiCard).join('') +
+            '</div></section>' +
           '<section class="board-section"><h4>4. Ejecución operativa</h4>' +
             window.UI.table([
               { metric: 'Recorridos completados', value: roundsCompleted.length, note: 'Últimos 7 días' },
               { metric: 'Hallazgos abiertos', value: openFindings.length, note: 'Pendientes de cierre' },
               { metric: 'Incidentes abiertos', value: openIncidents.length, note: 'No resueltos/cerrados' },
               { metric: 'Patrones repetidos', value: chronic.length, note: '3+ por ubicación/categoría' },
+              { metric: 'Preventivo / correctivo', value: preventiveCorrective.label, note: 'Incluye recorridos completados; excluye capital' },
             ], [
               { key: 'metric', label: 'Métrica' }, { key: 'value', label: 'Valor' }, { key: 'note', label: 'Lectura' }
             ]) + '</section>' +
-          '<section class="board-section"><h4>5. Backlog y edad</h4>' +
-            window.UI.table([
-              { bucket: '0–7 días', total: age.fresh },
-              { bucket: '8–30 días', total: age.mid },
-              { bucket: '31+ días', total: age.old },
-            ], [{ key: 'bucket', label: 'Edad' }, { key: 'total', label: 'Órdenes abiertas' }]) +
+          '<section class="board-section" data-testid="board-backlog-age"><h4>5. Backlog y edad</h4>' +
+            '<div class="board-age-grid">' +
+              ageBucketCard('0–7 días', age.fresh, 'backlog-age-bucket-0-7', 'Fresco: revisar en reunión operativa.') +
+              ageBucketCard('8–30 días', age.mid, 'backlog-age-bucket-8-30', 'Seguimiento: confirmar dueño y fecha.') +
+              ageBucketCard('31+ días', age.old, 'backlog-age-bucket-31-plus', 'Riesgo: requiere decisión o desbloqueo.') +
+            '</div>' +
             '<h5>Trabajos vencidos / prioritarios</h5>' + window.UI.table(lateWO.slice(0, 8), [
               { key: 'assignment_number', label: '#' },
               { key: 'title', label: 'Trabajo' },
@@ -329,6 +393,45 @@
   }
 
 
+
+
+
+  function boardKpiCard(metric) {
+    return '<div class="kpi-card board-kpi-card" data-testid="board-kpi-card">' +
+      '<div class="kpi-label">' + window.UI.esc(metric.label) + '</div>' +
+      '<div class="kpi-value">' + window.UI.esc(metric.value) + '</div>' +
+      '<div class="board-kpi-status board-kpi-status-' + statusClass(metric.status) + '">Estado: ' + window.UI.esc(metric.status) + '</div>' +
+      '<div class="board-kpi-meta"><span>Responsable: ' + window.UI.esc(metric.owner) + '</span><span>Fuente: ' + window.UI.esc(metric.source) + '</span></div>' +
+      '<div class="board-kpi-detail">Ver detalle · ' + window.UI.esc(metric.detail) + '</div>' +
+    '</div>';
+  }
+
+  function statusClass(status) {
+    var value = String(status || '').toLowerCase();
+    if (value.indexOf('rojo') >= 0) return 'red';
+    if (value.indexOf('amarillo') >= 0) return 'yellow';
+    return 'green';
+  }
+
+  function ageBucketCard(label, total, testId, note) {
+    return '<div class="board-age-card" data-testid="' + window.UI.esc(testId) + '">' +
+      '<strong>' + window.UI.esc(label) + '</strong>' +
+      '<span>' + window.UI.esc(total) + '</span>' +
+      '<small>Ver detalle · ' + window.UI.esc(note) + '</small>' +
+    '</div>';
+  }
+
+  function preventiveCorrectiveRatio(workRows, completedRounds) {
+    var preventive = completedRounds.length;
+    var corrective = 0;
+    (workRows || []).forEach(function (row) {
+      if (isCapitalProject(row)) return;
+      var type = String(row.task_type || row.work_type || parseJson(row.metadata).task_type || '').toLowerCase();
+      if (type.indexOf('correct') >= 0 || type.indexOf('repar') >= 0 || type.indexOf('incident') >= 0) corrective++;
+      else if (type.indexOf('prevent') >= 0 || type.indexOf('recorrido') >= 0 || type.indexOf('inspection') >= 0) preventive++;
+    });
+    return { preventive: preventive, corrective: corrective, label: preventive + ' / ' + corrective };
+  }
 
   function isOpen(row) {
     return row && row.status !== 'resolved' && row.status !== 'closed' && row.status !== 'completed' && row.status !== 'cancelled';

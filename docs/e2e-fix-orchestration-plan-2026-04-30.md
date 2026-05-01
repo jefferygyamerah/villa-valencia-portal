@@ -421,3 +421,16 @@ Completed first premium iteration:
 - Added print-focused CSS and E2E coverage for the board packet surface.
 
 Next premium iteration: `P3-RPT-002` weekly board scorecard metrics and premium Junta/Reportes visual polish.
+
+
+## P3 Premium Product Iteration — Scorecard Semantics 2026-05-01
+
+Completed the initial `P3-RPT-002` premium scorecard slice:
+
+- Refactored Reportes board packet scorecard into 8 board KPI cards.
+- Each KPI now exposes `Responsable`, `Fuente`, `Estado`, and `Ver detalle` copy.
+- Added `Preventivo / correctivo` metric using completed recorridos plus work assignment task types while excluding capital projects.
+- Upgraded backlog age buckets into traceable board cards: 0–7, 8–30, 31+ days.
+- Added mocked Playwright spec `e2e/tests/board-scorecard.spec.ts` to verify scorecard semantics without Supabase writes.
+
+Next premium iteration: unify Junta dashboard metrics with Reportes scorecard language and continue premium visual polish.

@@ -239,8 +239,8 @@ Acceptance criteria:
 2. ✅ `P3-COM-002` demo narrative and seed script — completed in `docs/P3-DEMO-NARRATIVE-AND-SEED-SCRIPT.md`.
 3. ✅ `P3-SAP-001` one-pager for commercial comparison — completed in `docs/P3-SAP-COMPARISON-ONE-PAGER.md`.
 4. ✅ `P3-RPT-001` initial PDF/print board packet surface — implemented as browser print/PDF in Reportes (`Paquete Junta`).
-5. Next: `P3-RPT-002` weekly scorecard — improves Junta report content.
-6. Then: `P3-RPT-003` AI/RAG qualitative draft — only after deterministic RAG rules are accepted.
+5. ✅ `P3-RPT-002` initial weekly board scorecard semantics — Reportes board packet now has 8 KPI cards with Responsable/Fuente/Ver detalle, backlog age cards, chronic metric, and preventive/corrective ratio.
+6. Next: `P3-RPT-003` AI/RAG qualitative draft — only after deterministic RAG rules are accepted.
 7. Then: `P3-RPT-004` reserve/capital linkage and `P3-RPT-005` vendor watchlist.
 
 ## Non-goals / guardrails

@@ -2743,3 +2743,74 @@ body {
   .board-section { page-break-inside: avoid; }
   table { font-size: 0.82rem; }
 }
+
+.board-kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.board-kpi-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.board-kpi-detail {
+  padding-top: 0.25rem;
+  border-top: 1px dashed var(--border);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.board-kpi-status {
+  width: fit-content;
+  padding: 0.14rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.board-kpi-status-green { color: var(--success); background: var(--success-soft); }
+.board-kpi-status-yellow { color: var(--warning); background: var(--warning-soft); }
+.board-kpi-status-red { color: var(--danger); background: var(--danger-soft); }
+
+.board-age-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.board-age-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: #f8fafc;
+}
+
+.board-age-card strong,
+.board-age-card span,
+.board-age-card small {
+  display: block;
+}
+
+.board-age-card span {
+  margin: 0.2rem 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.board-age-card small {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 767px) {
+  .board-age-grid { grid-template-columns: 1fr; }
+}
