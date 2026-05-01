@@ -136,6 +136,32 @@ Leave nullable bridge columns in place unless a DBA confirms no clients are read
 - RLS follows the current APROVIVA suite POC posture: permissive anon/authenticated policies behind the PIN-gated static UI. Tighten this after Supabase Auth or service-role edge functions exist.
 - The seed data is intentionally small. It establishes the production shape without forcing the current UI to execute point-by-point yet.
 
+## Pre-approval preflight
+
+Before Jeff approves applying the MD04/data-backbone migration, run the repo guard locally:
+
+```bash
+node scripts/recorridos-md04-preflight.mjs
+```
+
+This is non-mutating. It verifies that the migration remains additive/idempotent, still seeds only the Villa Valencia building id, and still exposes `get_md04_lite_exceptions(uuid)`.
+
+For the production prerequisite checklist, print the read-only SQL:
+
+```bash
+node scripts/recorridos-md04-preflight.mjs --print-sql
+```
+
+Run that SQL in the Villa Valencia Supabase project before applying the migration. Expected result: zero missing table/column rows. The MD04 view depends on existing suite tables such as `inspection_rounds`, `inspection_findings`, `work_assignments`, `inventory_movements`, `inventory_items`, and `inventory_locations`; the migration only adds bridge columns and the new plan/result backbone.
+
+If network access is available, run the optional read-only REST probe:
+
+```bash
+node scripts/recorridos-md04-preflight.mjs --live
+```
+
+`--live` uses the public Supabase key with `limit=0` column probes. It does not insert, update, delete, import, or create resident/admin records.
+
 ## Remaining SAP-gap work
 
 These are the next technical gaps to close:

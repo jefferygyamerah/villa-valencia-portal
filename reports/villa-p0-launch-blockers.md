@@ -8,7 +8,7 @@ Worktree: `/home/jeffery/Adwen-Tech/apps/villa-valencia-portal`
 
 Gate status: **POST-DEPLOY HARDENING**.
 
-The codebase has deployed the Villa Valencia-owned PQRS path and Jeff applied the narrow production Supabase RPC fix in project `tgoitmwdpdkhlpqpwrvs`. A non-mutating fake-reference RPC smoke passed after that fix. Wave 6 added the historical backfill/decommission runbook and an offline CSV validator; execution still requires Jeff approval and a private ph-management export. Remaining work is post-deploy validation, a controlled manual submit/lookup smoke only if approved, executing historical backfill/decommission, and the separate recorridos/MD04-lite data backbone decision.
+The codebase has deployed the Villa Valencia-owned PQRS path and Jeff applied the narrow production Supabase RPC fix in project `tgoitmwdpdkhlpqpwrvs`. A non-mutating fake-reference RPC smoke passed after that fix. Wave 6 added the historical backfill/decommission runbook and an offline CSV validator; execution still requires Jeff approval and a private ph-management export. Wave 7 added a non-mutating MD04/data-backbone preflight guard for the recorridos migration. Remaining work is post-deploy validation, a controlled manual submit/lookup smoke only if approved, executing historical backfill/decommission, and the separate recorridos/MD04-lite data backbone approval/apply decision.
 
 No new production SQL or resident-data mutation should be performed by agents without explicit approval.
 
@@ -64,6 +64,7 @@ Write attempt result: blocked by filesystem with `Read-only file system`. The re
 3. Keep photo upload helpers aligned on `text/plain` for Apps Script.
 4. Add a future E2E smoke for suite photo upload only if a non-production Apps Script endpoint or mocked route is available. Do not test by writing uncontrolled production Drive files.
 5. Add future UI consumption of `get_md04_lite_exceptions(uuid)` after the data backbone is approved/applied. Current report/junta views are acceptable as legacy summaries but are not yet the MD04-lite board.
+6. Run `node scripts/recorridos-md04-preflight.mjs` before any MD04/data-backbone apply. Use `--print-sql` for the read-only Supabase prerequisite query and `--live` for optional `limit=0` REST column probes.
 
 ## Requires Jeff Approval / Production Supabase Action
 
@@ -71,7 +72,8 @@ Write attempt result: blocked by filesystem with `Read-only file system`. The re
 2. Approve, run, and label one controlled production PQRS submit/lookup smoke only if Jeff accepts creating a test row.
 3. Execute the ph-management historical export/import and decommission/freeze runbook after Jeff approves the private export/import window.
 4. Decide whether to apply the recorridos data backbone migration `20260429120000_inspection_plan_data_backbone.sql`.
-5. If applying the data backbone, run the runbook verification SQL in `docs/RECORRIDOS-DATA-BACKBONE-RUNBOOK.md`.
+5. Before applying it, run the Wave 7 preflight guard and confirm the read-only prerequisite SQL reports zero missing table/column rows.
+6. If applying the data backbone, run the runbook verification SQL in `docs/RECORRIDOS-DATA-BACKBONE-RUNBOOK.md`.
 
 ## Recommended Sequence
 
@@ -170,7 +172,20 @@ Expected: routes and nav match the configured role matrix.
 
 ### MD04/Data Backbone Smoke
 
-Only after Jeff approves and applies `20260429120000_inspection_plan_data_backbone.sql`:
+Before Jeff approves applying `20260429120000_inspection_plan_data_backbone.sql`, run the local non-mutating guard:
+
+```sh
+node scripts/recorridos-md04-preflight.mjs
+node scripts/recorridos-md04-preflight.mjs --print-sql
+```
+
+If network access is available, the optional live prerequisite probe is also read-only:
+
+```sh
+node scripts/recorridos-md04-preflight.mjs --live
+```
+
+Only after Jeff approves and applies the migration:
 
 ```sql
 select plan_code, name, frequency
@@ -207,6 +222,7 @@ Expected:
 - [x] `PQRS_USE_VV_SUPABASE` production cutover deployed.
 - [x] ph-management historical rows/backfill/decommission plan is documented for Villa Valencia PQRS.
 - [ ] ph-management historical export/import and freeze/decommission are executed.
+- [x] MD04/data backbone local preflight guard exists.
 - [ ] MD04/data backbone migration is approved separately before applying.
 - [ ] If MD04 migration is applied, runbook verification SQL passes.
 

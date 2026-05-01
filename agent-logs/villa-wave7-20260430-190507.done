@@ -1,0 +1,50 @@
+status: partial-complete
+summary: Wave 7 added a non-mutating recorridos/MD04 data-backbone preflight guard and documented it in the README, runbook, ship report, and P0 blocker report. No production rows, SQL mutations, or Drive files were created.
+verification:
+  passed:
+    - node --check scripts/recorridos-md04-preflight.mjs
+    - node --check scripts/pqrs-backfill-validate.mjs
+    - node --check scripts/pqrs-rpc-smoke.mjs
+    - node --check scripts/production-smoke.mjs
+    - node scripts/recorridos-md04-preflight.mjs
+    - node scripts/recorridos-md04-preflight.mjs --print-sql
+    - node scripts/pqrs-backfill-validate.mjs --file scripts/fixtures/pqrs-backfill-sample.csv --strict
+    - node scripts/pqrs-rpc-smoke.mjs --check-sql
+    - node scripts/pqrs-rpc-smoke.mjs
+    - node --check js/app.js
+    - node --check js/config.js
+    - node --check aproviva-suite/js/config.js
+    - node --check aproviva-suite/js/ui.js
+    - node --check aproviva-suite/js/supabase.js
+    - node --check aproviva-suite/js/modules/gemba.js
+    - node --check aproviva-suite/js/modules/reportes.js
+    - git diff --check
+  blocked:
+    - "git fetch origin main lane/villa-valencia-gemba: .git worktree FETCH_HEAD is outside writable root/read-only"
+    - "git add: .git worktree index.lock is outside writable root/read-only"
+    - "node scripts/production-smoke.mjs: DNS EAI_AGAIN villavalencia.vercel.app"
+    - "node scripts/pqrs-rpc-smoke.mjs --live: DNS EAI_AGAIN tgoitmwdpdkhlpqpwrvs.supabase.co"
+    - "node scripts/recorridos-md04-preflight.mjs --live: DNS EAI_AGAIN tgoitmwdpdkhlpqpwrvs.supabase.co"
+    - "npm --prefix e2e test -- --grep \"recorrido|suite routes|Villa Valencia boundary\": EPERM binding 127.0.0.1:8787"
+    - "git ls-remote / git push: DNS failure resolving github.com"
+files_changed:
+  - README.md
+  - VILLA_VALENCIA_SHIP_REPORT.md
+  - docs/RECORRIDOS-DATA-BACKBONE-RUNBOOK.md
+  - reports/villa-p0-launch-blockers.md
+  - scripts/recorridos-md04-preflight.mjs
+  - agent-logs/villa-wave7-20260430-190507.done
+commit_push_state:
+  normal_local_git: blocked by read-only git metadata outside writable root
+  temp_commit_without_this_log: 28d3d66c94143310f142b44866b2ff4875e32c32 chore(vv): guard MD04 data-backbone apply
+  push_lane: blocked by DNS resolving github.com
+  push_main: blocked by DNS resolving github.com
+prod_status:
+  from_handoff: villavalencia.vercel.app live; PQRS_USE_VV_SUPABASE true; production smoke and pqrs-rpc-smoke --live passed from the main shell after Wave 6
+  this_sandbox: live Vercel/Supabase/GitHub network checks blocked by DNS; no production rows/files created
+remaining_blockers:
+  - push Wave 7 changes from an environment with writable git metadata and network access
+  - rerun node scripts/production-smoke.mjs and node scripts/pqrs-rpc-smoke.mjs --live from a network-enabled shell
+  - run node scripts/recorridos-md04-preflight.mjs --live or its --print-sql output before any approved MD04 Supabase apply
+  - run known-reference PQRS lookup if Jeff provides a real reference
+  - execute PQRS historical backfill/decommission only after Jeff approves a private export/import window

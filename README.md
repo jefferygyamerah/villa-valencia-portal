@@ -28,6 +28,15 @@ Runbook: `docs/RECORRIDOS-DATA-BACKBONE-RUNBOOK.md`.
 
 Latest known shipped commit for this correction: `068854b fix(vv): stabilize recorrido plan gate`.
 
+Non-mutating MD04/data-backbone guard:
+
+```sh
+node scripts/recorridos-md04-preflight.mjs
+node scripts/recorridos-md04-preflight.mjs --print-sql
+```
+
+Use `--live` only for read-only Supabase REST prerequisite probes before applying the MD04 migration; it uses `limit=0` and does not create rows.
+
 ## Structure
 
 ```
