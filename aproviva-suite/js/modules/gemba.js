@@ -619,6 +619,10 @@
       var tplId = form.querySelector('[name=template_id]');
       if (!id) {
         if (tplId) tplId.value = '';
+        ['title', 'area', 'round_type'].forEach(function (name) {
+          var el = form.querySelector('[name=' + name + ']');
+          if (el) { el.removeAttribute('data-derived-from-plan'); el.title = ''; }
+        });
         return;
       }
       var t = tpls.filter(function (x) { return String(x.id) === id; })[0];
@@ -632,6 +636,11 @@
       if (areaEl) areaEl.value = t.area;
       var rt = form.querySelector('[name=round_type]');
       if (rt && t.round_type) rt.value = t.round_type;
+      [titleEl, areaEl, rt].forEach(function (el) {
+        if (!el) return;
+        el.setAttribute('data-derived-from-plan', '1');
+        el.title = 'Derivado del Plan Maestro seleccionado';
+      });
       if (tplId) tplId.value = String(t.id);
       var ownerNote = form.querySelector('#gemba-plan-owner-note');
       if (ownerNote) ownerNote.textContent = 'Dueño del plan: ' + roleLabel(t.role || (window.AUTH.readSession() || {}).role || 'operativo') + ' · área y frecuencia vienen del Plan Maestro.';
@@ -889,8 +898,18 @@
         };
       }
       await window.SB.update('inspection_rounds', { id: 'eq.' + id }, { status: 'completed', completed_at: new Date().toISOString(), metadata: metadata });
-      window.UI.toast('Recorrido completado.', 'success');
+      window.UI.toast('Recorrido completado. Revisa el historial reciente o genera el reporte diario.', 'success');
       await loadAll();
+      var host = getModalHost();
+      if (host) {
+        host.innerHTML = '<section class="page" data-testid="gemba-complete-state">' +
+          '<h3 class="section-title">Recorrido completado</h3>' +
+          '<p class="muted">Se guardó el cierre con ' + progress.done + '/' + progress.total + ' puntos registrados. El recorrido queda en Ejecuciones recientes y alimenta Reportes.</p>' +
+          '<div class="btn-row mt-2"><a class="btn btn-primary-sm" href="#/reportes">Ver reportes</a>' +
+          '<button type="button" class="btn btn-ghost" id="gemba-complete-close">Cerrar</button></div></section>';
+        var closeBtn = document.getElementById('gemba-complete-close');
+        if (closeBtn) closeBtn.addEventListener('click', closeSuiteModal);
+      }
     } catch (e) {
       window.UI.toast('Error: ' + insertErrorMessage(e), 'error');
     }
@@ -921,14 +940,17 @@
     var rows = progress.points.map(function (p) {
       var res = progress.results[p.id] || {};
       var badge = window.UI.badge(pointStatusLabel(res.status), res.status === 'finding' ? 'warning' : (res.status ? 'success' : 'neutral'));
+      var okClass = res.status === 'ok' ? 'btn-primary-sm' : 'btn-ghost';
+      var naClass = res.status === 'na' ? 'btn-primary-sm' : 'btn-ghost';
+      var findingClass = res.status === 'finding' ? 'btn-primary-sm' : 'btn-ghost';
       return '<div class="row between wrap" style="padding:0.7rem 0;border-bottom:1px solid var(--border);gap:0.75rem;align-items:center;">' +
         '<div style="min-width:220px;"><strong>' + window.UI.esc(p.label) + '</strong><br>' +
         '<span class="muted">' + window.UI.esc(p.area || round.area || '') + (p.required === false ? ' · opcional' : ' · requerido') + '</span></div>' +
         '<div>' + badge + '</div>' +
-        '<div class="btn-row">' +
-          '<button type="button" class="btn btn-ghost btn-sm" data-point-status="ok" data-point-id="' + window.UI.esc(p.id) + '">OK</button>' +
-          '<button type="button" class="btn btn-ghost btn-sm" data-point-status="na" data-point-id="' + window.UI.esc(p.id) + '">No aplica</button>' +
-          '<button type="button" class="btn btn-primary-sm" data-point-finding="' + window.UI.esc(p.id) + '">Hallazgo</button>' +
+        '<div class="btn-row" aria-label="Estado del punto">' +
+          '<button type="button" class="btn ' + okClass + ' btn-sm" aria-pressed="' + (res.status === 'ok') + '" data-point-status="ok" data-point-id="' + window.UI.esc(p.id) + '">OK revisado</button>' +
+          '<button type="button" class="btn ' + naClass + ' btn-sm" aria-pressed="' + (res.status === 'na') + '" data-point-status="na" data-point-id="' + window.UI.esc(p.id) + '">No aplica</button>' +
+          '<button type="button" class="btn ' + findingClass + ' btn-sm" aria-pressed="' + (res.status === 'finding') + '" data-point-finding="' + window.UI.esc(p.id) + '">Registrar hallazgo</button>' +
         '</div></div>';
     }).join('');
     host.innerHTML = '' +
@@ -1415,7 +1437,10 @@
       if (spid) body.site_place_id = spid;
 
       try {
-        await window.SB.insert('inspection_findings', body);
+        var insertedFinding = await window.SB.insert('inspection_findings', body);
+        try {
+          window.dispatchEvent(new CustomEvent('aproviva:finding-saved', { detail: { finding: (insertedFinding && insertedFinding[0]) || body } }));
+        } catch (evtErr) {}
         if (pointId) {
           var roundForUpdate = STATE.rounds.filter(function (r) { return r.id === fd.get('round_id'); })[0];
           if (roundForUpdate) await recordPointResult(roundForUpdate, pointId, 'finding');

@@ -363,3 +363,15 @@ Reason:
 - They reduce duplicated UI and product-copy noise without changing the operational data model.
 
 Do not start master-data, escalation, projects, or AI/reporting work until Wave 0 and Wave 1 are done and verified.
+
+## Completion Pass 2026-05-01
+
+All P1/P2 rows in `docs/website-fix-log.md` have now been moved to Done/Confirmed/Backlog status with implementation notes. Wave 8 drill-down gaps were closed with:
+
+- Gerencia/Inicio KPI drill-down detail cards.
+- Junta KPI drill-down detail tables.
+- Board-relevant Junta home wording.
+- Clear report suggested-action source text.
+- Junta Proyectos split into capital projects and operational backlog.
+
+Verification for this pass must include syntax checks, TypeScript checks, focused browser coverage for role routes/drill-downs, production deploy, production smoke, and seed-only production count verification.

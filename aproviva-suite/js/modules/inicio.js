@@ -47,10 +47,15 @@
       label: 'Gerencia',
       headline: 'Mira el tablero de acci\u00f3n, no otro Excel.',
       focus: 'Backlog, proyectos, reportes y decisiones para APROVIVA.',
-      primary: { label: 'Abrir reportes', href: '#/reportes' },
-      secondary: { label: 'Ver proyectos', href: '#/proyectos' },
+      primary: { label: 'Revisar backlog y atrasos', href: '#/proyectos' },
+      secondary: { label: 'Abrir reportes ejecutivos', href: '#/reportes' },
       steps: ['Captura', 'Trabajo', 'Costo', 'Junta'],
       now: 2,
+      kpis: [
+        { label: 'Edificios', value: 'VV' },
+        { label: 'Backlog', value: 'drill-down' },
+        { label: 'Riesgo', value: 'visible' },
+      ],
       rows: [
         { title: 'Pendientes de aprobaci\u00f3n', meta: 'Cotizaciones y cambios de alcance', status: '4', kind: 'warning' },
         { title: 'Trabajos abiertos', meta: 'Proveedor, evidencia y fecha objetivo', status: '9', kind: 'info' },
@@ -117,6 +122,11 @@
     var lens = ROLE_LENS[session.role] || ROLE_LENS.conserje;
     var siteCount = (window.APROVIVA_SUITE_CONFIG.SITE_PLACES || []).length;
     var allowedCount = (session.modules || []).length;
+    var strip = lens.kpis || [
+      { label: 'Puntos fijos', value: siteCount || 9 },
+      { label: 'Módulos', value: allowedCount },
+      { label: 'PII', value: 'oculta' },
+    ];
     return '' +
       '<div class="vv-lens" data-testid="villa-lens-card">' +
         '<div class="vv-lens-head">' +

@@ -823,6 +823,19 @@
     renderWaypointMarkers();
     renderFindingMarkers();
 
+    function onFindingSaved(ev) {
+      var f = ev && ev.detail && ev.detail.finding;
+      if (!f) return;
+      var meta = f.metadata || {};
+      var lat = f.lat != null ? Number(f.lat) : Number(meta.map_lat);
+      var lng = f.lng != null ? Number(f.lng) : Number(meta.map_lng);
+      if (isNaN(lat) || isNaN(lng)) return;
+      mapFindings.unshift(Object.assign({}, f, { lat: lat, lng: lng }));
+      renderFindingMarkers();
+      window.UI.toast('Hallazgo visible en el mapa.', 'success');
+    }
+    window.addEventListener('aproviva:finding-saved', onFindingSaved);
+
     var placeMode = null;
     var clickHandler = null;
 
@@ -1008,6 +1021,7 @@
         try { window.__vvLeafletMap.remove(); } catch (e4) {}
         window.__vvLeafletMap = null;
         window.removeEventListener('hashchange', onHash);
+        window.removeEventListener('aproviva:finding-saved', onFindingSaved);
       }
     });
   }

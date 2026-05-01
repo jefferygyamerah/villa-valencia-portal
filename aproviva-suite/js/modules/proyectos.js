@@ -289,11 +289,6 @@
     try {
       var rows = await window.SB.select('work_assignments', { select: '*', order: 'due_at.asc.nullslast', limit: '200' });
       rows = rows || [];
-      if (session && session.role === 'junta') {
-        rows = rows.filter(function (r) {
-          return parseMeta(r.metadata).requested_by_role === 'junta';
-        });
-      }
       STATE.rows = rows;
       renderKpis();
       renderList(session);
@@ -306,11 +301,13 @@
     var open = STATE.rows.filter(function (r) { return r.status !== 'completed' && r.status !== 'closed' && r.status !== 'cancelled'; });
     var overdue = open.filter(function (r) { return r.due_at && new Date(r.due_at).getTime() < Date.now(); });
     var highPriority = open.filter(function (r) { return r.priority === 'high' || r.priority === 'critical'; });
+    var capital = STATE.rows.filter(function (r) { return r.task_type === 'project' || parseMeta(r.metadata).capital_project === true; });
     document.getElementById('proj-kpis').innerHTML = '' +
       kpi('Total', STATE.rows.length) +
       kpi('Abiertos', open.length) +
       kpi('Atrasados', overdue.length) +
-      kpi('Alta prioridad', highPriority.length);
+      kpi('Alta prioridad', highPriority.length) +
+      kpi('Capitales', capital.length);
   }
 
   function renderList(session) {
@@ -320,15 +317,28 @@
 
     var sess = session || window.AUTH.readSession();
     var showAdvance = canAdvanceWork(sess);
+    var host = document.getElementById('proj-list');
 
     if (!rows.length) {
-      document.getElementById('proj-list').innerHTML = '<p class="empty">Sin \u00f3rdenes.</p>';
+      host.innerHTML = '<p class="empty">Sin \u00f3rdenes.</p>';
+    } else if (isJunta(sess)) {
+      var capital = rows.filter(function (r) { return r.task_type === 'project' || parseMeta(r.metadata).capital_project === true; });
+      var backlog = rows.filter(function (r) { return capital.indexOf(r) === -1; });
+      host.innerHTML = '' +
+        '<div class="page-section"><h3 class="section-title">Proyectos capitales</h3>' +
+          '<p class="muted">Milestones/RAG se derivan del historial de avances y prioridad hasta que exista una tabla dedicada.</p>' +
+          (capital.length ? '<div class="proj-work-list">' + capital.map(function (r) { return workCard(r, false, true); }).join('') + '</div>' : '<p class="empty">Sin proyectos capitales registrados.</p>') +
+        '</div>' +
+        '<div class="page-section"><h3 class="section-title">Backlog operativo</h3>' +
+          '<p class="muted">Acciones operativas por due\u00f1o, estado, prioridad, vencimiento y \u00faltimo comentario.</p>' +
+          (backlog.length ? '<div class="proj-work-list">' + backlog.map(function (r) { return workCard(r, false, false); }).join('') + '</div>' : '<p class="empty">Sin backlog operativo.</p>') +
+        '</div>';
     } else {
-      document.getElementById('proj-list').innerHTML = '<div class="proj-work-list">' + rows.map(function (r) {
+      host.innerHTML = '<div class="proj-work-list">' + rows.map(function (r) {
         return workCard(r, showAdvance);
       }).join('') + '</div>';
     }
-    document.getElementById('proj-list').onclick = function (e) { onAction(e); };
+    host.onclick = function (e) { onAction(e); };
   }
 
   function controlledAreaValue(value) {
@@ -373,7 +383,7 @@
     return 'Correctiva';
   }
 
-  function workCard(r, showAdvance) {
+  function workCard(r, showAdvance, boardProject) {
     var isClosed = r.status === 'completed' || r.status === 'closed';
     var due = r.due_at ? new Date(r.due_at) : null;
     var late = due && due.getTime() < Date.now() && !isClosed;
@@ -381,6 +391,10 @@
     var dueHtml = r.due_at
       ? '<span class="' + (late ? 'proj-due is-late' : 'proj-due') + '">' + (late ? 'Vencida ' : 'Vence ') + window.UI.esc(window.UI.fmtDate(r.due_at, { dateOnly: true })) + '</span>'
       : '<span class="muted">Sin fecha</span>';
+    var meta = parseMeta(r.metadata);
+    var hist = Array.isArray(meta.history) ? meta.history : [];
+    var last = hist.length ? hist[hist.length - 1] : null;
+    var rag = r.priority === 'critical' || r.status === 'blocked' ? 'Rojo' : (late || r.priority === 'high' ? 'Amarillo' : 'Verde');
     var action = isClosed
       ? '<span class="muted">Cerrada</span>'
       : (showAdvance
@@ -397,8 +411,10 @@
         '<p>' + window.UI.esc(r.area || 'Sin \u00e1rea') + ' \u00b7 ' + window.UI.esc(labelForType(r.task_type)) + '</p>' +
         '<div class="proj-card-meta">' +
           window.UI.badge(labelForPriority(r.priority || 'normal'), priKind(r.priority)) +
+          (boardProject ? window.UI.badge('RAG: ' + rag, rag === 'Rojo' ? 'danger' : (rag === 'Amarillo' ? 'warning' : 'success')) : '') +
           dueHtml +
         '</div>' +
+        (last ? '<p class="muted">Último avance: ' + window.UI.esc(last.note || last.kind || '') + '</p>' : '') +
       '</div>' +
       '<div class="proj-card-side">' +
         '<span class="muted">Responsable</span>' +

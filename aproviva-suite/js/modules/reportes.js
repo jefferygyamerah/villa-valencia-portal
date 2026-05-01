@@ -135,6 +135,7 @@
             { key: 'total', label: 'Total' },
           ]) + '</div>' +
         '<div class="page-section"><h4 class="section-title">Acciones sugeridas</h4>' +
+          '<p class="muted">Fuente: reglas visibles sobre cumplimiento de recorridos, escalaciones, crecimiento de backlog e inventario sin conteo reciente.</p>' +
           '<div class="rp-next-list">' +
             actionItem(compliance < 80, 'Revisar asignaciones de recorridos y disponibilidad de personal.') +
             actionItem(escWeek.length > 5, 'Revisar causas ra\u00edz de escalaciones recurrentes.') +
@@ -227,7 +228,8 @@
 
   function decisionBox(text, kind) {
     return '<div class="rp-decision rp-decision-' + kind + '">' +
-      '<span>Siguiente paso</span><strong>' + window.UI.esc(text) + '</strong></div>';
+      '<span>Siguiente paso</span><strong>' + window.UI.esc(text) + '</strong>' +
+      '<small>Calculado con conteos operativos, vencimientos y severidad; no usa datos personales.</small></div>';
   }
 
   function actionItem(active, text) {
