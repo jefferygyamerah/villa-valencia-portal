@@ -1,0 +1,19 @@
+status: passed
+summary: Jeff approved remaining proposals. Applied the additive MD04/data-backbone migration to Villa Valencia Supabase, fixed production schema drift discovered during controlled PQRS smoke, and completed a Jeff-approved production PQRS submit/lookup smoke.
+verification:
+  - node scripts/recorridos-md04-preflight.mjs --live passed before/after apply
+  - MD04 migration applied and verification returned seeded Villa Valencia plans, plan points, and MD04-lite exceptions
+  - production-smoke passed with no writes
+  - pqrs-rpc-smoke --live passed fake lookup
+  - controlled PQRS smoke inserted clearly labeled case VV-PQRS-20260430-SMOKE8299 and lookup returned itself
+production_changes:
+  - applied aproviva-suite/supabase/migrations/20260429120000_inspection_plan_data_backbone.sql after adapting FK bridge ids to existing text ids
+  - set pqrs_cases resident_status default to recibido and refreshed pqrs_set_case_reference trigger to sync legacy case_ref/resident_status
+  - created one approved controlled smoke PQRS row: VV-PQRS-20260430-SMOKE8299
+repo_changes:
+  - js/app.js now sends client-generated case_reference/case_ref with Prefer return=minimal, preserving lookup privacy while showing reference to resident
+  - PQRS migrations document legacy schema compatibility
+  - MD04 migration uses text bridge ids for existing production tables
+remaining:
+  - deploy updated portal JS to production
+  - historical ph-management backfill still needs a private export file/access before execution

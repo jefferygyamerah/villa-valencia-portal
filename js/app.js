@@ -342,9 +342,21 @@
     resetPqrsForm();
   }
 
+  function makePqrsCaseReference() {
+    var now = new Date();
+    var yyyy = String(now.getFullYear());
+    var mm = String(now.getMonth() + 1).padStart(2, '0');
+    var dd = String(now.getDate()).padStart(2, '0');
+    var suffix = String(Math.floor(Math.random() * 900000) + 100000);
+    return 'VV-PQRS-' + yyyy + mm + dd + '-' + suffix;
+  }
+
   function submitPqrsToVvSupabase(payload, meta, uploaded) {
+    var caseRef = makePqrsCaseReference();
     var row = {
       building_id: config.BUILDING_ID,
+      case_reference: caseRef,
+      case_ref: caseRef,
       subject: payload.subject,
       description: payload.description,
       location: payload.location || null,
@@ -354,6 +366,7 @@
       tipo: meta.tipo || null,
       urgencia: meta.urgencia || null,
       casa: meta.casa || null,
+      resident_status: 'recibido',
       status: 'recibido',
       metadata: { source: 'villavalencia-portal', backend: 'vv-supabase' }
     };
@@ -364,7 +377,7 @@
         apikey: config.SUPABASE_ANON_KEY,
         Authorization: 'Bearer ' + config.SUPABASE_ANON_KEY,
         'Content-Type': 'application/json',
-        Prefer: 'return=representation'
+        Prefer: 'return=minimal'
       },
       body: JSON.stringify(row)
     }).then(function (response) {
@@ -378,14 +391,6 @@
               : 'No pudimos enviar tu reporte. Revisa tu conexión e inténtalo de nuevo.';
           showPqrsStatus('error', msg);
           return;
-        }
-        var arr = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
-        var caseRef = '';
-        if (arr[0] && (arr[0].case_reference || arr[0].case_ref)) {
-          caseRef = String(arr[0].case_reference || arr[0].case_ref);
-        }
-        if (!caseRef) {
-          caseRef = getCaseIdFromResponse(parsed, rawText);
         }
         showPqrsSuccess(caseRef, uploaded);
       });

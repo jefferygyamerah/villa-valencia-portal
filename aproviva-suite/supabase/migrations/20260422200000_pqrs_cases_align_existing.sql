@@ -22,6 +22,18 @@ BEGIN
   END IF;
 END $$;
 
+-- Legacy ph-management columns are still present in production; keep browser inserts compatible.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pqrs_cases' AND column_name = 'resident_status') THEN
+    ALTER TABLE public.pqrs_cases ALTER COLUMN resident_status SET DEFAULT 'recibido';
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pqrs_cases' AND column_name = 'case_ref') THEN
+    UPDATE public.pqrs_cases SET case_ref = case_reference
+    WHERE case_reference IS NOT NULL AND (case_ref IS NULL OR trim(case_ref) = '');
+  END IF;
+END $$;
+
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pqrs_cases' AND column_name = 'reference') THEN
@@ -40,7 +52,7 @@ DO $$
 BEGIN
   ALTER TABLE public.pqrs_cases ADD CONSTRAINT pqrs_cases_case_reference_key UNIQUE (case_reference);
 EXCEPTION
-  WHEN duplicate_object THEN NULL;
+  WHEN duplicate_object OR duplicate_table THEN NULL;
 END $$;
 
 UPDATE public.pqrs_cases SET building_id = '88e6c11e-4a8c-4f39-a571-5f97e7f2b774'::uuid

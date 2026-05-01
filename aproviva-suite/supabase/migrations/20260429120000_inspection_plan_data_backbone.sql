@@ -65,7 +65,7 @@ COMMENT ON TABLE public.inspection_plan_points IS 'Planned checkpoints/character
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.inspection_round_results (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  inspection_round_id uuid NOT NULL,
+  inspection_round_id text NOT NULL,
   inspection_plan_point_id uuid,
   result_status text NOT NULL DEFAULT 'not_checked'
     CHECK (result_status IN ('ok', 'nok', 'not_checked', 'not_applicable')),
@@ -143,8 +143,8 @@ BEGIN
     ALTER TABLE public.inspection_findings ADD COLUMN IF NOT EXISTS inspection_plan_point_id uuid;
     ALTER TABLE public.inspection_findings ADD COLUMN IF NOT EXISTS derivation_type text
       CHECK (derivation_type IS NULL OR derivation_type IN ('maintenance', 'inventory', 'security', 'cleanliness', 'vendor', 'none'));
-    ALTER TABLE public.inspection_findings ADD COLUMN IF NOT EXISTS derived_incident_ticket_id uuid;
-    ALTER TABLE public.inspection_findings ADD COLUMN IF NOT EXISTS derived_work_assignment_id uuid;
+    ALTER TABLE public.inspection_findings ADD COLUMN IF NOT EXISTS derived_incident_ticket_id text;
+    ALTER TABLE public.inspection_findings ADD COLUMN IF NOT EXISTS derived_work_assignment_id text;
 
     ALTER TABLE public.inspection_findings
       DROP CONSTRAINT IF EXISTS inspection_findings_result_fk;
@@ -172,8 +172,8 @@ BEGIN
 
   IF to_regclass('public.work_assignments') IS NOT NULL THEN
     ALTER TABLE public.work_assignments ADD COLUMN IF NOT EXISTS building_id uuid;
-    ALTER TABLE public.work_assignments ADD COLUMN IF NOT EXISTS inspection_finding_id uuid;
-    ALTER TABLE public.work_assignments ADD COLUMN IF NOT EXISTS inspection_round_id uuid;
+    ALTER TABLE public.work_assignments ADD COLUMN IF NOT EXISTS inspection_finding_id text;
+    ALTER TABLE public.work_assignments ADD COLUMN IF NOT EXISTS inspection_round_id text;
     ALTER TABLE public.work_assignments ADD COLUMN IF NOT EXISTS vendor_followup_required boolean NOT NULL DEFAULT false;
 
     CREATE INDEX IF NOT EXISTS work_assignments_building_status_due_idx
@@ -183,8 +183,8 @@ BEGIN
   END IF;
 
   IF to_regclass('public.incident_tickets') IS NOT NULL THEN
-    ALTER TABLE public.incident_tickets ADD COLUMN IF NOT EXISTS inspection_finding_id uuid;
-    ALTER TABLE public.incident_tickets ADD COLUMN IF NOT EXISTS inspection_round_id uuid;
+    ALTER TABLE public.incident_tickets ADD COLUMN IF NOT EXISTS inspection_finding_id text;
+    ALTER TABLE public.incident_tickets ADD COLUMN IF NOT EXISTS inspection_round_id text;
     CREATE INDEX IF NOT EXISTS incident_tickets_inspection_finding_idx
       ON public.incident_tickets (inspection_finding_id);
   END IF;
