@@ -1,0 +1,20 @@
+status: passed
+summary: Jeff asked to re-clean and move on. Removed operational drift created after the reset while preserving the clean E2E seed examples and preserved foundation/login/config data.
+production_mutation:
+  - deleted 3 non-seed inspection_findings
+  - deleted 6 non-seed inspection_rounds
+preserved_seed_examples:
+  - PQRS: VV-PQRS-E2E-000001
+  - recorrido round: REC-E2E-001 / seed-round-e2e
+  - inspection finding: seed-finding-e2e
+  - work assignment: WO-E2E-001
+  - incident: INC-E2E-001
+  - inventory: E2E-CLORO at E2E-ALM
+  - provider/document/weekly_report/spend_policy seed rows
+verification:
+  - node scripts/vv-e2e-seed-verify.mjs passed in strict mode
+  - node scripts/production-smoke.mjs passed
+  - node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-E2E-000001 passed
+  - node scripts/recorridos-md04-preflight.mjs --live passed
+remaining:
+  - move on to next wave; real operational data load/backfill still requires private export/source data
