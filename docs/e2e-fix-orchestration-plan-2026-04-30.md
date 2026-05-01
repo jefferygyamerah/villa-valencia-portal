@@ -397,3 +397,14 @@ Backlog tickets created there:
 - `P3-SAP-001` SAP comparison one-pager
 
 Recommended first implementation slice: `P3-COM-001` then `P3-COM-002`, before PDF/reporting UI changes.
+
+
+## Wave 9 P3 Commercial Packaging Pass 2026-05-01
+
+Completed the first commercial-readiness docs from the P3 backlog:
+
+- `P3-COM-001`: `docs/P3-MODULE-PACKAGING-QA-MATRIX.md`
+- `P3-COM-002`: `docs/P3-DEMO-NARRATIVE-AND-SEED-SCRIPT.md`
+- `P3-SAP-001`: `docs/P3-SAP-COMPARISON-ONE-PAGER.md`
+
+Next recommended implementation slice: `P3-RPT-001` board packet print/PDF template, followed by `P3-RPT-002` weekly board scorecard metrics.
