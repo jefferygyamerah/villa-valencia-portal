@@ -1,0 +1,41 @@
+status: passed
+summary: Jeff approved resetting data when appropriate. Operational/demo data was reset while preserving schema, buildings, users/admin users, role/config/login tables. Seeded one clean E2E example per core functionality before future real data load.
+reset_scope:
+  preserved:
+    - public.users
+    - public.admin_users
+    - public.admin_role_assignments
+    - public.buildings
+    - public.building_module_config
+    - schema/functions/RLS/config/code
+  reset_operational_tables_include:
+    - pqrs_cases / pqrs_status_history
+    - inspection_plans / points / rounds / results / findings
+    - incident_tickets / incident_activity_log
+    - work_assignments
+    - inventory_locations / items / movements
+    - documents
+    - service_listings
+    - weekly_reports
+    - spend_policies
+    - purchase/compliance/audit/session/import/staff/role operational tables
+seed_examples:
+  pqrs: VV-PQRS-E2E-000001
+  recorrido: E2E-RECORRIDO / REC-E2E-001 / seed finding
+  work_assignment: WO-E2E-001
+  incident: INC-E2E-001
+  inventory: E2E-CLORO at E2E-ALM with balance 3/reorder 5
+  provider: Proveedor E2E Jardinería
+  document: E2E Reglamento de prueba
+  weekly_report: Semana E2E
+  spend_policy: seed-spend-policy-e2e
+verification:
+  - counts verified exactly one row in each seeded operational table
+  - public.lookup_pqrs_case('VV-PQRS-E2E-000001') returned exactly one row
+  - public.get_md04_lite_exceptions(VV building) returned seeded OPEN_FINDING and STOCK_OUT exceptions
+  - node scripts/production-smoke.mjs passed
+  - node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-E2E-000001 passed
+  - node scripts/recorridos-md04-preflight.mjs --live passed
+remaining:
+  - Jeff reviews one E2E example per functionality
+  - after approval, perform real data load/backfill from private exports/sources
