@@ -10,6 +10,16 @@ test.describe('Portal residentes (index.html)', () => {
     await expect(page.locator('#finanzas')).toBeVisible();
   });
 
+
+
+  test('accessos shows only administracion and junta entries', async ({ page }) => {
+    await page.goto('/index.html#accesos');
+    await expect(page.getByRole('heading', { name: /Ingreso administraci.n/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Ingreso junta/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Ingreso residentes/i })).toHaveCount(0);
+    await expect(page.locator('.access-grid .access-card')).toHaveCount(2);
+  });
+
   test('opens PQRS modal from Radicar button', async ({ page }) => {
     await page.goto('/index.html');
     // Prefer the panel button; the acceso rápido card is an <a href="#"> and is flaky under parallel runs.

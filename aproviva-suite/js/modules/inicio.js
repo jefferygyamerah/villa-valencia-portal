@@ -81,9 +81,19 @@
       '<section class="page">' +
         '<h2 class="page-title">Bienvenido, ' + window.UI.esc(session.label) + '</h2>' +
         '<p class="page-subtitle">' + window.UI.esc(window.APROVIVA_SUITE_CONFIG.BUILDING_NAME) + ' &middot; ' + window.UI.esc(window.APROVIVA_SUITE_CONFIG.BUILDING_CODE) + '</p>' +
+        '<div class="page-section install-section install-section--top" id="install-section" style="display:none">' +
+          '<h3 class="section-title">App en tu pantalla</h3>' +
+          '<div class="install-card" id="install-ios" style="display:none">' +
+            '<p class="muted" style="margin:0 0 0.5rem;">En <strong>iPhone / iPad</strong> (Safari): toca <strong>Compartir</strong> y luego <strong>A\u00f1adir a inicio</strong>.</p>' +
+          '</div>' +
+          '<div class="install-card" id="install-android" style="display:none">' +
+            '<p class="muted" style="margin:0 0 0.75rem;">Instala la app para abrirla a pantalla completa.</p>' +
+            '<button type="button" class="btn btn-primary-sm" id="install-pwa-btn">Instalar app</button>' +
+          '</div>' +
+        '</div>' +
         renderVillaLens(session) +
         '<div class="kpi-grid" id="home-kpis"><div class="loading">Cargando KPIs...</div></div>' +
-        '<div class="page-section">' +
+        '<div class="page-section home-modules" data-testid="home-modules">' +
           '<h3 class="section-title">Tus m\u00f3dulos</h3>' +
           '<div class="module-grid">' +
             allowed.map(function (m) {
@@ -94,16 +104,6 @@
                 '<p>' + window.UI.esc(m.desc) + '</p>' +
               '</a>';
             }).join('') +
-          '</div>' +
-        '</div>' +
-        '<div class="page-section install-section" id="install-section" style="display:none">' +
-          '<h3 class="section-title">App en tu pantalla</h3>' +
-          '<div class="install-card" id="install-ios" style="display:none">' +
-            '<p class="muted" style="margin:0 0 0.5rem;">En <strong>iPhone / iPad</strong> (Safari): toca <strong>Compartir</strong> y luego <strong>A\u00f1adir a inicio</strong>.</p>' +
-          '</div>' +
-          '<div class="install-card" id="install-android" style="display:none">' +
-            '<p class="muted" style="margin:0 0 0.75rem;">Instala la app para abrirla a pantalla completa.</p>' +
-            '<button type="button" class="btn btn-primary-sm" id="install-pwa-btn">Instalar app</button>' +
           '</div>' +
         '</div>' +
       '</section>';
@@ -148,11 +148,6 @@
               '<div class="vv-eyebrow">Acci\u00f3n sugerida</div>' +
               '<a class="vv-primary-action" href="' + window.UI.esc(lens.primary.href) + '">' + window.UI.esc(lens.primary.label) + '</a>' +
               '<a class="vv-secondary-action" href="' + window.UI.esc(lens.secondary.href) + '">' + window.UI.esc(lens.secondary.label) + '</a>' +
-            '</div>' +
-            '<div class="vv-privacy-card">' +
-              '<div class="vv-eyebrow">L\u00edmite de confianza</div>' +
-              '<p>' + window.UI.esc(lens.privacy) + '</p>' +
-              '<div class="vv-redacted"><span></span><span></span><span></span></div>' +
             '</div>' +
           '</aside>' +
         '</div>' +

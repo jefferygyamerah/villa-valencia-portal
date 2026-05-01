@@ -126,6 +126,25 @@ test.describe('APROVIVA suite vision guardrails', () => {
     await cons.close();
   });
 
+
+  test('mobile inicio avoids duplicate module grid and product trust copy', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await loginWithPin(page, '2026');
+    await page.goto('/aproviva-suite/index.html#/inicio');
+
+    await expect(page.getByTestId('villa-lens-card')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId('home-modules')).toBeHidden();
+    await expect(page.locator('#app-content')).not.toContainText('Límite de confianza');
+
+    const order = await page.evaluate(() => {
+      const install = document.querySelector('#install-section');
+      const lens = document.querySelector('[data-testid="villa-lens-card"]');
+      if (!install || !lens) return null;
+      return Boolean(install.compareDocumentPosition(lens) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(order).toBe(true);
+  });
+
   test('mapa only allows route points inside Villa Valencia boundary', async ({ page }) => {
     await loginWithPin(page, 'SUP26');
     await page.goto('/aproviva-suite/index.html#/mapa');

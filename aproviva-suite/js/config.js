@@ -21,6 +21,57 @@
   ];
 
   var UBICACION_LABELS = SITE_PLACES.map(function (p) { return p.label; });
+  var ROLE_OPTIONS = [
+    { value: 'conserje', label: 'Personal / Conserjeria' },
+    { value: 'supervisor', label: 'Supervision operativa' },
+    { value: 'gerencia', label: 'Gerencia / Administracion' },
+    { value: 'junta', label: 'Junta directiva' },
+  ];
+  var FOLLOW_UP_TAXONOMY = {
+    statuses: [
+      { value: 'received', label: 'Recibida' },
+      { value: 'open', label: 'Abierta' },
+      { value: 'in_progress', label: 'En proceso' },
+      { value: 'blocked', label: 'Bloqueada' },
+      { value: 'resolved', label: 'Resuelta' },
+      { value: 'completed', label: 'Completada' },
+      { value: 'closed', label: 'Cerrada' },
+      { value: 'cancelled', label: 'Cancelada' },
+    ],
+    priorities: [
+      { value: 'low', label: 'Baja' },
+      { value: 'normal', label: 'Normal' },
+      { value: 'medium', label: 'Media' },
+      { value: 'high', label: 'Alta' },
+      { value: 'critical', label: 'Crítica' },
+    ],
+    escalationStatuses: [
+      { value: 'open', label: 'Abierta' },
+      { value: 'in_review', label: 'En revision' },
+      { value: 'action_required', label: 'Accion requerida' },
+      { value: 'resolved', label: 'Resuelta' },
+      { value: 'closed', label: 'Cerrada' },
+    ],
+    escalationTargets: [
+      { value: 'supervisor', label: 'Supervisor' },
+      { value: 'gerencia', label: 'Gerencia / Administracion' },
+      { value: 'junta', label: 'Junta directiva' },
+    ],
+  };
+  var INSPECTION_PLAN_STRUCTURE = {
+    requiredFields: ['role', 'owner', 'frequency', 'area', 'points', 'sequence', 'comments'],
+    frequencies: [
+      { value: 'daily', label: 'Diario' },
+      { value: 'weekly', label: 'Semanal' },
+      { value: 'monthly', label: 'Mensual' },
+      { value: 'ad_hoc', label: 'Puntual' },
+    ],
+    pointStatuses: [
+      { value: 'ok', label: 'OK' },
+      { value: 'na', label: 'No aplica' },
+      { value: 'finding', label: 'Hallazgo' },
+    ],
+  };
 
   window.APROVIVA_SUITE_CONFIG = {
     SUPABASE_URL: 'https://tgoitmwdpdkhlpqpwrvs.supabase.co',
@@ -38,6 +89,14 @@
 
     /** Cat\u00e1logo de puntos del conjunto con clasificaci\u00f3n edificio / \u00e1rea. */
     SITE_PLACES: SITE_PLACES,
+    MASTER_DATA: {
+      areas: SITE_PLACES,
+      locations: SITE_PLACES,
+      segments: SITE_PLACES,
+      roles: ROLE_OPTIONS,
+      inspectionPlan: INSPECTION_PLAN_STRUCTURE,
+      followUp: FOLLOW_UP_TAXONOMY,
+    },
 
     /**
      * Roles (session.role). This deployment is tied to BUILDING_* (solo Villa Valencia).
@@ -180,5 +239,48 @@
       html += '</optgroup>';
     });
     return html;
+  };
+
+  window.APROVIVA_SUITE_CONFIG.buildAreaSelectOptionsHtml = window.APROVIVA_SUITE_CONFIG.buildZonaSelectOptionsHtml;
+
+  window.APROVIVA_SUITE_CONFIG.buildFrequencySelectOptionsHtml = function (selected) {
+    var esc = (window.UI && window.UI.esc) ? window.UI.esc : escHtml;
+    return INSPECTION_PLAN_STRUCTURE.frequencies.map(function (f) {
+      var sel = selected === f.value ? ' selected' : '';
+      return '<option value="' + esc(f.value) + '"' + sel + '>' + esc(f.label) + '</option>';
+    }).join('');
+  };
+
+  window.APROVIVA_SUITE_CONFIG.buildPrioritySelectOptionsHtml = function (selected, includeMedium) {
+    var esc = (window.UI && window.UI.esc) ? window.UI.esc : escHtml;
+    return FOLLOW_UP_TAXONOMY.priorities.filter(function (p) {
+      return includeMedium || p.value !== 'medium';
+    }).map(function (p) {
+      var sel = selected === p.value ? ' selected' : '';
+      return '<option value="' + esc(p.value) + '"' + sel + '>' + esc(p.label) + '</option>';
+    }).join('');
+  };
+
+  window.APROVIVA_SUITE_CONFIG.buildAssigneeSelectOptionsHtml = function (adminRows, selected) {
+    var esc = (window.UI && window.UI.esc) ? window.UI.esc : escHtml;
+    var seen = {};
+    var opts = [];
+    (adminRows || []).forEach(function (a) {
+      var name = String((a && (a.display_name || a.email)) || '').trim();
+      if (!name || seen[name]) return;
+      seen[name] = 1;
+      opts.push({ value: name, label: name });
+    });
+    ROLE_OPTIONS.forEach(function (r) {
+      var label = r.label;
+      if (!seen[label]) {
+        seen[label] = 1;
+        opts.push({ value: label, label: label });
+      }
+    });
+    return opts.map(function (o) {
+      var sel = selected === o.value ? ' selected' : '';
+      return '<option value="' + esc(o.value) + '"' + sel + '>' + esc(o.label) + '</option>';
+    }).join('');
   };
 })();

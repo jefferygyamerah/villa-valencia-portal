@@ -1,0 +1,37 @@
+status: passed
+summary: Jeff flagged that E2E fix orchestration plan changes were not visible in production. Root cause: fixes/plan existed as uncommitted changes in /home/jeffery/Adwen-Tech/apps/villa-valencia-portal while deployments were being made from /home/jeffery/lanes/villa-valencia-gemba. Reconciled those changes into the deploy lane and deployed them.
+root_cause:
+  - deployment lane lacked docs/e2e-fix-orchestration-plan-2026-04-30.md and docs/website-fix-log.md
+  - deployment lane lacked uncommitted Wave 0/1/2 UI/test fixes from canonical app worktree
+included_changes:
+  - Accessos removes resident entry and tightens layout
+  - suite mobile removes duplicated module grid/product trust copy
+  - install prompt moves higher in mobile home flow
+  - shared master data config/control changes for areas/frequency/assignees/status taxonomy
+  - gemba/incidencias/proyectos/maestros controlled-choice UI patches
+  - Playwright coverage for portal access cards, suite mobile guardrails, and master-data controlled choices
+checks_passed_before_deploy:
+  - node --check aproviva-suite/js/config.js
+  - node --check aproviva-suite/js/modules/gemba.js
+  - node --check aproviva-suite/js/modules/incidencias.js
+  - node --check aproviva-suite/js/modules/inicio.js
+  - node --check aproviva-suite/js/modules/maestros.js
+  - node --check aproviva-suite/js/modules/proyectos.js
+  - git diff --check
+  - e2e focused grep Accessos/suite roles/master data/portal: 16 passed
+  - full e2e npm test: 41 passed
+commit:
+  - 0108896 fix(vv): deploy e2e orchestration fixes
+production_deploy:
+  - vercel deploy --prod --yes
+  - aliased to https://villavalencia.vercel.app
+post_deploy_checks:
+  - node scripts/production-smoke.mjs passed
+  - node scripts/pqrs-rpc-smoke.mjs --live --known-ref VV-PQRS-E2E-000001 passed
+  - fetched production index/config/module assets and verified core markers
+  - npm run test:prod -- --grep "accessos shows only|mobile inicio|master data controlled": 5 passed
+here_now:
+  - updated anonymous https://opaque-fable-amcy.here.now/ with same static bundle
+  - smoke /, /js/config.js, /aproviva-suite/index.html returned 200
+remaining:
+  - continue orchestration plan from Wave 3+; do not divert to data import until Jeff's Wave 11 direction

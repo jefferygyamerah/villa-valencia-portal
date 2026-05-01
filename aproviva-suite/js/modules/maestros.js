@@ -213,7 +213,7 @@
         '<form id="m-loc-form" class="form-grid cols-2">' +
           '<div class="form-field"><label>Nombre</label><input name="name" required></div>' +
           '<div class="form-field"><label>C\u00f3digo</label><input name="code" required autocapitalize="characters"></div>' +
-          '<div class="form-field"><label>\u00c1rea</label><input name="area" placeholder="Calles, \u00c1rea social..."></div>' +
+          '<div class="form-field"><label>\u00c1rea</label><select name="area">' + window.APROVIVA_SUITE_CONFIG.buildAreaSelectOptionsHtml() + '</select></div>' +
           '<div class="form-field" style="grid-column:1/-1;"><label>Descripci\u00f3n operativa</label><textarea name="description" rows="2" maxlength="180" placeholder="Opcional. Ej.: referencia f\u00edsica, no personas."></textarea><span class="hint">Evita nombres de residentes, tel\u00e9fonos o datos privados.</span></div>' +
           '<div class="btn-row" style="grid-column:1/-1;">' +
             '<button class="btn btn-primary-sm">Guardar</button>' +

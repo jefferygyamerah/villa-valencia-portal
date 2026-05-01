@@ -291,13 +291,8 @@
         '<select name="title" required>' + titOpts + '</select></div>' +
       '<div class="form-field"><label>\u00c1rea base del plan</label>' +
         '<select name="area" required>' + zonaOpts + '</select></div>' +
-      '<div class="form-field"><label>Frecuencia</label>' +
-        '<select name="round_type">' +
-          '<option value="daily">Diario</option>' +
-          '<option value="weekly">Semanal</option>' +
-          '<option value="monthly">Mensual</option>' +
-          '<option value="ad_hoc" selected>Ad-hoc / puntual</option>' +
-        '</select></div>' +
+            '<div class="form-field"><label>Frecuencia</label>' +
+        '<select name="round_type">' + window.APROVIVA_SUITE_CONFIG.buildFrequencySelectOptionsHtml('ad_hoc') + '</select></div>' +
       '<div class="form-field" style="grid-column:1/-1;"><label>Puntos de Inspecci\u00f3n requeridos</label>' +
         '<textarea name="points_text" rows="4" placeholder="Un punto por l\u00ednea. Ej. Revisar cerradura de garita"></textarea>' +
         '<div class="hint">Estos puntos definen la ruta del recorrido; los hallazgos se registran contra un punto.</div></div>';
@@ -960,12 +955,7 @@
             '<div class="form-field"><label>\u00c1rea base</label>' +
               '<select name="area" required>' + zonaOpts + '</select></div>' +
             '<div class="form-field"><label>Frecuencia</label>' +
-              '<select name="round_type" required>' +
-                '<option value="daily">Diario</option>' +
-                '<option value="weekly">Semanal</option>' +
-                '<option value="monthly">Mensual</option>' +
-                '<option value="ad_hoc">Puntual</option>' +
-              '</select></div>' +
+              '<select name="round_type" required>' + window.APROVIVA_SUITE_CONFIG.buildFrequencySelectOptionsHtml('daily') + '</select></div>' +
             '<div class="form-field"><label>Programado (opcional)</label>' +
               '<input type="datetime-local" name="scheduled_for"></div>' +
             '<label class="form-field" style="grid-column:1/-1;display:flex;gap:0.55rem;align-items:flex-start;">' +
@@ -986,14 +976,9 @@
             '<div class="form-field"><label>Plan Maestro</label>' +
               '<input type="text" name="title" required placeholder="Ej: Recorrido matutino \u00e1rea social"></div>' +
             '<div class="form-field"><label>\u00c1rea base</label>' +
-              '<input type="text" name="area" required placeholder="Ej: Piscina, Garita, Calles"></div>' +
+              '<select name="area" required>' + window.APROVIVA_SUITE_CONFIG.buildAreaSelectOptionsHtml() + '</select></div>' +
             '<div class="form-field"><label>Tipo</label>' +
-              '<select name="round_type" required>' +
-                '<option value="daily">Diario</option>' +
-                '<option value="weekly">Semanal</option>' +
-                '<option value="monthly">Mensual</option>' +
-                '<option value="ad_hoc">Ad-hoc</option>' +
-              '</select></div>' +
+              '<select name="round_type" required>' + window.APROVIVA_SUITE_CONFIG.buildFrequencySelectOptionsHtml('ad_hoc') + '</select></div>' +
             '<div class="form-field"><label>Programado para</label>' +
               '<input type="datetime-local" name="scheduled_for"></div>' +
             '<label class="form-field" style="grid-column:1/-1;display:flex;gap:0.55rem;align-items:flex-start;">' +

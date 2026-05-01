@@ -92,8 +92,8 @@
 
   function rowToBody(raw, session, rowIndex) {
     var title = String(raw.title || '').trim();
-    var area = String(raw.area || '').trim();
-    var assignee = String(raw.assignee_name || raw.asignado || '').trim();
+    var area = controlledAreaValue(raw.area);
+    var assignee = controlledAssigneeValue(raw.assignee_name || raw.asignado);
     var description = String(raw.description || raw.descripcion || '').trim();
     if (!title || !area || !assignee || !description) {
       return { error: 'Fila ' + (rowIndex + 2) + ': faltan title, area, assignee_name o description.' };
@@ -330,6 +330,24 @@
     document.getElementById('proj-list').onclick = function (e) { onAction(e); };
   }
 
+  function controlledAreaValue(value) {
+    var v = String(value || '').trim();
+    var places = (window.APROVIVA_SUITE_CONFIG.MASTER_DATA && window.APROVIVA_SUITE_CONFIG.MASTER_DATA.areas) || [];
+    var match = places.filter(function (p) {
+      return p && (p.label === v || p.id === v);
+    })[0];
+    return match ? match.label : v;
+  }
+
+  function controlledAssigneeValue(value) {
+    var v = String(value || '').trim();
+    var roles = (window.APROVIVA_SUITE_CONFIG.MASTER_DATA && window.APROVIVA_SUITE_CONFIG.MASTER_DATA.roles) || [];
+    var match = roles.filter(function (r) {
+      return r && (r.label === v || r.value === v);
+    })[0];
+    return match ? match.label : v;
+  }
+
   function labelForStatus(s) {
     if (s === 'open' || !s) return 'Abierta';
     if (s === 'in_progress') return 'En curso';
@@ -428,6 +446,8 @@
 
   function openJuntaBacklog(session) {
     var host = document.getElementById('proj-modal-host');
+    var areaOpts = window.APROVIVA_SUITE_CONFIG.buildAreaSelectOptionsHtml();
+    var priorityOpts = window.APROVIVA_SUITE_CONFIG.buildPrioritySelectOptionsHtml('normal', false);
     host.innerHTML = '' +
       '<section class="page" data-testid="proj-junta-backlog-modal">' +
         '<h3 class="section-title">Nueva tarea para operaciones</h3>' +
@@ -436,14 +456,9 @@
           '<div class="form-field"><label>T\u00edtulo</label>' +
             '<input type="text" name="title" required></div>' +
           '<div class="form-field"><label>\u00c1rea</label>' +
-            '<input type="text" name="area" required></div>' +
+            '<select name="area" required>' + areaOpts + '</select></div>' +
           '<div class="form-field"><label>Prioridad</label>' +
-            '<select name="priority">' +
-              '<option value="low">Baja</option>' +
-              '<option value="normal" selected>Normal</option>' +
-              '<option value="high">Alta</option>' +
-              '<option value="critical">Cr\u00edtica</option>' +
-            '</select></div>' +
+            '<select name="priority">' + priorityOpts + '</select></div>' +
           '<div class="form-field"><label>Vence (opcional)</label>' +
             '<input type="date" name="due_at"></div>' +
           '<div class="form-field" style="grid-column:1/-1;"><label>Contexto operativo</label>' +
@@ -498,6 +513,9 @@
 
   function openNewFull(session) {
     var host = document.getElementById('proj-modal-host');
+    var areaOpts = window.APROVIVA_SUITE_CONFIG.buildAreaSelectOptionsHtml();
+    var assigneeOpts = window.APROVIVA_SUITE_CONFIG.buildAssigneeSelectOptionsHtml([], session && session.label);
+    var priorityOpts = window.APROVIVA_SUITE_CONFIG.buildPrioritySelectOptionsHtml('normal', false);
     host.innerHTML = '' +
       '<section class="page" data-testid="proj-new-form">' +
         '<h3 class="section-title">Nueva orden de trabajo</h3>' +
@@ -506,9 +524,9 @@
           '<div class="form-field"><label>T\u00edtulo</label>' +
             '<input type="text" name="title" required></div>' +
           '<div class="form-field"><label>\u00c1rea</label>' +
-            '<input type="text" name="area" required></div>' +
+            '<select name="area" required>' + areaOpts + '</select></div>' +
           '<div class="form-field"><label>Asignado a</label>' +
-            '<input type="text" name="assignee_name" placeholder="Nombre del responsable" required></div>' +
+            '<select name="assignee_name" required>' + assigneeOpts + '</select></div>' +
           '<div class="form-field"><label>Tipo de tarea</label>' +
             '<select name="task_type">' +
               '<option value="corrective">Correctiva</option>' +
@@ -517,12 +535,7 @@
               '<option value="project">Proyecto</option>' +
             '</select></div>' +
           '<div class="form-field"><label>Prioridad</label>' +
-            '<select name="priority">' +
-              '<option value="low">Baja</option>' +
-              '<option value="normal" selected>Normal</option>' +
-              '<option value="high">Alta</option>' +
-              '<option value="critical">Cr\u00edtica</option>' +
-            '</select></div>' +
+            '<select name="priority">' + priorityOpts + '</select></div>' +
           '<div class="form-field"><label>Vence</label>' +
             '<input type="date" name="due_at"></div>' +
           '<div class="form-field" style="grid-column:1/-1;"><label>Trabajo requerido</label>' +

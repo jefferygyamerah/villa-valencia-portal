@@ -934,6 +934,18 @@ body {
   opacity: 1;
 }
 
+
+/* Home module cards duplicate the fixed bottom nav on phone-sized logged-in views. */
+@media (max-width: 767px) {
+  .app-shell--authed .home-modules {
+    display: none;
+  }
+
+  .app-shell--authed .install-section--top {
+    margin-top: 0;
+  }
+}
+
 /* Logged-in mobile: clear fixed bottom nav */
 @media (max-width: 767px) {
   .app-shell--authed .toast {

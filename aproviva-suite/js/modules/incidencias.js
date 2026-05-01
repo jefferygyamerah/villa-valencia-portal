@@ -239,6 +239,7 @@
       var ubicOpts = mergedUbicacionLabels(locRows).map(function (u) {
         return '<option value="' + window.UI.esc(u) + '">' + window.UI.esc(u) + '</option>';
       }).join('');
+      var severityOpts = window.APROVIVA_SUITE_CONFIG.buildPrioritySelectOptionsHtml('medium', true);
       host.innerHTML = '' +
         '<section class="page" data-testid="inc-new-form">' +
           '<h3 class="section-title">Nueva incidencia</h3>' +
@@ -249,12 +250,7 @@
             '<div class="form-field"><label>Ubicaci\u00f3n</label>' +
               '<select name="location" required>' + ubicOpts + '</select></div>' +
             '<div class="form-field"><label>Severidad</label>' +
-              '<select name="severity" required>' +
-                '<option value="low">Baja</option>' +
-                '<option value="medium" selected>Media</option>' +
-                '<option value="high">Alta</option>' +
-                '<option value="critical">Cr\u00edtica</option>' +
-              '</select></div>' +
+              '<select name="severity" required>' + severityOpts + '</select></div>' +
             '<div class="form-field"><label>Visible al residente</label>' +
               '<select name="visible">' +
                 '<option value="false" selected>No</option>' +
@@ -268,6 +264,8 @@
           '</form>' +
         '</section>';
     } else {
+      var adminLocOpts = window.APROVIVA_SUITE_CONFIG.buildAreaSelectOptionsHtml();
+      var adminSeverityOpts = window.APROVIVA_SUITE_CONFIG.buildPrioritySelectOptionsHtml('medium', true);
       host.innerHTML = '' +
         '<section class="page" data-testid="inc-new-form">' +
           '<h3 class="section-title">Nueva incidencia</h3>' +
@@ -281,14 +279,9 @@
                 '<option value="Other">Otro</option>' +
               '</select></div>' +
             '<div class="form-field"><label>Severidad</label>' +
-              '<select name="severity" required>' +
-                '<option value="low">Baja</option>' +
-                '<option value="medium" selected>Media</option>' +
-                '<option value="high">Alta</option>' +
-                '<option value="critical">Cr\u00edtica</option>' +
-              '</select></div>' +
+              '<select name="severity" required>' + adminSeverityOpts + '</select></div>' +
             '<div class="form-field"><label>Ubicaci\u00f3n</label>' +
-              '<input type="text" name="location" placeholder="Ej: Garita, Cuarto t\u00e9cnico" required></div>' +
+              '<select name="location" required>' + adminLocOpts + '</select></div>' +
             '<div class="form-field"><label>Visible al residente</label>' +
               '<select name="visible">' +
                 '<option value="false">No</option>' +
