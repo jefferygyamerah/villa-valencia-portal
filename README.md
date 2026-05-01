@@ -99,6 +99,23 @@ node scripts/pqrs-backfill-validate.mjs --file /tmp/vv-pqrs-backfill.csv
 
 Runbook: `docs/PQRS-HISTORICAL-BACKFILL-RUNBOOK.md`. Fixture smoke: `node scripts/pqrs-backfill-validate.mjs --file scripts/fixtures/pqrs-backfill-sample.csv`.
 
+## Operational real-data-load readiness
+
+For non-PQRS operational data, stage a private JSON bundle or per-table CSV directory outside the repo, then run the offline validator:
+
+```sh
+node scripts/vv-operational-load-validate.mjs --bundle /tmp/vv-operational-load.json --strict
+node scripts/vv-operational-load-validate.mjs --dir /tmp/vv-operational-load-csv --strict
+```
+
+Safe synthetic fixture smoke:
+
+```sh
+node scripts/vv-operational-load-validate.mjs --bundle scripts/fixtures/operational-load-sample.json
+```
+
+Runbook: `docs/OPERATIONAL-REAL-DATA-LOAD-READINESS.md`. Actual import still requires private exports/source data and explicit Jeff approval before any live DB mutation.
+
 ## Lightweight Automation (Drive-based)
 
 Canonical finance automation path:

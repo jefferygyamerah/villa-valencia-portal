@@ -1,0 +1,28 @@
+status: passed
+summary: Added an offline real-operational-data load readiness package for Villa Valencia so private exports can be validated before any import. No production DB mutation, no deploy, no production rows created/deleted.
+changes:
+  - docs/OPERATIONAL-REAL-DATA-LOAD-READINESS.md
+  - scripts/vv-operational-load-validate.mjs
+  - scripts/fixtures/operational-load-sample.json
+  - README.md
+checks_passed:
+  - node --check scripts/vv-operational-load-validate.mjs
+  - node --check scripts/pqrs-backfill-validate.mjs
+  - node --check scripts/recorridos-md04-preflight.mjs
+  - node --check scripts/vv-e2e-seed-verify.mjs
+  - node --check scripts/production-smoke.mjs
+  - node --check scripts/pqrs-rpc-smoke.mjs
+  - node scripts/vv-operational-load-validate.mjs --bundle scripts/fixtures/operational-load-sample.json
+  - node scripts/vv-operational-load-validate.mjs --bundle scripts/fixtures/operational-load-sample.json --strict
+  - git diff --check
+validator_scope:
+  - validates offline JSON bundle only; no DB connection required
+  - covers inspection plans/points/rounds/results/findings
+  - covers incident tickets and work assignments
+  - covers inventory locations/items/movements
+  - covers service listings, documents, weekly reports, spend policies
+  - checks required fields, duplicate ids/refs, status/category values where practical, and cross-file references
+remaining_blockers:
+  - private real operational exports/source data are still needed
+  - actual import mapping must be reviewed against private source schemas
+  - explicit approval is still required before any import or live DB mutation

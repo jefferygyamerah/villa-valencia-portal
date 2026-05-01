@@ -1,0 +1,201 @@
+{
+  "meta": {
+    "building_id": "88e6c11e-4a8c-4f39-a571-5f97e7f2b774",
+    "source_label": "synthetic-fixture",
+    "exported_at": "2000-01-01T00:00:00Z",
+    "note": "Synthetic non-production fixture. No resident, staff, provider, email, phone, or private operational data."
+  },
+  "inspection_plans": [
+    {
+      "plan_code": "FIX-SEC-DAILY",
+      "name": "Fixture daily security round",
+      "category": "security",
+      "frequency": "daily",
+      "expected_duration_minutes": 20,
+      "building_id": "88e6c11e-4a8c-4f39-a571-5f97e7f2b774",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "inspection_plan_points": [
+    {
+      "plan_code": "FIX-SEC-DAILY",
+      "point_code": "FIX-GATE-CHECK",
+      "site_place_id": "garita",
+      "zona_label": "Garita",
+      "label": "Fixture gate check",
+      "check_type": "boolean",
+      "expected_value": "OK",
+      "sort_order": 10,
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "inspection_rounds": [
+    {
+      "round_number": "FIX-ROUND-001",
+      "plan_code": "FIX-SEC-DAILY",
+      "title": "Fixture security execution",
+      "area": "Garita",
+      "round_type": "daily",
+      "status": "completed",
+      "scheduled_for": "2000-01-01T12:00:00Z",
+      "started_at": "2000-01-01T12:03:00Z",
+      "completed_at": "2000-01-01T12:20:00Z",
+      "building_id": "88e6c11e-4a8c-4f39-a571-5f97e7f2b774",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "inspection_round_results": [
+    {
+      "result_id": "FIX-RR-001",
+      "round_number": "FIX-ROUND-001",
+      "plan_code": "FIX-SEC-DAILY",
+      "point_code": "FIX-GATE-CHECK",
+      "result_status": "nok",
+      "is_defect": true,
+      "checked_at": "2000-01-01T12:10:00Z",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "inspection_findings": [
+    {
+      "finding_id": "FIX-FIND-001",
+      "round_number": "FIX-ROUND-001",
+      "plan_code": "FIX-SEC-DAILY",
+      "point_code": "FIX-GATE-CHECK",
+      "finding_type": "security",
+      "severity": "medium",
+      "status": "open",
+      "description": "Synthetic fixture finding for offline validation only.",
+      "zona_label": "Garita",
+      "building_id": "88e6c11e-4a8c-4f39-a571-5f97e7f2b774",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "incident_tickets": [
+    {
+      "ticket_number": "FIX-INC-001",
+      "inspection_finding_id": "FIX-FIND-001",
+      "title": "Fixture incident",
+      "category": "Security",
+      "location_label": "Garita",
+      "severity": "medium",
+      "status": "received",
+      "source": "internal",
+      "building_id": "88e6c11e-4a8c-4f39-a571-5f97e7f2b774",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "work_assignments": [
+    {
+      "assignment_number": "FIX-WO-001",
+      "inspection_finding_id": "FIX-FIND-001",
+      "title": "Fixture work assignment",
+      "area": "Garita",
+      "assignee_name": "Fixture operations role",
+      "task_type": "corrective",
+      "priority": "normal",
+      "status": "open",
+      "due_at": "2000-01-03T12:00:00Z",
+      "building_id": "88e6c11e-4a8c-4f39-a571-5f97e7f2b774",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "inventory_locations": [
+    {
+      "code": "FIX-ALM",
+      "name": "Fixture storage",
+      "area": "Operations",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "inventory_items": [
+    {
+      "sku": "FIX-SUPPLY",
+      "name": "Fixture supply item",
+      "category": "Cleaning",
+      "unit": "unit",
+      "default_reorder_point": 5,
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "inventory_movements": [
+    {
+      "movement_id": "FIX-MOVE-001",
+      "inventory_item_sku": "FIX-SUPPLY",
+      "inventory_location_code": "FIX-ALM",
+      "movement_type": "counted",
+      "quantity": 3,
+      "balance_after": 3,
+      "movement_at": "2000-01-01T13:00:00Z",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "service_listings": [
+    {
+      "provider_code": "FIX-PROVIDER",
+      "display_name": "Fixture service provider",
+      "category": "Maintenance",
+      "status": "active",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "documents": [
+    {
+      "document_code": "FIX-DOC-001",
+      "title": "Fixture operations document",
+      "category": "operations",
+      "status": "active",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "weekly_reports": [
+    {
+      "period_label": "Fixture week",
+      "inventory_snapshot_label": "Synthetic inventory snapshot",
+      "incidents_label": "Synthetic incident summary",
+      "inspections_label": "Synthetic inspection summary",
+      "vendor_attendance_label": "Synthetic vendor summary",
+      "status": "submitted",
+      "submitted_at": "2000-01-07T12:00:00Z",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ],
+  "spend_policies": [
+    {
+      "policy_code": "FIX-SPEND-001",
+      "title": "Fixture spend policy",
+      "status": "active",
+      "limit_amount": 100,
+      "effective_from": "2000-01-01T00:00:00Z",
+      "metadata": {
+        "source": "fixture"
+      }
+    }
+  ]
+}
