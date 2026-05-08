@@ -35,9 +35,18 @@
     var json = null;
     try { json = text ? JSON.parse(text) : null; } catch (e) { json = text; }
     if (!res.ok) {
-      var err = new Error('Supabase ' + res.status + ' on ' + path);
+      var detail = '';
+      if (json && typeof json === 'object') {
+        var parts = [json.message, json.details, json.hint, json.code]
+          .filter(function (p) { return p; });
+        detail = parts.join(' | ');
+      } else if (typeof json === 'string' && json) {
+        detail = json;
+      }
+      var err = new Error('Supabase ' + res.status + ' on ' + path + (detail ? ' — ' + detail : ''));
       err.status = res.status;
       err.body = json;
+      console.error('[SB]', method, path, res.status, json, body);
       throw err;
     }
     return json;
