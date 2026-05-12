@@ -7,7 +7,7 @@ test.describe('Wave 2 master data controlled choices', () => {
     await page.goto('/aproviva-suite/index.html#/maestros');
     await page.getByTestId('maestros-page').waitFor({ state: 'visible', timeout: 30_000 });
 
-    await page.getByRole('button', { name: '+ Ubicación' }).click();
+    await page.locator('#m-new-loc').click();
     const form = page.locator('#m-loc-form');
     await expect(form.locator('select[name="area"]')).toBeVisible();
     await expect(form.locator('select[name="area"]')).toContainText('Garita');

@@ -26,6 +26,7 @@ async function mockSupabase(page: Page): Promise<MockState> {
     buildings: [{ id: 'b1', name: 'Villa Valencia', status: 'active' }],
     escalation_events: [
       { id: 'e1', severity: 'high', status: 'open', title: 'Filtración crítica', source_type: 'incident_ticket', source_id: 'i1', created_at: daysAgo(1), payload: { source_context: 'Área social' } },
+      { id: 'e2', severity: 'medium', status: 'resolved', title: 'Decisión de bomba cerrada', source_type: 'work_assignment', source_id: 'w4', created_at: daysAgo(5), resolved_at: daysAgo(1), payload: {} },
     ],
     incident_tickets: [
       { id: 'i1', building_id: 'b1', ticket_number: 'INC-1', title: 'Fuga recurrente', status: 'open', severity: 'high', category: 'Plomería', location_label: 'Piscina', created_at: daysAgo(1) },
@@ -48,6 +49,7 @@ async function mockSupabase(page: Page): Promise<MockState> {
       { id: 'w1', assignment_number: 'WO-1', title: 'Mantenimiento preventivo bombas', task_type: 'preventive', priority: 'normal', status: 'open', created_at: daysAgo(3), due_at: daysFromNow(2) },
       { id: 'w2', assignment_number: 'WO-2', title: 'Reparación correctiva puerta', task_type: 'corrective', priority: 'high', status: 'open', created_at: daysAgo(12), due_at: daysAgo(1) },
       { id: 'w3', assignment_number: 'WO-3', title: 'Proyecto capital ascensor', task_type: 'project', priority: 'high', status: 'in_progress', created_at: daysAgo(35), due_at: daysFromNow(14), metadata: { capital_project: true } },
+      { id: 'w4', assignment_number: 'WO-4', title: 'Cierre preventivo cuarto bombas', task_type: 'preventive', priority: 'normal', status: 'completed', created_at: daysAgo(10), completed_at: daysAgo(1) },
     ],
     compliance_cases: [],
   };
@@ -127,7 +129,16 @@ test.describe('P3-RPT-002 premium board scorecard', () => {
 
     await page.getByRole('button', { name: /Preventivo \/ correctivo/i }).click();
     await expect(page.getByTestId('junta-kpi-detail')).toContainText('Detalle: Preventivo / correctivo');
-    await expect(page.getByTestId('junta-kpi-detail')).toContainText('2 / 1');
+    await expect(page.getByTestId('junta-kpi-detail')).toContainText('3 / 1');
+
+    const audit = page.getByTestId('audit-history-center');
+    await expect(audit).toBeVisible();
+    await expect(audit).toContainText('Centro de auditoría / historial');
+    await expect(audit).toContainText('Incidencia');
+    await expect(audit).toContainText('Recorrido');
+    await expect(audit).toContainText('Orden / proyecto');
+    await expect(audit).toContainText('Cierre preventivo cuarto bombas');
+    await expect(audit).not.toContainText(/555-0100|cuenta 123|correo@example\.com/i);
 
     expect(state.nonGet).toEqual([]);
   });

@@ -30,7 +30,7 @@ test.describe('APROVIVA suite (PIN JD26 — Junta)', () => {
     await loginWithPin(page, 'JD26');
     await page.goto('/aproviva-suite/index.html#/proyectos');
     await expect(page.getByTestId('proj-backlog-form')).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator('#app-content')).toContainText('Proyectos capitales');
+    await expect(page.locator('#app-content')).toContainText('Capitales');
     await expect(page.locator('#app-content')).toContainText('Backlog operativo');
     await expect(page.locator('#proj-csv-template')).toHaveCount(0);
     await expect(page.locator('#proj-csv-upload')).toHaveCount(0);

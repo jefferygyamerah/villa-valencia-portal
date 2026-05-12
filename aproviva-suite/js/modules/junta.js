@@ -104,6 +104,13 @@
       var closureRows = incidents.filter(function (i) {
         return (i.status === 'resolved' || i.status === 'closed') && latestHistory(i);
       }).slice(0, 10);
+      var auditRows = buildAuditRows({
+        incidents: incidents,
+        rounds: rounds,
+        findings: findings,
+        escalations: esc,
+        workOrders: wo,
+      });
 
       box.innerHTML = '' +
         '<div class="executive-hero" data-testid="junta-premium-hero">' +
@@ -143,6 +150,17 @@
             { key: 'source_type', label: 'Origen' },
             { key: 'created_at', label: 'Creado', render: function (r) { return window.UI.fmtDate(r.created_at); } },
           ]) : '<p class="empty">Sin escalaciones cr\u00edticas/altas abiertas.</p>') +
+        '</div>' +
+
+        '<div class="page-section" data-testid="audit-history-center"><h3 class="section-title">Centro de auditoría / historial</h3>' +
+          '<p class="muted">Cambios recientes y cierres verificables cruzando incidencias, recorridos, hallazgos, escalaciones y órdenes. Vista segura: sin PII ni notas privadas completas.</p>' +
+          (auditRows.length ? window.UI.table(auditRows.slice(0, 12), [
+            { key: 'type', label: 'Flujo' },
+            { key: 'label', label: 'Registro' },
+            { key: 'status', label: 'Estado', render: function (r) { return window.UI.badge(r.status, statusKind(r.status)); }, html: true },
+            { key: 'when', label: 'Fecha', render: function (r) { return r.when ? window.UI.fmtDate(r.when) : ''; } },
+            { key: 'evidence', label: 'Evidencia segura' },
+          ]) : '<p class="empty">Sin movimientos recientes para auditar.</p>') +
         '</div>' +
 
         '<div class="page-section"><h3 class="section-title">Historial de cierre</h3>' +
@@ -262,6 +280,59 @@
       else if (type.indexOf('prevent') >= 0 || type.indexOf('recorrido') >= 0 || type.indexOf('inspection') >= 0) preventive++;
     });
     return { preventive: preventive, corrective: corrective, label: preventive + ' / ' + corrective };
+  }
+
+  function buildAuditRows(groups) {
+    var rows = [];
+    function push(type, label, status, when, evidence) {
+      rows.push({
+        type: type,
+        label: label || '—',
+        status: status || '—',
+        when: when || '',
+        evidence: evidence || 'Registro operativo',
+      });
+    }
+
+    (groups.incidents || []).forEach(function (row) {
+      var h = latestHistory(row);
+      var when = row.resolved_at || row.closed_at || row.updated_at || row.created_at;
+      if (isAuditStatus(row.status) || h) {
+        push('Incidencia', [row.ticket_number, row.title].filter(Boolean).join(' · '), row.status, when, h ? closureSummary(row) : 'Estado y categoría auditables');
+      }
+    });
+
+    (groups.rounds || []).forEach(function (row) {
+      if (isAuditStatus(row.status) || row.completed_at) {
+        push('Recorrido', [row.round_number, row.title].filter(Boolean).join(' · '), row.status, row.completed_at || row.updated_at || row.created_at, 'Completado con puntos/evidencia de ronda');
+      }
+    });
+
+    (groups.findings || []).forEach(function (row) {
+      if (isAuditStatus(row.status) || row.resolved_at || row.closed_at) {
+        push('Hallazgo', row.description || row.title || row.id, row.status, row.resolved_at || row.closed_at || row.updated_at || row.created_at, 'Cierre de hallazgo sin datos sensibles');
+      }
+    });
+
+    (groups.escalations || []).forEach(function (row) {
+      if (isAuditStatus(row.status)) {
+        push('Escalación', row.title || row.source_type || row.id, row.status, row.resolved_at || row.closed_at || row.updated_at || row.created_at, 'Decisión/seguimiento de Junta o Gerencia');
+      }
+    });
+
+    (groups.workOrders || []).forEach(function (row) {
+      if (isAuditStatus(row.status)) {
+        push('Orden / proyecto', [row.assignment_number, row.title].filter(Boolean).join(' · '), row.status, row.completed_at || row.closed_at || row.updated_at || row.created_at, isCapitalProject(row) ? 'Proyecto capital actualizado' : 'Trabajo operativo actualizado');
+      }
+    });
+
+    return rows.sort(function (a, b) {
+      return new Date(b.when || 0).getTime() - new Date(a.when || 0).getTime();
+    });
+  }
+
+  function isAuditStatus(status) {
+    return ['resolved', 'closed', 'completed', 'approved', 'cancelled'].indexOf(String(status || '').toLowerCase()) >= 0;
   }
 
   function wireKpiDrilldowns(data) {
