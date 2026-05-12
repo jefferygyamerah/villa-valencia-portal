@@ -90,7 +90,7 @@ Implemented first premium reporting slice:
 1. ✅ `P3-RPT-002` weekly board scorecard metrics: implemented across Reportes board packet and Junta live dashboard with 8 metrics, owner/source/detail, age buckets, chronic issue metric, and preventive/corrective ratio.
 2. ✅ Premium visual pass for Junta + Reportes: executive hero, board summary strip, stronger scorecard hierarchy, mobile readability, and print cleanup.
 3. ✅ Audit/history center lite: Junta now has a read-only audit/history center consolidating safe recent movements across incidents, rounds, findings, escalations, and work orders. See `docs/test-findings/premium-audit-history-2026-05-12.md`.
-4. Next: Auth/RLS hardening plan and first implementation slice.
+4. Next: Auth/RLS hardening plan and first implementation slice. Implementation target documented in `docs/AUTH-RLS-HARDENING-IMPLEMENTATION-PLAN-2026-05-12.md`.
 5. Resident/PQRS premium polish against Munily-style resident expectations.
 
 

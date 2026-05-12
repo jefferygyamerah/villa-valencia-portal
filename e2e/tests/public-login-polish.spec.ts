@@ -6,6 +6,7 @@ test.describe('Public and login premium polish', () => {
     await expect(page.getByTestId('suite-login-screen')).toBeVisible();
     await expect(page.getByTestId('suite-login-security-note')).toContainText(/Acceso privado/i);
     await expect(page.getByTestId('suite-demo-access')).toContainText(/Modo demo \/ QA/i);
+    await expect(page.getByTestId('suite-demo-access')).toContainText(/No representan autenticación final de producción/i);
     await expect(page.getByRole('button', { name: 'Gerencia' })).not.toBeVisible();
     await page.getByTestId('suite-demo-access').locator('summary').click();
     await expect(page.getByRole('button', { name: 'Gerencia' })).toBeVisible();
