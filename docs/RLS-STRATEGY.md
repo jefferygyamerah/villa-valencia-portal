@@ -19,4 +19,6 @@ The APROVIVA suite uses the **anon publishable key** in the browser with **no Su
 2. Add `auth.uid()`-based policies joining `admin_users` (or similar) for `INSERT`/`UPDATE`/`DELETE` on `inventory_*`, `inspection_*`, `incident_*`, etc.
 3. Keep **select** policies as narrow as operational needs allow (often per `building_id`).
 
+The next implementation slice is drafted in [`AUTH-RLS-HARDENING-SLICE-2026-05-12.md`](AUTH-RLS-HARDENING-SLICE-2026-05-12.md): start with Supabase Auth identity mapping and one low-risk table family (`gemba_round_templates` recommended) before tightening the broader operational suite.
+
 Until then, treat the publishable key as a **soft boundary**: PIN gates UI routes; database relies on project URL secrecy + Supabase rate limits. Do not expose the anon key in public embeds unrelated to VV operations.
