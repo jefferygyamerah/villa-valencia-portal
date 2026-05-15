@@ -18,13 +18,18 @@ window.APROVIVA_CONFIG = {
   // Deploy the script from the PQRS spreadsheet, then paste the URL here.
   APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzwbIHtZgjjI5fbrJlyCjJInwtPCoe8lu5YcNyunvQBmHgmIRCOy2S04QRLo4QfqqWp6g/exec',
 
+  // Read-only resident finance snapshot published from the controlled report
+  // pipeline: Drive report -> validate totals -> publish JSON -> render portal.
+  FINANCIAL_SNAPSHOT_URL: 'data/financial-report-snapshot.json',
+  FINANCIAL_DASHBOARD_SCRIPT: 'js/financial-dashboard.js',
+
   // Provider suggestion Google Form (if separate from PQRS)
   PROVIDER_SUGGEST_FORM_URL: null,
 
   // Google Drive folder URLs — open in new tab from nav and cards
   DRIVE_LINKS: {
     asambleas:   'https://drive.google.com/drive/folders/1JsUzlFz2ImILowa5-Y4vLI3S0wqaTBtc',
-    finanzas:    'https://drive.google.com/drive/folders/1JFxrA8lMiCyBeKjahEu1wGW58BsSs0qA',
+    finanzas:    'https://drive.google.com/drive/folders/1-gF8X8k4hIpcgZ4KhxvpxsPmclyRX8-3',
     comunicados: 'https://drive.google.com/drive/folders/1JudSzn7Dz-4ga1w9rOTrzjdFJAh_m0Co',
     planos:      'https://drive.google.com/drive/folders/1cRsTsxNqq4M2V0BGYBOZOT7jTJqTVyWP',
     proyectos:   'https://drive.google.com/drive/folders/1AafYkFFj23xFcSWaS4yfAgBGUOLcetu4',
@@ -37,3 +42,16 @@ window.APROVIVA_CONFIG = {
     junta: 'https://vv-auth-app.vercel.app/es/admin/login?next=/es/admin/junta',
   },
 };
+
+(function loadResidentFinanceDashboard() {
+  var cfg = window.APROVIVA_CONFIG || {};
+  var scriptUrl = cfg.FINANCIAL_DASHBOARD_SCRIPT;
+  if (!scriptUrl) return;
+
+  // Load the resident finance renderer as an isolated enhancement. Keeping it
+  // outside app.js avoids blending the PQRS dashboard and financial report loops.
+  var script = document.createElement('script');
+  script.src = scriptUrl;
+  script.defer = true;
+  document.head.appendChild(script);
+})();
