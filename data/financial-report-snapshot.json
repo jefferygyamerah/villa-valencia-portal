@@ -1,0 +1,260 @@
+{
+  "reportMonth": "Marzo 2026",
+  "periodEnd": "2026-03-31",
+  "generatedAt": "2026-05-15T00:00:00-05:00",
+  "audience": "residentes",
+  "language": "es",
+  "sourceFolderUrl": "https://drive.google.com/drive/folders/1-gF8X8k4hIpcgZ4KhxvpxsPmclyRX8-3",
+  "sourceDriveFileId": "1_DGoilKxOh1CKgoUTD6KTN3Sv5rdqYGI",
+  "sourceDriveFileName": "INFORME FINANCIERO MES DE MARZO 2026.xlsx",
+  "sourceDriveFileUrl": "https://docs.google.com/spreadsheets/d/1_DGoilKxOh1CKgoUTD6KTN3Sv5rdqYGI/edit",
+  "sourcePdfFileId": "14_JyNpxQ3pKZCVLYT0vTgAUVIE98yJCN",
+  "sourcePdfFileName": "INFORME FINANCIERO MES DE MARZO 2026.pdf",
+  "sourcePdfFileUrl": "https://drive.google.com/file/d/14_JyNpxQ3pKZCVLYT0vTgAUVIE98yJCN/view",
+  "summary": "En marzo entraron B/.31,419.28 y salieron B/.57,825.22. La cuenta bancaria cerró en B/.106,924.80 y la conciliación no presenta diferencia. El punto que necesita más atención es la cobranza: B/.178,522.75 de las cuentas principales por cobrar tiene más de 90 días.",
+  "cash": {
+    "bookAvailable": 106750.3,
+    "pettyCash": 300,
+    "bankBookBalance": 106450.3,
+    "bankStatementBalance": 106924.8,
+    "outstandingChecks": 474.5,
+    "reconciliationDifference": 0
+  },
+  "liquidity": {
+    "openingBankBalance": 133330.74,
+    "collections": 31419.28,
+    "payments": 57825.22,
+    "endingBankBalance": 106924.8,
+    "cashChange": -26405.94
+  },
+  "incomeExpense": {
+    "incomeYtd": 105262,
+    "operatingExpensesYtd": 79784.68,
+    "projectsYtd": 30631.05,
+    "netResultYtd": -5153.73,
+    "monthIncome": 57162,
+    "monthOperatingExpenses": 25396.3,
+    "monthProjects": 17699.05,
+    "monthNetResult": 14066.65
+  },
+  "budgetExecution": {
+    "income": {
+      "annualBudget": 288000,
+      "actualYtd": 105262,
+      "percentUsed": 0.3654930556,
+      "remaining": 182738
+    },
+    "operatingExpenses": {
+      "annualBudget": 238447.56,
+      "actualYtd": 76211.76,
+      "percentUsed": 0.3196164389,
+      "remaining": 162235.8
+    },
+    "projects": {
+      "annualBudget": 61934,
+      "actualYtd": 30631.05,
+      "percentUsed": 0.4945756773,
+      "remaining": 31302.95
+    }
+  },
+  "receivables": {
+    "netTotal": 208220.29,
+    "grossMainTotal": 211922.69,
+    "over90MainTotal": 178522.75,
+    "ownerCredits": 3928,
+    "otherReceivables": 225.6,
+    "categories": [
+      {
+        "key": "asociados",
+        "label": "Asociados",
+        "plainLabel": "Cuotas de mantenimiento pendientes",
+        "total": 56957.5,
+        "aging": {
+          "0-30": 5032.5,
+          "31-60": 2480,
+          "61-90": 1240,
+          "over90": 48205
+        }
+      },
+      {
+        "key": "no_asociados",
+        "label": "No asociados",
+        "plainLabel": "Cuentas no asociadas",
+        "total": 76855,
+        "aging": {
+          "0-30": 800,
+          "31-60": 700,
+          "61-90": 600,
+          "over90": 74755
+        }
+      },
+      {
+        "key": "acuerdos_pago",
+        "label": "Acuerdos de pago",
+        "plainLabel": "Saldos en acuerdos de pago",
+        "total": 58162.75,
+        "aging": {
+          "0-30": 1400,
+          "31-60": 800,
+          "61-90": 400,
+          "over90": 55562.75
+        }
+      },
+      {
+        "key": "cuota_extraordinaria",
+        "label": "Cuota extraordinaria",
+        "plainLabel": "Cuota extraordinaria pendiente",
+        "total": 19947.44,
+        "aging": {
+          "0-30": 19947.44,
+          "31-60": 0,
+          "61-90": 0,
+          "over90": 0
+        }
+      }
+    ],
+    "sharedReceivables": [
+      {
+        "label": "Costa Esmeralda - tanque de reserva",
+        "amount": 16751.3
+      },
+      {
+        "label": "El Doral - tanque de reserva",
+        "amount": 11252.18
+      },
+      {
+        "label": "Sunset - tanque de reserva",
+        "amount": 5115.36
+      },
+      {
+        "label": "Doral - planta de tratamiento",
+        "amount": 1264.21
+      }
+    ]
+  },
+  "payables": {
+    "providerPayables": 13872.05,
+    "otherLiabilities": 2895.82,
+    "laborReserves": 702.57,
+    "totalLiabilities": 17470.44
+  },
+  "projects": {
+    "annualBudget": 61934,
+    "actualYtd": 30631.05,
+    "percentUsed": 0.4945756773,
+    "remaining": 31302.95,
+    "items": [
+      {
+        "name": "Rehabilitación de cancha de tenis",
+        "budget": 10700,
+        "actualYtd": 15415.65,
+        "percentUsed": 1.440714953,
+        "remaining": -4715.65,
+        "status": "over"
+      },
+      {
+        "name": "Rehabilitación integral de piscina y área perimetral",
+        "budget": 27000,
+        "actualYtd": 15215.4,
+        "percentUsed": 0.5635333333,
+        "remaining": 11784.6,
+        "status": "watch"
+      }
+    ]
+  },
+  "reconciliation": {
+    "status": "reconciled",
+    "bookBalance": 106450.3,
+    "bankStatementBalance": 106924.8,
+    "outstandingChecks": 474.5,
+    "difference": 0,
+    "assuranceNote": "Informe compilado y revisado con base en información de administración; no constituye auditoría ni aseguramiento."
+  },
+  "history": [
+    {
+      "month": "Enero",
+      "periodEnd": "2026-01-31",
+      "sourceDriveFileId": "1ZBaZpvgZ3SuJRzOpRD5TUERWUzXXzp-n",
+      "bankEnding": 111428.78,
+      "bookAvailable": 111575.28,
+      "collections": 33015,
+      "payments": 34608.78,
+      "netReceivables": 187388.7,
+      "incomeYtd": 24250,
+      "operatingExpensesYtd": 32377.61,
+      "projectsYtd": 0,
+      "netResultYtd": -8127.61,
+      "budgetIncomePercent": 0.0842013889,
+      "budgetOperatingExpensePercent": 0.1313316437,
+      "budgetProjectsPercent": 0
+    },
+    {
+      "month": "Febrero",
+      "periodEnd": "2026-02-28",
+      "sourceDriveFileId": "16LFm8pPkhKxpC--SgmeLfejnuoxjjS61",
+      "bankEnding": 133330.74,
+      "bookAvailable": 133477.24,
+      "collections": 29603.19,
+      "payments": 7701.23,
+      "netReceivables": 181835.51,
+      "incomeYtd": 48100,
+      "operatingExpensesYtd": 54388.38,
+      "projectsYtd": 12932,
+      "netResultYtd": -19220.38,
+      "budgetIncomePercent": 0.1670138889,
+      "budgetOperatingExpensePercent": 0.2175916164,
+      "budgetProjectsPercent": 0.2088029192
+    },
+    {
+      "month": "Marzo",
+      "periodEnd": "2026-03-31",
+      "sourceDriveFileId": "1_DGoilKxOh1CKgoUTD6KTN3Sv5rdqYGI",
+      "bankEnding": 106924.8,
+      "bookAvailable": 106750.3,
+      "collections": 31419.28,
+      "payments": 57825.22,
+      "netReceivables": 208220.29,
+      "incomeYtd": 105262,
+      "operatingExpensesYtd": 79784.68,
+      "projectsYtd": 30631.05,
+      "netResultYtd": -5153.73,
+      "budgetIncomePercent": 0.3654930556,
+      "budgetOperatingExpensePercent": 0.3196164389,
+      "budgetProjectsPercent": 0.4945756773
+    }
+  ],
+  "validations": [
+    {
+      "key": "cash_movement",
+      "label": "Saldo inicial + cobros - pagos = saldo bancario final",
+      "expected": 106924.8,
+      "actual": 106924.8,
+      "passed": true
+    },
+    {
+      "key": "receivables_reconcile",
+      "label": "Cuentas por cobrar netas concilian con el estado financiero",
+      "expected": 208220.29,
+      "actual": 208220.29,
+      "passed": true
+    },
+    {
+      "key": "net_result",
+      "label": "Ingresos - gastos - proyectos = resultado acumulado",
+      "expected": -5153.73,
+      "actual": -5153.73,
+      "passed": true
+    },
+    {
+      "key": "bank_reconciliation",
+      "label": "Diferencia de conciliación bancaria",
+      "expected": 0,
+      "actual": 0,
+      "passed": true
+    }
+  ],
+  "sensitiveDataPolicy": {
+    "showUnitLevelArrears": false,
+    "note": "El resumen para residentes muestra saldos agregados por categoría. No publica casas, nombres ni detalle bancario línea por línea."
+  }
+}
